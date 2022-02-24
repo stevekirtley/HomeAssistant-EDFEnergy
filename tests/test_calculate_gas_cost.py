@@ -94,15 +94,19 @@ async def test_when_gas_consumption_is_before_latest_date_then_no_calculation_is
   assert consumption_cost == None
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("is_smets1_meter",[(True), (False)])
-async def test_when_gas_consumption_available_then_calculation_returned(is_smets1_meter):
+@pytest.mark.parametrize("is_smets1_meter,latest_date",[
+  (True, datetime.strptime("2022-02-09T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")), 
+  (True, None), 
+  (False, datetime.strptime("2022-02-09T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")), 
+  (False, None)
+])
+async def test_when_gas_consumption_available_then_calculation_returned(is_smets1_meter, latest_date):
   # Arrange
   context = get_test_context()
 
   client = OctopusEnergyApiClient(context["api_key"])
   period_from = datetime.strptime("2022-02-10T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
   period_to = datetime.strptime("2022-02-11T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
-  latest_date = datetime.strptime("2022-02-09T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
   tariff_code = "G-1R-SUPER-GREEN-24M-21-07-30-A"
   
   consumption_data = create_consumption_data(period_from, period_to)
