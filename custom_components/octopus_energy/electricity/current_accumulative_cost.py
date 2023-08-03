@@ -3,6 +3,8 @@ from datetime import datetime
 
 from homeassistant.core import HomeAssistant
 
+from homeassistant.util.dt import (now)
+
 from homeassistant.helpers.update_coordinator import (
   CoordinatorEntity,
 )
@@ -100,13 +102,13 @@ class OctopusEnergyCurrentAccumulativeElectricityCost(CoordinatorEntity, Octopus
       consumption_data,
       rate_data,
       standing_charge,
-      self._last_reset,
+      None, # We want to always recalculate
       self._tariff_code
     )
 
     if (consumption_and_cost is not None):
       _LOGGER.debug(f"Calculated current electricity consumption cost for '{self._mpan}/{self._serial_number}'...")
-      self._last_reset = consumption_and_cost["last_reset"]
+      self._last_reset = now()
       self._state = consumption_and_cost["total_cost"]
 
       self._attributes = {
