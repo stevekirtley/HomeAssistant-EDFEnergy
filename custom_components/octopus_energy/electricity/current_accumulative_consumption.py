@@ -1,4 +1,3 @@
-from homeassistant.util.dt import (now)
 import logging
 
 from homeassistant.core import HomeAssistant
@@ -16,24 +15,24 @@ from homeassistant.const import (
 
 from .base import (OctopusEnergyElectricitySensor)
 
-from ..utils.consumption import (get_total_consumption)
+from . import async_calculate_electricity_consumption_and_cost
 
 _LOGGER = logging.getLogger(__name__)
 
 class OctopusEnergyCurrentAccumulativeElectricityConsumption(CoordinatorEntity, OctopusEnergyElectricitySensor):
   """Sensor for displaying the current accumulative electricity consumption."""
 
-  def __init__(self, hass: HomeAssistant, coordinator, meter, point):
+  def __init__(self, hass: HomeAssistant, coordinator, rates_coordinator, standing_charge_coordinator, tariff_code, meter, point):
     """Init sensor."""
     super().__init__(coordinator)
     OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
 
     self._state = None
-    self._latest_date = None
-    self._previous_total_consumption = None
-    self._attributes = {
-      "last_updated_timestamp": None
-    }
+    self._last_reset = None
+    
+    self._tariff_code = tariff_code
+    self._rates_coordinator = rates_coordinator
+    self._standing_charge_coordinator = standing_charge_coordinator
 
   @property
   def unique_id(self):
@@ -73,26 +72,49 @@ class OctopusEnergyCurrentAccumulativeElectricityConsumption(CoordinatorEntity, 
   @property
   def last_reset(self):
     """Return the time when the sensor was last reset, if any."""
-    return self._latest_date
+    return self._last_reset
   
   @property
   def state(self):
-    """Retrieve the latest electricity consumption"""
-    _LOGGER.debug('Updating OctopusEnergyCurrentAccumulativeElectricityConsumption')
-    consumption_result = self.coordinator.data
-
-    if (consumption_result is not None and len(consumption_result) > 0):
-      self._state = get_total_consumption(consumption_result)
-      if (self._state is not None):
-        self._latest_date = consumption_result[0]["interval_start"]
-        self._attributes["last_updated_timestamp"] = now()
-        self._attributes["charges"] = list(map(lambda charge: {
-          "from": charge["interval_start"],
-          "to": charge["interval_end"],
-          "consumption": charge["consumption"]
-        }, consumption_result))
-    
+    """Retrieve the current days accumulative consumption"""
     return self._state
+  
+  @property
+  def should_poll(self) -> bool:
+    return True
+    
+  async def async_update(self):
+    consumption_data = self.coordinator.data if self.coordinator.data is not None else None
+    rate_data = self._rates_coordinator.data[self._mpan] if self._rates_coordinator.data is not None and self._mpan in self._rates_coordinator.data else None
+    standing_charge = self._standing_charge_coordinator.data[self._mpan]["value_inc_vat"] if self._standing_charge_coordinator.data is not None and self._mpan in self._standing_charge_coordinator.data and "value_inc_vat" in self._standing_charge_coordinator.data[self._mpan] else None
+
+    consumption_and_cost = await async_calculate_electricity_consumption_and_cost(
+      consumption_data,
+      rate_data,
+      standing_charge,
+      None, # We want to recalculate
+      self._tariff_code
+    )
+
+    if (consumption_and_cost is not None):
+      _LOGGER.debug(f"Calculated previous electricity consumption for '{self._mpan}/{self._serial_number}'...")
+
+      self._state = consumption_and_cost["total_consumption"]
+      self._last_reset = consumption_and_cost["last_reset"]
+
+      self._attributes = {
+        "mpan": self._mpan,
+        "serial_number": self._serial_number,
+        "is_export": self._is_export,
+        "is_smart_meter": self._is_smart_meter,
+        "total": consumption_and_cost["total_consumption"],
+        "last_calculated_timestamp": consumption_and_cost["last_calculated_timestamp"],
+        "charges": list(map(lambda charge: {
+          "from": charge["from"],
+          "to": charge["to"],
+          "consumption": charge["consumption"]
+        }, consumption_and_cost["charges"]))
+      }
 
   async def async_added_to_hass(self):
     """Call when entity about to be added to hass."""
