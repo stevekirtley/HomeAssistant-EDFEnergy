@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
 )
 
 from .base import (OctopusEnergyGasSensor)
+from ..utils.rate_information import get_current_rate_information
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +29,19 @@ class OctopusEnergyGasCurrentRate(CoordinatorEntity, OctopusEnergyGasSensor):
     self._gas_price_cap = gas_price_cap
 
     self._state = None
-    self._latest_date = None
+    self._last_updated = None
+
+    self._attributes = {
+      "mprn": self._mprn,
+      "serial_number": self._serial_number,
+      "is_smart_meter": self._is_smart_meter,
+      "tariff": self._tariff_code,
+      "all_rates": [],
+      "applicable_rates": [],
+      "valid_from": None,
+      "valid_to": None,
+      "is_capped": None,
+    }
 
   @property
   def unique_id(self):
@@ -67,35 +80,46 @@ class OctopusEnergyGasCurrentRate(CoordinatorEntity, OctopusEnergyGasSensor):
 
   @property
   def state(self):
-    """Retrieve the latest gas price"""
-
+    """Retrieve the current rate for the sensor."""
     current = now()
-    if (self._latest_date is None or (self._latest_date + timedelta(days=1)) < current) or self._state is None:
-      _LOGGER.debug('Updating OctopusEnergyGasCurrentRate')
+    if (self._last_updated is None or self._last_updated < (current - timedelta(minutes=30)) or (current.minute % 30) == 0):
+      _LOGGER.debug(f"Updating OctopusEnergyGasCurrentRate for '{self._mprn}/{self._serial_number}'")
 
-      rates = self.coordinator.data
-      
-      current_rate = None
-      if rates is not None:
-        for period in rates:
-          if current >= period["valid_from"] and current <= period["valid_to"]:
-            current_rate = period
-            break
+      rate_information = get_current_rate_information(self.coordinator.data[self._mprn] if self._mprn in self.coordinator.data else None, current)
 
-      if current_rate is not None:
-        self._latest_date = rates[0]["valid_from"]
-        self._state = current_rate["value_inc_vat"] / 100
+      if rate_information is not None:
+        self._attributes = {
+          "mprn": self._mprn,
+          "serial_number": self._serial_number,
+          "is_smart_meter": self._is_smart_meter,
+          "tariff": self._tariff_code,
+          "all_rates": rate_information["all_rates"],
+          "applicable_rates": rate_information["applicable_rates"],
+          "valid_from": rate_information["current_rate"]["valid_from"],
+          "valid_to": rate_information["current_rate"]["valid_to"],
+          "is_capped": rate_information["current_rate"]["is_capped"],
+        }
 
-        # Adjust our period, as our gas only changes on a daily basis
-        current_rate["valid_from"] = rates[0]["valid_from"]
-        current_rate["valid_to"] = rates[-1]["valid_to"]
-        self._attributes = current_rate
-
-        if self._gas_price_cap is not None:
-          self._attributes["price_cap"] = self._gas_price_cap
+        self._state = rate_information["current_rate"]["value_inc_vat"] / 100
       else:
+        self._attributes = {
+          "mprn": self._mprn,
+          "serial_number": self._serial_number,
+          "is_smart_meter": self._is_smart_meter,
+          "tariff": self._tariff_code,
+          "all_rates": [],
+          "applicable_rates": [],
+          "valid_from": None,
+          "valid_to": None,
+          "is_capped": None,
+        }
+
         self._state = None
-        self._attributes = {}
+
+      if self._gas_price_cap is not None:
+        self._attributes["price_cap"] = self._gas_price_cap
+
+      self._last_updated = current
 
     return self._state
 
