@@ -18,11 +18,11 @@ from homeassistant.const import (
 )
 
 from . import (
-  current_saving_sessions_event,
+  current_octoplus_sessions_event,
   get_filtered_consumptions,
-  get_next_saving_sessions_event,
-  get_saving_session_consumption_dates,
-  get_saving_session_target
+  get_next_octoplus_sessions_event,
+  get_octoplus_session_consumption_dates,
+  get_octoplus_session_target
 )
 
 from ..coordinators.saving_sessions import SavingSessionsCoordinatorResult
@@ -132,19 +132,19 @@ class OctopusEnergySavingSessionBaseline(MultiCoordinatorEntity, OctopusEnergyEl
     if saving_session is not None and previous_consumption is not None:
 
       all_saving_sessions = saving_session.available_events + saving_session.joined_events
-      target_saving_session = current_saving_sessions_event(current, saving_session.joined_events)
+      target_saving_session = current_octoplus_sessions_event(current, saving_session.joined_events)
       if (target_saving_session is None):
-        target_saving_session = get_next_saving_sessions_event(current, saving_session.joined_events)
+        target_saving_session = get_next_octoplus_sessions_event(current, saving_session.joined_events)
 
       if (target_saving_session is None and self._mock_baseline == True):
         mock_saving_session_start = current.replace(minute=0, second=0, microsecond=0)
         target_saving_session = SavingSession('1', '2', mock_saving_session_start, mock_saving_session_start + timedelta(hours=1), 0)
 
       if (target_saving_session is not None):
-        consumption_dates = get_saving_session_consumption_dates(target_saving_session, all_saving_sessions)
+        consumption_dates = get_octoplus_session_consumption_dates(target_saving_session, all_saving_sessions)
         self._consumption_data = get_filtered_consumptions(previous_consumption.historic_weekday_consumption if target_saving_session.start.weekday() < 5 else previous_consumption.historic_weekend_consumption, consumption_dates)
 
-      target = get_saving_session_target(current, target_saving_session, self._consumption_data if self._consumption_data is not None else [])
+      target = get_octoplus_session_target(current, target_saving_session, self._consumption_data if self._consumption_data is not None else [])
       if (target is not None and target.current_target is not None):
         self._state = target.current_target.baseline
         self._attributes["start"] = target.current_target.start
