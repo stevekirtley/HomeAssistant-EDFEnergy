@@ -79,8 +79,7 @@ class OctopusEnergyHeatPumpSensorTemperature(CoordinatorEntity, BaseOctopusEnerg
   
   @callback
   def _handle_coordinator_update(self) -> None:
-    """Retrieve the previous rate."""
-    # Find the previous rate. We only need to do this every half an hour
+    """Retrieve the current sensor temperature."""
     current = now()
     result: HeatPumpCoordinatorResult = self.coordinator.data if self.coordinator is not None and self.coordinator.data is not None else None
     if (result is not None and 
