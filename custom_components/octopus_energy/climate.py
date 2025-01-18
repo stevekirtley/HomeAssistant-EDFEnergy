@@ -101,7 +101,7 @@ def setup_heat_pump_sensors(hass: HomeAssistant, client: OctopusEnergyApiClient,
   if heat_pump_response is not None and heat_pump_response.octoHeatPumpControllerConfiguration is not None:
     for zone in heat_pump_response.octoHeatPumpControllerConfiguration.zones:
       if zone.configuration is not None:
-        if zone.configuration.enabled == False:
+        if zone.configuration.enabled == False or zone.configuration.zoneType == "WATER":
           continue
 
         entities.append(OctopusEnergyHeatPumpZone(
