@@ -8,7 +8,6 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.const import (
     UnitOfTemperature,
     PRECISION_HALVES,
-    PRECISION_TENTHS,
     ATTR_TEMPERATURE
 )
 from homeassistant.core import HomeAssistant, callback
@@ -52,7 +51,6 @@ class OctopusEnergyHeatPumpZone(CoordinatorEntity, BaseOctopusEnergyHeatPumpSens
   _attr_preset_modes = [PRESET_NONE, PRESET_BOOST]
   _attr_preset_mode = None
   _attr_temperature_unit = UnitOfTemperature.CELSIUS
-  _attr_target_temperature_step = PRECISION_TENTHS
   _attr_target_temperature_step = PRECISION_HALVES
 
   def __init__(self, hass: HomeAssistant, coordinator, client: OctopusEnergyApiClient, account_id: str, heat_pump_id: str, heat_pump: HeatPump, zone: ConfigurationZone, is_mocked: bool):
