@@ -1192,7 +1192,7 @@ class OctopusEnergyApiClient:
     try:
       request_context = "join-saving-session"
       client = self._create_client_session()
-      url = f'{self._base_url}/v1/graphql/'
+      url = f'{self._backend_base_url}/v1/graphql/'
       # Get account response
       payload = { "query": octoplus_saving_session_join_mutation.format(account_id=account_id, event_code=event_code) }
       headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
