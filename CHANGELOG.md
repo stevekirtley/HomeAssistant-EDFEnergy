@@ -1,3 +1,11 @@
+## [18.1.2](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/compare/v18.1.1...v18.1.2) (2026-03-20)
+
+
+### Bug Fixes
+
+* Fixed URL for joining saving sessions (Thanks [@bobrippling](https://github.com/bobrippling)) ([6d9506d](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/commit/6d9506df1339db4328d477d17cd6aeee813c6afa))
+* Update URL for joining saving sessions to backend ([ac777af](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/commit/ac777af91990d0b0cee64c8a95567eb8642135f9))
+
 ## [18.1.1](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/compare/v18.1.0...v18.1.1) (2026-03-14)
 
 

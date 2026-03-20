@@ -281,9 +281,7 @@ octoplus_saving_session_join_mutation = '''mutation {{
 		accountNumber: "{account_id}"
 		eventCode: "{event_code}"
 	}}) {{
-		possibleErrors {{
-			message
-		}}
+		joinedEventCodes
 	}}
 }}
 '''
@@ -1195,13 +1193,14 @@ class OctopusEnergyApiClient:
       url = f'{self._backend_base_url}/v1/graphql/'
       # Get account response
       payload = { "query": octoplus_saving_session_join_mutation.format(account_id=account_id, event_code=event_code) }
-      headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
+      headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as join_response:
 
         try:
           await self.__async_read_response__(join_response, url)
           return JoinSavingSessionResponse(True, [])
         except RequestException as e:
+          _LOGGER.info(e)
           return JoinSavingSessionResponse(False, e.errors)
     
     except TimeoutError:
