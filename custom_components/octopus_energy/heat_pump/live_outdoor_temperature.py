@@ -1,6 +1,5 @@
 from datetime import datetime
 import logging
-from typing import List
 
 from homeassistant.const import (
     STATE_UNAVAILABLE,
@@ -85,13 +84,12 @@ class OctopusEnergyHeatPumpLiveOutdoorTemperature(CoordinatorEntity, BaseOctopus
     
     if (result is not None 
         and result.data is not None 
-        and result.data.heatPumpTimeSeriesPerformance is not None
-        and len(result.data.heatPumpTimeSeriesPerformance) > 0):
+        and result.data.heatPumpLivePerformance is not None
+        and result.data.heatPumpLivePerformance.outdoorTemperature is not None):
       _LOGGER.debug(f"Updating OctopusEnergyHeatPumpLiveOutdoorTemperature for '{self._heat_pump_id}'")
 
-      self._state = float(result.data.heatPumpTimeSeriesPerformance[-1].outdoorTemperature.value)
-      self._attributes["start_at"] = datetime.fromisoformat(result.data.heatPumpTimeSeriesPerformance[-1].startAt)
-      self._attributes["end_at"] = datetime.fromisoformat(result.data.heatPumpTimeSeriesPerformance[-1].endAt)
+      self._state = float(result.data.heatPumpLivePerformance.outdoorTemperature.value)
+      self._attributes["read_at"] = datetime.fromisoformat(result.data.heatPumpLivePerformance.readAt)
       self._last_updated = current
 
     self._attributes = dict_to_typed_dict(self._attributes)
