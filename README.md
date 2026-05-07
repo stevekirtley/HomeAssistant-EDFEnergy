@@ -1,5 +1,7 @@
 # Home Assistant EDF Energy
 
+This library is a Work In Progress, and not ready for use. 
+
 - [Home Assistant Octopus Energy](#home-assistant-octopus-energy)
   - [Features](#features)
   - [How to install](#how-to-install)
