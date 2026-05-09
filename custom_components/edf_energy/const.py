@@ -21,6 +21,8 @@ CONFIG_MAIN_OLD_API_KEY = "Api key"
 CONFIG_MAIN_OLD_ACCOUNT_ID = "Account Id"
 
 CONFIG_MAIN_API_KEY = "api_key"
+CONFIG_MAIN_EMAIL = "email"
+CONFIG_MAIN_PASSWORD = "password"
 CONFIG_ACCOUNT_ID = "account_id"
 CONFIG_MAIN_CALORIFIC_VALUE = "calorific_value"
 CONFIG_MAIN_PRICE_CAP_SETTINGS = "price_cap_settings"
