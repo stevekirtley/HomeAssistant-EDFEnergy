@@ -6,7 +6,12 @@ from custom_components.edf_energy.utils import get_tariff_parts
 @pytest.mark.parametrize("tariff_code,expected_energy,expected_rate,expected_product_code,expected_region",[
   ("G-1R-SUPER-GREEN-24M-21-07-30-A", "G", "1R", "SUPER-GREEN-24M-21-07-30", "A"),
   ("E-2R-SUPER-GREEN-24M-21-07-30-A", "E", "2R", "SUPER-GREEN-24M-21-07-30", "A"),
-  ("V2G-EXPORT-12M-FIXED-22-12-01-C", "E", "1R", "V2G-EXPORT-12M-FIXED-22-12-01", "C")
+  ("V2G-EXPORT-12M-FIXED-22-12-01-C", "E", "1R", "V2G-EXPORT-12M-FIXED-22-12-01", "C"),
+  # EDF Energy tariff codes use underscores in the product code component
+  ("E-1R-EDF_STANDARD_VARIABLE-A", "E", "1R", "EDF_STANDARD_VARIABLE", "A"),
+  ("G-1R-EDF_STANDARD_VARIABLE-A", "G", "1R", "EDF_STANDARD_VARIABLE", "A"),
+  ("E-2R-EDF_ECONOMY_7-A", "E", "2R", "EDF_ECONOMY_7", "A"),
+  ("E-1R-EDF_GO_APRIL_2021-A", "E", "1R", "EDF_GO_APRIL_2021", "A"),
 ])
 async def test_get_tariff_parts(tariff_code, expected_energy, expected_rate, expected_product_code, expected_region):
   # Act
