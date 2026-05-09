@@ -6,20 +6,20 @@ from pydantic import BaseModel
 class IntelligentDeviceSettingPreferenceSchedule(BaseModel):
   dayOfWeek: str
   time: time
-  min: Optional[float]
-  max: Optional[float]
-  upperLimit: Optional[float]
+  min: Optional[float] = None
+  max: Optional[float] = None
+  upperLimit: Optional[float] = None
 
 class IntelligentDeviceSettingPreference(BaseModel):
-  targetType: str
-  unit: str
-  mode: str
-  schedules: List[IntelligentDeviceSettingPreferenceSchedule]
+  targetType: Optional[str] = None
+  unit: Optional[str] = None
+  mode: Optional[str] = None
+  schedules: List[IntelligentDeviceSettingPreferenceSchedule] = []
 
 class IntelligentDeviceSettingStatus(BaseModel):
-  isSuspended: bool
+  isSuspended: bool = False
 
 class IntelligentDeviceSettings(BaseModel):
   id: str
-  status: IntelligentDeviceSettingStatus
-  preferences: IntelligentDeviceSettingPreference
+  status: Optional[IntelligentDeviceSettingStatus] = None
+  preferences: Optional[IntelligentDeviceSettingPreference] = None

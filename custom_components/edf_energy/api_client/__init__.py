@@ -1085,8 +1085,8 @@ class EDFEnergyApiClient:
     await self.async_refresh_token()
 
     settings = await self.async_get_intelligent_settings(account_id, device_id)
-    if (settings is None):
-      raise Exception('Failed to retrieve intelligent settings')
+    if settings is None or settings.preferences is None:
+      raise Exception('Failed to retrieve intelligent settings or preferences not available for this device')
 
     new_schedules = []
     for schedule in settings.preferences.schedules:
@@ -1123,8 +1123,8 @@ class EDFEnergyApiClient:
     await self.async_refresh_token()
     
     settings = await self.async_get_intelligent_settings(account_id, device_id)
-    if (settings is None):
-      raise Exception('Failed to retrieve intelligent settings')
+    if settings is None or settings.preferences is None:
+      raise Exception('Failed to retrieve intelligent settings or preferences not available for this device')
 
     new_schedules = []
     for schedule in settings.preferences.schedules:

@@ -69,7 +69,7 @@ class EDFEnergyIntelligentSmartCharge(CoordinatorEntity, SwitchEntity, EDFEnergy
     if settings_result is None or (self._last_updated is not None and self._last_updated > settings_result.last_retrieved):
       return self._state
 
-    if settings_result.settings is not None:
+    if settings_result.settings is not None and settings_result.settings.status is not None:
       self._state = not settings_result.settings.status.isSuspended
     
     self._attributes = dict_to_typed_dict(self._attributes)
