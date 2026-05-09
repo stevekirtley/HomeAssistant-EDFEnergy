@@ -29,6 +29,14 @@ api_token_query = '''mutation {{
 	}}
 }}'''
 
+api_token_email_query = '''mutation {{
+	obtainKrakenToken(input: {{ email: "{email}", password: "{password}" }}) {{
+		token
+    refreshToken
+    refreshExpiresIn
+	}}
+}}'''
+
 api_token_refresh_query = '''mutation {{
 	obtainKrakenToken(input: {{ refreshToken: "{refresh_token}" }}) {{
 		token
@@ -423,11 +431,13 @@ class EDFEnergyApiClient:
   _refresh_token_lock = RLock()
   _session_lock = RLock()
 
-  def __init__(self, api_key, electricity_price_cap = None, gas_price_cap = None, timeout_in_seconds = 20, favour_direct_debit_rates = True):
-    if (api_key is None):
-      raise Exception('API KEY is not set')
+  def __init__(self, api_key=None, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True, email=None, password=None):
+    if api_key is None and (email is None or password is None):
+      raise Exception('Either api_key or email and password must be set')
 
     self._api_key = api_key
+    self._email = email
+    self._password = password
     self._base_url = 'https://api.edfgb-kraken.energy'
     self._backend_base_url = 'https://api.backend.edfgb-kraken.energy'
 
@@ -446,6 +456,14 @@ class EDFEnergyApiClient:
     self._default_headers = { "user-agent": f'{user_agent_value}/{INTEGRATION_VERSION}' }
 
     self._session = None
+
+  async def _async_get_rest_auth(self, headers: dict):
+    """Return BasicAuth when an API key is set, otherwise inject a JWT header and return None."""
+    if self._api_key is not None:
+      return aiohttp.BasicAuth(self._api_key, '')
+    await self.async_refresh_token()
+    headers['Authorization'] = f'JWT {self._graphql_token}'
+    return None
 
   async def async_close(self):
     with self._session_lock:
@@ -483,10 +501,10 @@ class EDFEnergyApiClient:
           await self.__async_fetch_token()
         except AuthenticationException:
           if (self._graphql_refresh_token is not None):
-            _LOGGER.debug("Failed to refresh auth token using refresh token, attempting to use original API key")
+            _LOGGER.debug("Failed to refresh auth token using refresh token, attempting to use original credentials")
             self._graphql_refresh_token = None
             self._graphql_expiration = None
-            
+
             await self.__async_fetch_token()
           else:
             raise
@@ -498,7 +516,13 @@ class EDFEnergyApiClient:
   async def __async_fetch_token(self):
     client = self._create_client_session()
     url = f'{self._base_url}/v1/graphql/'
-    payload = { "query": api_token_query.format(api_key=self._api_key) if self._graphql_refresh_token is None else api_token_refresh_query.format(refresh_token=self._graphql_refresh_token) }
+    if self._graphql_refresh_token is not None:
+      query = api_token_refresh_query.format(refresh_token=self._graphql_refresh_token)
+    elif self._api_key is not None:
+      query = api_token_query.format(api_key=self._api_key)
+    else:
+      query = api_token_email_query.format(email=self._email, password=self._password)
+    payload = { "query": query }
     headers = { integration_context_header: "refresh-token" }
     async with client.post(url, headers=headers, json=payload) as token_response:
       token_response_body = await self.__async_read_response__(token_response, url)
@@ -739,7 +763,7 @@ class EDFEnergyApiClient:
     try:
       request_context = "electricity-rates"
       client = self._create_client_session()
-      auth = aiohttp.BasicAuth(self._api_key, '')
+      auth = await self._async_get_rest_auth(headers)
       page = 1
       has_more_rates = True
       while has_more_rates:
@@ -769,7 +793,7 @@ class EDFEnergyApiClient:
     try:
       request_context = "electricity-rates"
       client = self._create_client_session()
-      auth = aiohttp.BasicAuth(self._api_key, '')
+      auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}/electricity-tariffs/{tariff_code}/day-unit-rates?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
       headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
@@ -817,7 +841,7 @@ class EDFEnergyApiClient:
     try:
       request_context = "electricity-consumption"
       client = self._create_client_session()
-      auth = aiohttp.BasicAuth(self._api_key, '')
+      auth = await self._async_get_rest_auth(headers)
 
       query_params = []
       if period_from is not None:
@@ -864,7 +888,7 @@ class EDFEnergyApiClient:
     try:
       request_context = "gas-rates"
       client = self._create_client_session()
-      auth = aiohttp.BasicAuth(self._api_key, '')
+      auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}/gas-tariffs/{tariff_code}/standard-unit-rates?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
       headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
@@ -886,7 +910,7 @@ class EDFEnergyApiClient:
     try:
       request_context = "gas-consumption"
       client = self._create_client_session()
-      auth = aiohttp.BasicAuth(self._api_key, '')
+      auth = await self._async_get_rest_auth(headers)
 
       query_params = []
       if period_from is not None:
@@ -930,7 +954,7 @@ class EDFEnergyApiClient:
     try:
       request_context = "get-product-info"
       client = self._create_client_session()
-      auth = aiohttp.BasicAuth(self._api_key, '')
+      auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}'
       headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
@@ -946,7 +970,7 @@ class EDFEnergyApiClient:
     try:
       request_context = "electricity-standing-charge"
       client = self._create_client_session()
-      auth = aiohttp.BasicAuth(self._api_key, '')
+      auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}/electricity-tariffs/{tariff_code}/standing-charges?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
       headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
@@ -966,7 +990,7 @@ class EDFEnergyApiClient:
     try:
       request_context = "gas-standing-charge"
       client = self._create_client_session()
-      auth = aiohttp.BasicAuth(self._api_key, '')
+      auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}/gas-tariffs/{tariff_code}/standing-charges?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
       headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:

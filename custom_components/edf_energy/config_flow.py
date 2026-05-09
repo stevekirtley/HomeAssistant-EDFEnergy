@@ -55,6 +55,8 @@ from .const import (
   DOMAIN,
   
   CONFIG_MAIN_API_KEY,
+  CONFIG_MAIN_EMAIL,
+  CONFIG_MAIN_PASSWORD,
 )
 from .config.tariff_comparison import async_validate_tariff_comparison_config
 
@@ -178,7 +180,11 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
   def __setup_account_schema__(self, include_account_id = True):
     schema = {
       vol.Required(CONFIG_ACCOUNT_ID): str,
-      vol.Required(CONFIG_MAIN_API_KEY): str,
+      vol.Optional(CONFIG_MAIN_API_KEY): str,
+      vol.Optional(CONFIG_MAIN_EMAIL): str,
+      vol.Optional(CONFIG_MAIN_PASSWORD): selector.TextSelector(
+        selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+      ),
       vol.Required(CONFIG_MAIN_CALORIFIC_VALUE, default=DEFAULT_CALORIFIC_VALUE): cv.positive_float,
       vol.Required(CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES): bool,
       vol.Required(CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS): bool,
@@ -490,7 +496,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
 
     is_account_setup = False
     for entry in self._async_current_entries(include_ignore=False):
-      if CONFIG_MAIN_API_KEY in entry.data:
+      if CONFIG_KIND in entry.data and entry.data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
         is_account_setup = True
         break
 

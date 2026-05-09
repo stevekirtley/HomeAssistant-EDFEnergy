@@ -7,14 +7,18 @@
         "description": "Setup your basic account information.",
         "data": {
           "account_id": "Account ID (e.g. A-AAAA1111)",
-          "api_key": "Api key",
+          "api_key": "API key (optional)",
+          "email": "Email address (optional)",
+          "password": "Password (optional)",
           "calorific_value": "Gas calorific value.",
           "favour_direct_debit_rates": "Favour direct debit rates where available",
           "auto_discover_cost_trackers": "Automatically discover sensors suitable for cost trackers"
         },
         "data_description": {
-          "account_id": "You account ID can be found on your bill or at the top of {edf_energy_dashboard_url}",
-          "api_key": "You API key can be found at {edf_energy_api_access_url}",
+          "account_id": "Your account ID can be found on your bill or in your EDF Energy online account",
+          "api_key": "Provide either an API key or your email address and password. API key can be found at {edf_energy_api_access_url}",
+          "email": "Your EDF Energy account email address",
+          "password": "Your EDF Energy account password",
           "calorific_value": "This can be found on your gas statement and can change from time to time"
         },
         "sections": {
@@ -86,13 +90,17 @@
         "title": "Update Account Info",
         "description": "Update your basic account information. ",
         "data": {
-          "api_key": "Api key",
+          "api_key": "API key (optional)",
+          "email": "Email address (optional)",
+          "password": "Password (optional)",
           "calorific_value": "Gas calorific value.",
           "favour_direct_debit_rates": "Favour direct debit rates where available",
           "auto_discover_cost_trackers": "Automatically discover sensors suitable for cost trackers"
         },
         "data_description": {
-          "api_key": "You API key can be found at {edf_energy_api_access_url}",
+          "api_key": "Provide either an API key or your email address and password. API key can be found at {edf_energy_api_access_url}",
+          "email": "Your EDF Energy account email address",
+          "password": "Your EDF Energy account password",
           "calorific_value": "This can be found on your gas statement and can change from time to time"
         },
         "sections": {
@@ -146,8 +154,9 @@
       }
     },
     "error": {
-      "server_error": "Failed to connect to OE servers. Please try again later",
-      "account_not_found": "Invalid API key or account id specified",
+      "server_error": "Failed to connect to EDF Energy servers. Please try again later",
+      "account_not_found": "Invalid credentials or account ID specified",
+      "credentials_not_set": "Either an API key or an email address and password must be provided",
       "value_greater_than_zero": "Value must be greater or equal to 1",
       "invalid_tracker_name": "Name must only include lower case alpha characters and underscore (e.g. my_target)",
       "invalid_mpan": "Meter not found in account with an active tariff",
