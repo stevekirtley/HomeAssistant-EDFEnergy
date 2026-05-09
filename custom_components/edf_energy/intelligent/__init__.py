@@ -212,13 +212,14 @@ def mock_intelligent_devices():
   ]
 
 def is_intelligent_product(product_code: str):
-  # TODO: confirm EDF Smart Charging tariff code prefix(es) — currently using Octopus/Kraken INTELLI patterns as placeholder
   return product_code is not None and (
     "INTELLI-BB-VAR" in product_code.upper() or
     "INTELLI-VAR" in product_code.upper() or
     "INTELLI-FIX" in product_code.upper() or
     product_code.upper().startswith("IOG") or
-    re.search("INTELLI-[0-9]", product_code.upper()) is not None
+    re.search("INTELLI-[0-9]", product_code.upper()) is not None or
+    # EDF Energy EV smart-charging tariffs (e.g. EDF_EV_FIX_GOELEC_12M_HH)
+    product_code.upper().startswith("EDF_EV_")
   )
 
 def has_intelligent_tariff(current: datetime, account_info):
