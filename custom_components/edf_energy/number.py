@@ -13,7 +13,8 @@ from .const import (
   DATA_INTELLIGENT_DEVICES,
   DOMAIN,
 
-  CONFIG_MAIN_API_KEY,
+  CONFIG_KIND,
+  CONFIG_KIND_ACCOUNT,
 
   DATA_INTELLIGENT_SETTINGS_COORDINATOR,
 )
@@ -27,7 +28,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
   entities = []
 
-  if CONFIG_MAIN_API_KEY in entry.data:
+  if CONFIG_KIND in entry.data and entry.data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
     entities.extend(await async_setup_intelligent_sensors(hass, config))
 
   async_add_entities(entities)

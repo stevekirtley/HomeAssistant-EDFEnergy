@@ -7,18 +7,16 @@
         "description": "Setup your basic account information.",
         "data": {
           "account_id": "Account ID (e.g. A-AAAA1111)",
-          "api_key": "API key (optional)",
-          "email": "Email address (optional)",
-          "password": "Password (optional)",
+          "email": "Email address",
+          "password": "Password",
           "calorific_value": "Gas calorific value.",
           "favour_direct_debit_rates": "Favour direct debit rates where available",
           "auto_discover_cost_trackers": "Automatically discover sensors suitable for cost trackers"
         },
         "data_description": {
           "account_id": "Your account ID can be found on your bill or in your EDF Energy online account",
-          "api_key": "Provide either an API key or your email address and password. API key can be found at {edf_energy_api_access_url}",
           "email": "Your EDF Energy account email address",
-          "password": "Your EDF Energy account password",
+          "password": "Your password is used only to obtain an authentication token and is never stored",
           "calorific_value": "This can be found on your gas statement and can change from time to time"
         },
         "sections": {
@@ -86,21 +84,30 @@
           "account_id": "Account"
         }
       },
+      "reauth_confirm": {
+        "title": "Re-authenticate EDF Energy Account",
+        "description": "Your authentication token has expired. Please sign in again to continue.",
+        "data": {
+          "email": "Email address",
+          "password": "Password"
+        },
+        "data_description": {
+          "password": "Your password is used only to obtain a new authentication token and is never stored"
+        }
+      },
       "reconfigure_account": {
         "title": "Update Account Info",
         "description": "Update your basic account information. ",
         "data": {
-          "api_key": "API key (optional)",
-          "email": "Email address (optional)",
-          "password": "Password (optional)",
+          "email": "Email address",
+          "password": "Password",
           "calorific_value": "Gas calorific value.",
           "favour_direct_debit_rates": "Favour direct debit rates where available",
           "auto_discover_cost_trackers": "Automatically discover sensors suitable for cost trackers"
         },
         "data_description": {
-          "api_key": "Provide either an API key or your email address and password. API key can be found at {edf_energy_api_access_url}",
           "email": "Your EDF Energy account email address",
-          "password": "Your EDF Energy account password",
+          "password": "Your password is used only to obtain an authentication token and is never stored",
           "calorific_value": "This can be found on your gas statement and can change from time to time"
         },
         "sections": {

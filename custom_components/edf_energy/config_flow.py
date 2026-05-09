@@ -54,9 +54,8 @@ from .const import (
   DEFAULT_CALORIFIC_VALUE,
   DOMAIN,
   
-  CONFIG_MAIN_API_KEY,
   CONFIG_MAIN_EMAIL,
-  CONFIG_MAIN_PASSWORD,
+  CONFIG_MAIN_REFRESH_TOKEN,
 )
 from .config.tariff_comparison import async_validate_tariff_comparison_config
 
@@ -180,9 +179,8 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
   def __setup_account_schema__(self, include_account_id = True):
     schema = {
       vol.Required(CONFIG_ACCOUNT_ID): str,
-      vol.Optional(CONFIG_MAIN_API_KEY): str,
-      vol.Optional(CONFIG_MAIN_EMAIL): str,
-      vol.Optional(CONFIG_MAIN_PASSWORD): selector.TextSelector(
+      vol.Required(CONFIG_MAIN_EMAIL): str,
+      vol.Required("password"): selector.TextSelector(
         selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
       ),
       vol.Required(CONFIG_MAIN_CALORIFIC_VALUE, default=DEFAULT_CALORIFIC_VALUE): cv.positive_float,
@@ -245,7 +243,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     )
   
   async def async_step_reconfigure_account(self, user_input):
-    """Setup the initial account based on the provided user input"""
+    """Reconfigure account — email+password to get a fresh refresh token."""
     config = dict()
     config.update(self._get_reconfigure_entry().data)
 
@@ -265,10 +263,39 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
       step_id="reconfigure_account",
       data_schema=self.add_suggested_values_to_schema(
         self.__setup_account_schema__(False),
-        config
+        {CONFIG_MAIN_EMAIL: config.get(CONFIG_MAIN_EMAIL, "")}
       ),
       description_placeholders=description_placeholders,
       errors=errors
+    )
+
+  async def async_step_reauth(self, entry_data):
+    """Handle re-authentication when the refresh token has expired."""
+    return await self.async_step_reauth_confirm()
+
+  async def async_step_reauth_confirm(self, user_input=None):
+    """Show re-auth form and update refresh token on success."""
+    entry = self._get_reauth_entry()
+    config = dict(entry.data)
+
+    if user_input is not None:
+      config.update(user_input)
+      errors = await async_validate_main_config(config, [])
+      if len(errors) < 1:
+        return self.async_update_reload_and_abort(entry, data_updates=config)
+    else:
+      errors = {}
+
+    return self.async_show_form(
+      step_id="reauth_confirm",
+      data_schema=vol.Schema({
+        vol.Required(CONFIG_MAIN_EMAIL, default=config.get(CONFIG_MAIN_EMAIL, "")): str,
+        vol.Required("password"): selector.TextSelector(
+          selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+        ),
+      }),
+      description_placeholders=description_placeholders,
+      errors=errors,
     )
   
   async def __async_setup_cost_tracker_schema__(self, account_id: str):
