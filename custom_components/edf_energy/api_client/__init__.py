@@ -1085,8 +1085,12 @@ class EDFEnergyApiClient:
     await self.async_refresh_token()
 
     settings = await self.async_get_intelligent_settings(account_id, device_id)
-    if settings is None or settings.preferences is None:
-      raise Exception('Failed to retrieve intelligent settings or preferences not available for this device')
+    if settings is None:
+      raise Exception(f'Failed to retrieve intelligent settings for device {device_id}')
+    if settings.preferences is None:
+      raise Exception(f'Device {device_id} has no preferences — charge target not supported')
+    if len(settings.preferences.schedules) == 0:
+      raise Exception(f'Device {device_id} has no schedules — charge target not supported')
 
     new_schedules = []
     for schedule in settings.preferences.schedules:
@@ -1097,13 +1101,15 @@ class EDFEnergyApiClient:
       request_context = "set-intelligent-target-perc"
       client = self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
+      schedules_str = self.__intelligent_settings_schedules__(new_schedules)
       payload = { "query": intelligent_settings_mutation.format(
           device_id=device_id,
-          schedules=self.__intelligent_settings_schedules__(new_schedules)
+          schedules=schedules_str
         )
       }
 
       _LOGGER.debug(f'Payload for intelligent settings mutation: {payload}')
+      _LOGGER.debug(f'Schedules string: {schedules_str}')
 
       headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as response:
@@ -1123,8 +1129,12 @@ class EDFEnergyApiClient:
     await self.async_refresh_token()
     
     settings = await self.async_get_intelligent_settings(account_id, device_id)
-    if settings is None or settings.preferences is None:
-      raise Exception('Failed to retrieve intelligent settings or preferences not available for this device')
+    if settings is None:
+      raise Exception(f'Failed to retrieve intelligent settings for device {device_id}')
+    if settings.preferences is None:
+      raise Exception(f'Device {device_id} has no preferences — target time not supported')
+    if len(settings.preferences.schedules) == 0:
+      raise Exception(f'Device {device_id} has no schedules — target time not supported')
 
     new_schedules = []
     for schedule in settings.preferences.schedules:
@@ -1135,11 +1145,15 @@ class EDFEnergyApiClient:
       request_context = "set-intelligent-target-time"
       client = self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
+      schedules_str = self.__intelligent_settings_schedules__(new_schedules)
       payload = { "query": intelligent_settings_mutation.format(
           device_id=device_id,
-          schedules=self.__intelligent_settings_schedules__(new_schedules)
+          schedules=schedules_str
         )
       }
+
+      _LOGGER.debug(f'Payload for target time mutation: {payload}')
+      _LOGGER.debug(f'Schedules string: {schedules_str}')
 
       headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as response:

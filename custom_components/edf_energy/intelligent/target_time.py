@@ -85,11 +85,15 @@ class EDFEnergyIntelligentTargetTime(CoordinatorEntity, TimeEntity, EDFEnergyInt
 
   async def async_set_value(self, value: time) -> None:
     """Set new value."""
-    await self._client.async_update_intelligent_car_target_time(
-      self._account_id,
-      self._device.id,
-      value,
-    )
+    try:
+      await self._client.async_update_intelligent_car_target_time(
+        self._account_id,
+        self._device.id,
+        value,
+      )
+    except Exception as e:
+      _LOGGER.error(f'Failed to set target time to {value}: {e}')
+      raise
     self._state = value
     self._last_updated = utcnow()
     self.async_write_ha_state()

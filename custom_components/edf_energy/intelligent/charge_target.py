@@ -105,6 +105,7 @@ class EDFEnergyIntelligentChargeTarget(CoordinatorEntity, RestoreNumber, EDFEner
         if self._is_mocked:
           _LOGGER.warning(f'Suppress async_set_native_value error due to mocking mode: {e}')
         else:
+          _LOGGER.error(f'Failed to set charge target to {value}%: {e}')
           raise
 
       self._state = value
