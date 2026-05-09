@@ -1,4 +1,4 @@
-site_name: Home Assistant Octopus Energy
+site_name: Home Assistant EDF Energy
 repo_url: https://github.com/bottlecapdave/homeassistant-octopusenergy
 docs_dir: _docs
 
