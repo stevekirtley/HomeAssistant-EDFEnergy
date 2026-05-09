@@ -2,6 +2,16 @@
 
 Setup is done entirely via the [integration UI](https://my.home-assistant.io/redirect/config_flow_start/?domain=edf_energy).
 
+## Credentials
+
+You will need:
+
+- **Email address** — the email you use to log in to the EDF Energy app or website
+- **Password** — your EDF Energy account password
+- **Account number** — format `A-AAAA1111`, shown in the EDF Energy app under **Account** or at the top of any bill
+
+The integration authenticates using your email and password to obtain a secure refresh token. Your password is used only during initial setup (and if you need to reconfigure) and is not stored by the integration.
+
 ## Calorific Value
 
 When calculating gas costs, a calorific value is included in the calculation. Unfortunately this changes from region to region and is not provided by the EDF Energy API. The default value of this is `40`, but if you check your latest bill you should be able to find the value for you. This will give you a more accurate consumption and cost calculation when your meter reports in `m3`.

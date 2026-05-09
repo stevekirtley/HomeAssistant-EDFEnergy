@@ -1,7 +1,5 @@
 # Home Assistant EDF Energy
 
-> **Work in progress — not yet ready for production use.**
-
 A fork of [BottlecapDave's HomeAssistant-OctopusEnergy](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy) (MIT licensed), adapted for EDF Energy customers. EDF Energy uses the same underlying Kraken platform as Octopus Energy, so the core API integration carries over with minimal changes.
 
 This integration is not affiliated with EDF Energy, Kraken, or BottlecapDave.
@@ -42,29 +40,36 @@ Everything else — electricity and gas sensors, rates, standing charges, consum
 - Previous consumption and cost (daily, weekly, monthly)
 - Cost tracker sensors (track cost of any energy-based entity)
 - Tariff comparison sensors
-- Smart Charging (EV dispatch) sensors, switches, and controls
+- Smart Charging (EV dispatch) sensors, switches, and controls — including charge target %, ready-by time, and smart charge toggle
 - Long-term statistics for HA energy dashboard
 
 ## How to install
 
-Not ready for general use yet. Manual installation only.
+### HACS (recommended)
+
+Add this repository as a custom HACS repository:
+
+1. In HACS, go to **Integrations → ⋮ → Custom repositories**
+2. Add `https://github.com/stevekirtley/HomeAssistant-EDFEnergy` with category **Integration**
+3. Search for **EDF Energy** and click **Download**
+4. Restart Home Assistant
 
 ### Manual
 
-1. Copy `custom_components/edf_energy` into your Home Assistant `custom_components` directory.
+1. Copy the `custom_components/edf_energy` folder into your Home Assistant `custom_components` directory.
 2. Restart Home Assistant.
-3. Add the integration via **Settings → Devices & Services → Add Integration → EDF Energy**.
-
-### HACS
-
-Not yet published to HACS.
 
 ## How to setup
 
+Go to **Settings → Devices & Services → Add Integration → EDF Energy**.
+
 You will need:
-- Your EDF Energy **account ID** (format `A-AAAA1111`, shown in your account dashboard)
-- An **API key** from the EDF Energy / Kraken developer portal (`https://api.edfgb-kraken.energy/v1/graphql/`)
+
+- Your EDF Energy **email address** and **password** (the same credentials you use to log in to the EDF Energy app or website)
+- Your EDF Energy **account number** (format `A-AAAA1111`) — found in the EDF Energy app under **Account**, or at the top of any bill
+
+The integration authenticates with the EDF Energy Kraken API using your email and password, and stores a refresh token for ongoing access. Your password is not stored.
 
 ## FAQ
 
-See the upstream [OctopusEnergy FAQ](https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/faq/) — most answers apply equally here since the underlying Kraken API is the same.
+See the `_docs/` folder, or the upstream [OctopusEnergy FAQ](https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/faq/) — most answers apply equally here since the underlying Kraken API is the same.

@@ -188,8 +188,8 @@ This gives you finer control over the times (still within valid time periods), b
 
     You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the EDF Energy servers.
 
-!!! note
-    This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). If enabled, it is advised to disable the [select based sensor](#target-time-select) as the two can get out of sync. 
+!!! info
+    It is advised to disable the [select based sensor](#target-time-select) when using this entity, as the two can get out of sync.
 
 ## Migrating from megakid/ha_octopus_intelligent?
 
