@@ -303,7 +303,7 @@ async def async_setup_electricity_rates_coordinator(hass,
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT] if DATA_ACCOUNT in hass.data[DOMAIN][account_id] else None
     account_info = account_result.account if account_result is not None else None
 
-    dispatches: dict[str, IntelligentDispatchesCoordinatorResult] = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DISPATCHES]
+    dispatches: dict[str, IntelligentDispatchesCoordinatorResult] = hass.data[DOMAIN][account_id].get(DATA_INTELLIGENT_DISPATCHES, {})
     rates: ElectricityRatesCoordinatorResult | None = hass.data[DOMAIN][account_id][key] if key in hass.data[DOMAIN][account_id] else None
 
     hass.data[DOMAIN][account_id][key] = await async_refresh_electricity_rates_data(

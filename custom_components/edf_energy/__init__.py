@@ -463,11 +463,15 @@ async def async_register_intelligent_devices(hass, config: dict, now: datetime, 
       intelligent_devices = await client.async_get_intelligent_devices(account_id)
     except Exception as e:
       if isinstance(e, ApiException) == False:
-        raise
+        _LOGGER.error(f"Unexpected error fetching intelligent devices for {account_id}: {e}")
 
       intelligent_devices = await async_load_cached_intelligent_devices(hass, account_id)
       if (intelligent_devices is not None):
         _LOGGER.warning(f"Using cached intelligent device information for {account_id} during startup. This data will be updated automatically when available.")
+
+  # Ensure intelligent_devices is always a list so downstream code can iterate safely
+  if intelligent_devices is None:
+    intelligent_devices = []
 
   hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DEVICES] = IntelligentDeviceCoordinatorResult(now, 1, intelligent_devices)
   hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DISPATCHES] = dict()

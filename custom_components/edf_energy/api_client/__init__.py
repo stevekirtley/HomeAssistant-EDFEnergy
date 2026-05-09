@@ -152,20 +152,6 @@ intelligent_dispatches_query = '''query {{
 }}'''
 
 intelligent_device_query = '''query {{
-  electricVehicles {{
-		make
-		models {{
-			model
-			batterySize
-		}}
-	}}
-	chargePointVariants {{
-		make
-		models {{
-			model
-			powerInKw
-		}}
-	}}
   devices(accountNumber: "{account_id}") {{
 		id
 		provider
@@ -1276,40 +1262,18 @@ class EDFEnergyApiClient:
           devices: list = response_body["data"]["devices"]
 
           for device in devices:
+            device_type = device.get("__typename", "")
+            if device_type not in ("SmartFlexChargePoint", "SmartFlexVehicle"):
+              continue
+
             if (device["deviceType"] != "ELECTRIC_VEHICLES" or device["status"]["current"] != "LIVE"):
               continue
 
-            make = device["make"]
-            model = device["model"]
+            make = device.get("make", "")
+            model = device.get("model", "")
             vehicleBatterySizeInKwh = None
             chargePointPowerInKw = None
-            device_type = device["__typename"]
-            is_charger = device["__typename"] == "SmartFlexChargePoint"
-
-            if device_type == "SmartFlexChargePoint":
-              if "chargePointVariants" in response_body["data"] and response_body["data"]["chargePointVariants"] is not None:
-                for charger in response_body["data"]["chargePointVariants"]:
-                  if charger["make"] == make:
-                    if "models" in charger and charger["models"] is not None:
-                      for charger_model in charger["models"]:
-                        if charger_model["model"] == model:
-                          chargePointPowerInKw = float(charger_model["powerInKw"]) if "powerInKw" in charger_model and charger_model["powerInKw"] is not None else 0
-                          break
-
-                    break
-            elif device_type == "SmartFlexVehicle":
-              if "electricVehicles" in response_body["data"] and response_body["data"]["electricVehicles"] is not None:
-                for charger in response_body["data"]["electricVehicles"]:
-                  if charger["make"] == make:
-                    if "models" in charger and charger["models"] is not None:
-                      for charger_model in charger["models"]:
-                        if charger_model["model"] == model:
-                          vehicleBatterySizeInKwh = float(charger_model["batterySize"]) if "batterySize" in charger_model and charger_model["batterySize"] is not None else 0
-                          break
-
-                    break
-            else:
-              continue
+            is_charger = device_type == "SmartFlexChargePoint"
 
             result.append(IntelligentDevice(
               device["id"],
