@@ -8,7 +8,7 @@ async def test_when_get_account_is_called_then_electricity_and_gas_points_return
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.refresh_token)
     account_id = context.account_id
 
     # Act
@@ -67,7 +67,7 @@ async def test_when_get_account_is_called_and_not_found_then_exception_is_raised
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.refresh_token)
     account_id = "not-an-account"
 
     # Act
@@ -81,11 +81,11 @@ async def test_when_get_account_is_called_and_not_found_then_exception_is_raised
     assert exception_raised == True
 
 @pytest.mark.asyncio
-async def test_when_get_account_is_called_and_api_key_is_invalid_then_exception_is_raised():
+async def test_when_get_account_is_called_and_refresh_token_is_invalid_then_exception_is_raised():
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient("invalid_api_key")
+    client = EDFEnergyApiClient("invalid_refresh_token")
     account_id = context.account_id
 
     # Act

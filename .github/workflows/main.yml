@@ -27,7 +27,7 @@ env:
 
 jobs:
   validate:
-    if: ${{ github.repository_owner == 'BottlecapDave' }}
+    if: ${{ github.repository_owner == 'stevekirtley' }}
     name: Validate
     runs-on: "ubuntu-latest"
     steps:
@@ -38,7 +38,7 @@ jobs:
         with:
           category: "integration"
   unit_tests:
-    if: ${{ github.event_name != 'schedule' || github.repository_owner == 'BottlecapDave' }}
+    if: ${{ github.event_name != 'schedule' || github.repository_owner == 'stevekirtley' }}
     name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -61,7 +61,7 @@ jobs:
           python3 -m pytest tests/unit
   integration_tests:
     # Tests are geared towards my account, so ignore for others
-    if: ${{ github.repository_owner == 'BottlecapDave' && github.repository_owner == github.actor }}
+    if: ${{ github.repository_owner == 'stevekirtley' && github.repository_owner == github.actor }}
     name: Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -83,7 +83,7 @@ jobs:
         run: |
           python3 -m pytest tests/integration
         env:
-          API_KEY: ${{ secrets.EDF_ENERGY_API_TOKEN }}
+          REFRESH_TOKEN: ${{ secrets.EDF_ENERGY_REFRESH_TOKEN }}
           GAS_MPRN: ${{ secrets.EDF_ENERGY_GAS_MPRN }}
           GAS_SN: ${{ secrets.EDF_ENERGY_GAS_SN }}
           ELECTRICITY_MPAN: ${{ secrets.EDF_ENERGY_ELECTRICITY_MPAN }}
@@ -91,7 +91,7 @@ jobs:
           ACCOUNT_ID: ${{ secrets.EDF_ENERGY_ACCOUNT_ID }}
   release:
     name: Release
-    if: ${{ github.repository_owner == 'BottlecapDave' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/beta') }}
+    if: ${{ github.repository_owner == 'stevekirtley' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/beta') }}
     needs:
     - validate
     - unit_tests
@@ -111,7 +111,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run release
       - name: Merge main into develop
-        if: ${{ github.repository_owner == 'BottlecapDave' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.repository_owner == 'stevekirtley' && github.ref == 'refs/heads/main' }}
         uses: devmasx/merge-branch@master
         with:
           type: now
@@ -120,7 +120,7 @@ jobs:
           target_branch: develop
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Merge main into beta
-        if: ${{ github.repository_owner == 'BottlecapDave' && github.ref == 'refs/heads/beta' }}
+        if: ${{ github.repository_owner == 'stevekirtley' && github.ref == 'refs/heads/beta' }}
         uses: devmasx/merge-branch@master
         with:
           type: now

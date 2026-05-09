@@ -5,15 +5,15 @@ from datetime import datetime, timedelta
 logging.getLogger().setLevel(logging.DEBUG)
 
 class TestContext:
-  api_key: str
+  refresh_token: str
   account_id: str
   gas_mprn: str
   gas_serial_number: str
   electricity_mpan: str
   electricity_serial_number: str
 
-  def __init__(self, api_key, account_id, gas_mprn, gas_serial_number, electricity_mpan, electricity_serial_number):
-    self.api_key = api_key
+  def __init__(self, refresh_token, account_id, gas_mprn, gas_serial_number, electricity_mpan, electricity_serial_number):
+    self.refresh_token = refresh_token
     self.account_id = account_id
     self.gas_mprn = gas_mprn
     self.gas_serial_number = gas_serial_number
@@ -21,9 +21,9 @@ class TestContext:
     self.electricity_serial_number = electricity_serial_number
 
 def get_test_context():
-  api_key = os.environ["API_KEY"]
-  if (api_key is None):
-      raise Exception("API_KEY must be set")
+  refresh_token = os.environ["REFRESH_TOKEN"]
+  if (refresh_token is None):
+      raise Exception("REFRESH_TOKEN must be set")
 
   account_id = os.environ["ACCOUNT_ID"]
   if (account_id is None):
@@ -44,8 +44,8 @@ def get_test_context():
   electricity_serial_number = os.environ["ELECTRICITY_SN"]
   if (electricity_serial_number is None):
       raise Exception("ELECTRICITY_SN must be set")
-  
-  return TestContext(api_key, account_id, gas_mprn, gas_serial_number, electricity_mpan, electricity_serial_number)
+
+  return TestContext(refresh_token, account_id, gas_mprn, gas_serial_number, electricity_mpan, electricity_serial_number)
 
 def create_consumption_data(period_from: datetime, period_to: datetime, reverse = False):
   consumption = []

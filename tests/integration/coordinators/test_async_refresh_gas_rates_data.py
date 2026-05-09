@@ -18,7 +18,7 @@ from custom_components.edf_energy.utils import Tariff
 async def test_when_next_refresh_is_in_the_past_and_then_requested_data_returned(previous_data_available):
   # Arrange
   context = get_test_context()
-  client = EDFEnergyApiClient(context.api_key)
+  client = EDFEnergyApiClient(context.refresh_token)
   set_default_time_zone(zoneinfo.ZoneInfo("Europe/London"))
 
   account_info = await client.async_get_account(context.account_id)
