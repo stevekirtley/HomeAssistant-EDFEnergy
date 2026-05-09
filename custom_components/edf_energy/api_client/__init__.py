@@ -744,19 +744,19 @@ class EDFEnergyApiClient:
 
     return None
 
-  async def async_get_electricity_standard_rates(self, product_code: str, tariff_code: str, period_from: datetime, period_to: datetime): 
+  async def async_get_electricity_standard_rates(self, product_code: str, tariff_code: str, period_from: datetime, period_to: datetime):
     """Get the current standard rates"""
     results = []
 
     try:
       request_context = "electricity-rates"
       client = self._create_client_session()
+      headers = { integration_context_header: request_context }
       auth = await self._async_get_rest_auth(headers)
       page = 1
       has_more_rates = True
       while has_more_rates:
         url = f'{self._base_url}/v1/products/{product_code}/electricity-tariffs/{tariff_code}/standard-unit-rates?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&page={page}'
-        headers = { integration_context_header: request_context }
         async with client.get(url, auth=auth, headers=headers) as response:
           data = await self.__async_read_response__(response, url)
           if data is None:
@@ -781,9 +781,9 @@ class EDFEnergyApiClient:
     try:
       request_context = "electricity-rates"
       client = self._create_client_session()
+      headers = { integration_context_header: request_context }
       auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}/electricity-tariffs/{tariff_code}/day-unit-rates?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
-      headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if data is None:
@@ -829,12 +829,13 @@ class EDFEnergyApiClient:
     try:
       request_context = "electricity-consumption"
       client = self._create_client_session()
+      headers = { integration_context_header: request_context }
       auth = await self._async_get_rest_auth(headers)
 
       query_params = []
       if period_from is not None:
         query_params.append(f'period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}')
-      
+
       if period_to is not None:
         query_params.append(f'period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}')
 
@@ -842,9 +843,8 @@ class EDFEnergyApiClient:
         query_params.append(f'page_size={page_size}')
 
       query_string = '&'.join(query_params)
-      
+
       url = f"{self._base_url}/v1/electricity-meter-points/{mpan}/meters/{serial_number}/consumption{f'?{query_string}' if len(query_string) > 0 else ''}"
-      headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
         
         data = await self.__async_read_response__(response, url)
@@ -876,9 +876,9 @@ class EDFEnergyApiClient:
     try:
       request_context = "gas-rates"
       client = self._create_client_session()
+      headers = { integration_context_header: request_context }
       auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}/gas-tariffs/{tariff_code}/standard-unit-rates?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
-      headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if data is None:
@@ -898,12 +898,13 @@ class EDFEnergyApiClient:
     try:
       request_context = "gas-consumption"
       client = self._create_client_session()
+      headers = { integration_context_header: request_context }
       auth = await self._async_get_rest_auth(headers)
 
       query_params = []
       if period_from is not None:
         query_params.append(f'period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}')
-      
+
       if period_to is not None:
         query_params.append(f'period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}')
 
@@ -913,7 +914,6 @@ class EDFEnergyApiClient:
       query_string = '&'.join(query_params)
 
       url = f"{self._base_url}/v1/gas-meter-points/{mprn}/meters/{serial_number}/consumption{f'?{query_string}' if len(query_string) > 0 else ''}"
-      headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if (data is not None and "results" in data):
@@ -942,9 +942,9 @@ class EDFEnergyApiClient:
     try:
       request_context = "get-product-info"
       client = self._create_client_session()
+      headers = { integration_context_header: request_context }
       auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}'
-      headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
         return await self.__async_read_response__(response, url)
     except TimeoutError:
@@ -958,9 +958,9 @@ class EDFEnergyApiClient:
     try:
       request_context = "electricity-standing-charge"
       client = self._create_client_session()
+      headers = { integration_context_header: request_context }
       auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}/electricity-tariffs/{tariff_code}/standing-charges?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
-      headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if (data is not None and "results" in data and len(data["results"]) > 0):
@@ -978,9 +978,9 @@ class EDFEnergyApiClient:
     try:
       request_context = "gas-standing-charge"
       client = self._create_client_session()
+      headers = { integration_context_header: request_context }
       auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}/gas-tariffs/{tariff_code}/standing-charges?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
-      headers = { integration_context_header: request_context }
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if (data is not None and "results" in data and len(data["results"]) > 0):
