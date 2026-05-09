@@ -3,3 +3,5 @@ node_modules/
 run_*tests.sh
 site
 .cache/
+.claude/
+test_local.py
