@@ -73,3 +73,9 @@ The integration authenticates with the EDF Energy Kraken API using your email an
 ## FAQ
 
 See the `_docs/` folder, or the upstream [OctopusEnergy FAQ](https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/faq/) — most answers apply equally here since the underlying Kraken API is the same.
+
+## Sponsorship 
+
+If you find this useful and are planning on switching to EDF Energy, you're welcome to use my [referral link](https://edfenergy.com/quote/refer-a-friend/massive-sun-7007).
+
+We'll each get £50 credited to our account. Until the 24th of May, if you switch to their EV tariff you'll get a further £50 credit [EV tariff Offer Details](https://www.edfenergy.com/electric-cars/ev-tariffs)
