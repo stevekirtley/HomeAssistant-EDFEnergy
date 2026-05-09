@@ -1,14 +1,14 @@
 import pytest
 
 from integration import get_test_context
-from custom_components.octopus_energy.api_client import AuthenticationException, OctopusEnergyApiClient, RequestException
+from custom_components.edf_energy.api_client import AuthenticationException, EDFEnergyApiClient, RequestException
 
 @pytest.mark.asyncio
 async def test_when_get_account_is_called_then_electricity_and_gas_points_returned():
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.api_key)
     account_id = context.account_id
 
     # Act
@@ -58,8 +58,6 @@ async def test_when_get_account_is_called_then_electricity_and_gas_points_return
         assert "start" in agreement
         assert "end" in agreement
 
-    assert "octoplus_enrolled" in account
-
     assert "property_ids" in account
     assert account["property_ids"] is not None
     assert len(account["property_ids"]) >= 0
@@ -69,7 +67,7 @@ async def test_when_get_account_is_called_and_not_found_then_exception_is_raised
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.api_key)
     account_id = "not-an-account"
 
     # Act
@@ -87,7 +85,7 @@ async def test_when_get_account_is_called_and_api_key_is_invalid_then_exception_
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient("invalid_api_key")
+    client = EDFEnergyApiClient("invalid_api_key")
     account_id = context.account_id
 
     # Act

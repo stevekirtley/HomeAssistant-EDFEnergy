@@ -11,14 +11,14 @@ from ..const import (
   REGEX_ENTITY_NAME
 )
 
-from ..api_client import OctopusEnergyApiClient
+from ..api_client import EDFEnergyApiClient
 
 async def async_migrate_tariff_comparison_config(version: int, data: {}, get_entries):
   new_data = {**data}
 
   return new_data
 
-async def async_validate_tariff_comparison_config(data, account_info, now: datetime, client: OctopusEnergyApiClient):
+async def async_validate_tariff_comparison_config(data, account_info, now: datetime, client: EDFEnergyApiClient):
   errors = {}
 
   matches = re.search(REGEX_ENTITY_NAME, data[CONFIG_TARIFF_COMPARISON_NAME])

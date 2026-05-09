@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.octopus_energy.utils import is_day_night_tariff
+from custom_components.edf_energy.utils import is_day_night_tariff
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tariff_code,expected_result",[

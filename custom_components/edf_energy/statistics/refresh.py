@@ -11,7 +11,7 @@ from homeassistant.const import (
 
 from homeassistant.util.dt import (now, parse_datetime)
 
-from ..api_client import OctopusEnergyApiClient
+from ..api_client import EDFEnergyApiClient
 from ..const import DATA_ACCOUNT, DOMAIN, REGEX_DATE
 from .consumption import async_import_external_statistics_from_consumption, get_electricity_consumption_statistic_name, get_electricity_consumption_statistic_unique_id, get_gas_consumption_statistic_name, get_gas_consumption_statistic_unique_id
 from .cost import async_import_external_statistics_from_cost, get_electricity_cost_statistic_name, get_electricity_cost_statistic_unique_id, get_gas_cost_statistic_name, get_gas_cost_statistic_unique_id
@@ -21,7 +21,7 @@ from ..coordinators import get_electricity_meter_tariff, get_gas_meter_tariff
 
 async def async_refresh_previous_electricity_consumption_data(
   hass: HomeAssistant,
-  client: OctopusEnergyApiClient,
+  client: EDFEnergyApiClient,
   account_id: str,
   start_date: str,
   mpan: str,
@@ -107,7 +107,7 @@ async def async_refresh_previous_electricity_consumption_data(
 
 async def async_refresh_previous_gas_consumption_data(
   hass: HomeAssistant,
-  client: OctopusEnergyApiClient,
+  client: EDFEnergyApiClient,
   account_id: str,
   start_date: str,
   mprn: str,

@@ -14,21 +14,21 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.util.dt import (utcnow)
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .base import OctopusEnergyIntelligentSensor
-from ..api_client import OctopusEnergyApiClient
+from .base import EDFEnergyIntelligentSensor
+from ..api_client import EDFEnergyApiClient
 from ..coordinators.intelligent_settings import IntelligentCoordinatorResult
 from ..utils.attributes import dict_to_typed_dict
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyIntelligentSmartCharge(CoordinatorEntity, SwitchEntity, OctopusEnergyIntelligentSensor, RestoreEntity):
+class EDFEnergyIntelligentSmartCharge(CoordinatorEntity, SwitchEntity, EDFEnergyIntelligentSensor, RestoreEntity):
   """Switch for turning intelligent smart charge on and off."""
 
-  def __init__(self, hass: HomeAssistant, coordinator, client: OctopusEnergyApiClient, device, account_id: str, is_mocked: bool):
+  def __init__(self, hass: HomeAssistant, coordinator, client: EDFEnergyApiClient, device, account_id: str, is_mocked: bool):
     """Init sensor."""
     # Pass coordinator to base class
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyIntelligentSensor.__init__(self, device)
+    EDFEnergyIntelligentSensor.__init__(self, device)
 
     self._state = False
     self._last_updated = None
@@ -41,12 +41,12 @@ class OctopusEnergyIntelligentSmartCharge(CoordinatorEntity, SwitchEntity, Octop
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_{self._device.id}_intelligent_smart_charge"
+    return f"edf_energy_{self._device.id}_intelligent_smart_charge"
     
   @property
   def name(self):
     """Name of the sensor."""
-    return f"Intelligent Smart Charge ({self._device.id})"
+    return f"Smart Charging Smart Charge ({self._device.id})"
 
   @property
   def icon(self):
@@ -120,4 +120,4 @@ class OctopusEnergyIntelligentSmartCharge(CoordinatorEntity, SwitchEntity, Octop
     if (self._state is None):
       self._state = False
     
-    _LOGGER.debug(f'Restored OctopusEnergyIntelligentSmartCharge state: {self._state}')
+    _LOGGER.debug(f'Restored EDFEnergyIntelligentSmartCharge state: {self._state}')

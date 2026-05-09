@@ -15,19 +15,19 @@ from homeassistant.helpers.update_coordinator import (
   CoordinatorEntity,
 )
 
-from .base import (OctopusEnergyElectricitySensor)
+from .base import (EDFEnergyElectricitySensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..coordinators.electricity_standing_charges import ElectricityStandingChargeCoordinatorResult
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyElectricityCurrentStandingCharge(CoordinatorEntity, OctopusEnergyElectricitySensor, RestoreSensor):
+class EDFEnergyElectricityCurrentStandingCharge(CoordinatorEntity, EDFEnergyElectricitySensor, RestoreSensor):
   """Sensor for displaying the current standing charge."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point):
     """Init sensor."""
     super().__init__(coordinator)
-    OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
+    EDFEnergyElectricitySensor.__init__(self, hass, meter, point)
 
     self._state = None
     self._latest_date = None
@@ -35,7 +35,7 @@ class OctopusEnergyElectricityCurrentStandingCharge(CoordinatorEntity, OctopusEn
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f'octopus_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_current_standing_charge'
+    return f'edf_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_current_standing_charge'
     
   @property
   def name(self):
@@ -74,7 +74,7 @@ class OctopusEnergyElectricityCurrentStandingCharge(CoordinatorEntity, OctopusEn
   @callback
   def _handle_coordinator_update(self) -> None:
     """Retrieve the latest electricity standing charge"""
-    _LOGGER.debug('Updating OctopusEnergyElectricityCurrentStandingCharge')
+    _LOGGER.debug('Updating EDFEnergyElectricityCurrentStandingCharge')
 
     standard_charge_result: ElectricityStandingChargeCoordinatorResult = self.coordinator.data if self.coordinator is not None and self.coordinator.data is not None else None
     
@@ -102,4 +102,4 @@ class OctopusEnergyElectricityCurrentStandingCharge(CoordinatorEntity, OctopusEn
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes, ['valid_from', 'valid_to'])
     
-      _LOGGER.debug(f'Restored OctopusEnergyElectricityCurrentStandingCharge state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyElectricityCurrentStandingCharge state: {self._state}')

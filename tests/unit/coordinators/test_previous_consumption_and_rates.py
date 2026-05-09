@@ -1,17 +1,17 @@
 from datetime import datetime, timedelta
-from custom_components.octopus_energy.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
-from custom_components.octopus_energy.storage.intelligent_dispatches_history import IntelligentDispatchesHistory
+from custom_components.edf_energy.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
+from custom_components.edf_energy.storage.intelligent_dispatches_history import IntelligentDispatchesHistory
 import pytest
 import mock
 
 from unit import (create_consumption_data, create_rate_data)
 
-from custom_components.octopus_energy.coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult, async_fetch_consumption_and_rates
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient, RequestException
-from custom_components.octopus_energy.api_client.intelligent_device import IntelligentDevice
+from custom_components.edf_energy.coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult, async_fetch_consumption_and_rates
+from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edf_energy.api_client.intelligent_device import IntelligentDevice
 
-from custom_components.octopus_energy.api_client.intelligent_dispatches import IntelligentDispatches, SimpleIntelligentDispatchItem
-from custom_components.octopus_energy.const import EVENT_ELECTRICITY_PREVIOUS_CONSUMPTION_RATES, EVENT_GAS_PREVIOUS_CONSUMPTION_RATES
+from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatches, SimpleIntelligentDispatchItem
+from custom_components.edf_energy.const import EVENT_ELECTRICITY_PREVIOUS_CONSUMPTION_RATES, EVENT_GAS_PREVIOUS_CONSUMPTION_RATES
 
 sensor_identifier = "ABC123"
 sensor_serial_number = "123456"
@@ -130,7 +130,7 @@ def assert_raised_events(
 ])
 async def test_when_when_account_is_none_then_previous_data_returned(is_electricity: bool):
   # Arrange
-  client = OctopusEnergyApiClient("NOT_REAL")
+  client = EDFEnergyApiClient("NOT_REAL")
 
   is_smart_meter = True
 
@@ -174,7 +174,7 @@ async def test_when_when_account_is_none_then_previous_data_returned(is_electric
 @pytest.mark.asyncio
 async def test_when_when_next_refresh_is_in_the_future_and_previous_data_is_available_then_previous_data_returned():
   # Arrange
-  client = OctopusEnergyApiClient("NOT_REAL")
+  client = EDFEnergyApiClient("NOT_REAL")
 
   is_electricity = False
   is_smart_meter = True
@@ -255,8 +255,8 @@ async def test_when_next_refresh_is_in_the_past_and_gas_sensor_then_requested_da
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = False
     is_smart_meter = True
@@ -367,8 +367,8 @@ async def test_when_next_refresh_is_in_the_past_and_electricity_sensor_then_requ
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -463,8 +463,8 @@ async def test_when_retrieving_gas_and_next_refresh_is_in_the_past_and_returned_
     actual_fired_events[name] = metadata
     return None
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = False
     is_smart_meter = True
@@ -535,8 +535,8 @@ async def test_when_retrieving_electricity_and_next_refresh_is_in_the_past_and_r
     actual_fired_events[name] = metadata
     return None
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -617,8 +617,8 @@ async def test_when_not_enough_consumption_returned_then_previous_data_returned(
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -694,8 +694,8 @@ async def test_when_electricity_and_consumption_data_spans_multiple_days_then_pr
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -771,8 +771,8 @@ async def test_when_gas_and_consumption_data_spans_multiple_days_then_previous_d
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -851,8 +851,8 @@ async def test_when_started_intelligent_dispatches_available_then_adjusted_reque
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -972,8 +972,8 @@ async def test_when_intelligent_tariff_and_intelligent_device_and_no_dispatches_
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -1049,8 +1049,8 @@ async def test_when_intelligent_tariff_and_no_dispatches_available_then_rates_re
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -1159,8 +1159,8 @@ async def test_when_electricity_tariff_not_found_then_previous_result_returned()
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -1242,8 +1242,8 @@ async def test_when_gas_tariff_not_found_then_previous_result_returned():
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = False
     is_smart_meter = True
@@ -1326,8 +1326,8 @@ async def test_when_electricity_exception_raised_then_previous_result_returned_a
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -1367,8 +1367,6 @@ async def test_when_electricity_exception_raised_then_previous_result_returned_a
 
     # Assert
     assert result is not None
-    assert result.historic_weekday_consumption == previous_data.historic_weekday_consumption
-    assert result.historic_weekend_consumption == previous_data.historic_weekend_consumption
     assert result.consumption == previous_data.consumption
     assert result.rates == previous_data.rates
     assert result.standing_charge == previous_data.standing_charge
@@ -1420,8 +1418,8 @@ async def test_when_electricity_previous_rates_are_same_as_consumption_then_rate
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = True
     is_smart_meter = True
@@ -1520,8 +1518,8 @@ async def test_when_gas_previous_rates_are_same_as_consumption_then_rates_not_re
     actual_fired_events[name] = metadata
     return None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_consumption=async_mocked_get_gas_consumption, async_get_gas_rates=async_mocked_get_gas_rates, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
 
     is_electricity = False
     is_smart_meter = True

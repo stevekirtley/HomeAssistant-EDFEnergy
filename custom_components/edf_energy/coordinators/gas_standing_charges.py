@@ -15,7 +15,7 @@ from ..const import (
   REFRESH_RATE_IN_MINUTES_STANDING_CHARGE,
 )
 
-from ..api_client import ApiException, OctopusEnergyApiClient
+from ..api_client import ApiException, EDFEnergyApiClient
 from . import BaseCoordinatorResult, get_gas_meter_tariff
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class GasStandingChargeCoordinatorResult(BaseCoordinatorResult):
 
 async def async_refresh_gas_standing_charges_data(
     current: datetime,
-    client: OctopusEnergyApiClient,
+    client: EDFEnergyApiClient,
     account_info,
     target_mprn: str,
     target_serial_number: str,
@@ -94,7 +94,7 @@ async def async_setup_gas_standing_charges_coordinator(hass, account_id: str, ta
   async def async_update_gas_standing_charges_data():
     """Fetch data from API endpoint."""
     current = now()
-    client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+    client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT] if DATA_ACCOUNT in hass.data[DOMAIN][account_id] else None
     account_info = account_result.account if account_result is not None else None
     standing_charges: GasStandingChargeCoordinatorResult = hass.data[DOMAIN][account_id][key] if key in hass.data[DOMAIN][account_id] else None

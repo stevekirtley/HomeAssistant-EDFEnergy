@@ -1,7 +1,7 @@
 
 from datetime import datetime, timedelta
 
-from custom_components.octopus_energy.coordinators import has_rates_changed
+from custom_components.edf_energy.coordinators import has_rates_changed
 from tests.unit import create_rate_data
 
 def test_when_old_rates_and_new_rates_different_length_then_true_returned():

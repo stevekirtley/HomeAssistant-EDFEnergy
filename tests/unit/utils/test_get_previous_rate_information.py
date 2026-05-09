@@ -1,9 +1,9 @@
 from datetime import (datetime, timedelta)
-from custom_components.octopus_energy.api_client import rates_to_thirty_minute_increments
+from custom_components.edf_energy.api_client import rates_to_thirty_minute_increments
 import pytest
 
 from unit import (create_rate_data)
-from custom_components.octopus_energy.utils.rate_information import get_previous_rate_information
+from custom_components.edf_energy.utils.rate_information import get_previous_rate_information
 
 @pytest.mark.asyncio
 async def test_when_target_has_no_rates_and_gmt_then_no_rate_information_is_returned():
@@ -166,7 +166,7 @@ async def test_when_all_rates_different_then_rate_information_is_returned():
   assert rate_information["applicable_rates"][0]["start"] == datetime.strptime("2022-02-27T23:30:00Z", "%Y-%m-%dT%H:%M:%S%z")
   assert rate_information["applicable_rates"][0]["end"] == datetime.strptime("2022-02-28T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
 
-# Covering https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues/441
+# Covering https://github.com/BottlecapDave/HomeAssistant-EDFEnergy/issues/441
 @pytest.mark.asyncio
 @pytest.mark.parametrize("now",[
   (datetime.strptime("2023-10-06T10:50:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),

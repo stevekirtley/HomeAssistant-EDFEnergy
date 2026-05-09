@@ -6,9 +6,9 @@ from homeassistant.util.dt import (set_default_time_zone)
 
 from integration import (create_rate_data, get_test_context)
 
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
-from custom_components.octopus_energy.coordinators.electricity_rates import ElectricityRatesCoordinatorResult, async_refresh_electricity_rates_data
-from custom_components.octopus_energy.utils import Tariff
+from custom_components.edf_energy.api_client import EDFEnergyApiClient
+from custom_components.edf_energy.coordinators.electricity_rates import ElectricityRatesCoordinatorResult, async_refresh_electricity_rates_data
+from custom_components.edf_energy.utils import Tariff
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("previous_data_available",[
@@ -18,7 +18,7 @@ from custom_components.octopus_energy.utils import Tariff
 async def test_when_next_refresh_is_in_the_past_and_then_requested_data_returned(previous_data_available):
   # Arrange
   context = get_test_context()
-  client = OctopusEnergyApiClient(context.api_key)
+  client = EDFEnergyApiClient(context.api_key)
   set_default_time_zone(zoneinfo.ZoneInfo("Europe/London"))
 
   account_info = await client.async_get_account(context.account_id)

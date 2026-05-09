@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from integration import (get_test_context)
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
+from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
 default_period_from = datetime.strptime("2022-12-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
 default_period_to = datetime.strptime("2022-12-02T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
@@ -11,7 +11,7 @@ async def async_assert_electricity_data(product_code, tariff_code, is_smart_mete
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key, price_cap)
+    client = EDFEnergyApiClient(context.api_key, price_cap)
 
     # Act
     data = await client.async_get_electricity_rates(product_code, tariff_code, is_smart_meter, period_from, period_to)
@@ -182,7 +182,7 @@ async def test_when_get_electricity_rates_is_called_for_non_existent_tariff_then
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.api_key)
 
     # Act
     data = await client.async_get_electricity_rates(product_code, tariff_code, True, default_period_from, default_period_to)

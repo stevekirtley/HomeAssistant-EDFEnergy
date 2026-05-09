@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 
-from custom_components.octopus_energy.utils import get_active_tariff
+from custom_components.edf_energy.utils import get_active_tariff
 
 @pytest.mark.asyncio
 async def test_when_active_tariff_available_then_get_active_tariff_code_returns_expected_code():

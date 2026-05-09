@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.octopus_energy.utils.consumption import get_total_consumption
+from custom_components.edf_energy.utils.consumption import get_total_consumption
 
 @pytest.mark.asyncio
 async def test_when_consumption_data_available_then_total_returned():

@@ -22,7 +22,7 @@ from ..const import (
   REFRESH_RATE_IN_MINUTES_INTELLIGENT,
 )
 
-from ..api_client import ApiException, OctopusEnergyApiClient
+from ..api_client import ApiException, EDFEnergyApiClient
 from ..api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
 from . import BaseCoordinatorResult
 from ..api_client.intelligent_device import IntelligentDevice
@@ -117,7 +117,7 @@ def merge_started_dispatches(current: datetime,
 
 async def async_retrieve_intelligent_dispatches(
   current: datetime,
-  client: OctopusEnergyApiClient,
+  client: EDFEnergyApiClient,
   account_info,
   intelligent_device: IntelligentDevice | None,
   existing_intelligent_dispatches_result: IntelligentDispatchesCoordinatorResult,
@@ -240,7 +240,7 @@ async def async_retrieve_intelligent_dispatches(
 
 async def async_refresh_intelligent_dispatches(
   current: datetime,
-  client: OctopusEnergyApiClient,
+  client: EDFEnergyApiClient,
   account_info,
   intelligent_device: IntelligentDevice | None,
   existing_intelligent_dispatches_result: IntelligentDispatchesCoordinatorResult,
@@ -304,7 +304,7 @@ async def async_setup_intelligent_dispatches_coordinator(
     intelligent_device: IntelligentDevice | None = next((device for device in intelligent_result.devices if device.id == device_id), None) if intelligent_result is not None else None
 
     current = utcnow()
-    client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+    client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT]
     account_info = account_result.account if account_result is not None else None
     existing_intelligent_dispatches_result = (hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DISPATCHES][device_id]

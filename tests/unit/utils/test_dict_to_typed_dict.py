@@ -3,7 +3,7 @@ from datetime import datetime
 import pytz
 import pytest
 
-from custom_components.octopus_energy.utils.attributes import dict_to_typed_dict
+from custom_components.edf_energy.utils.attributes import dict_to_typed_dict
 from homeassistant.util.dt import (as_utc, parse_datetime, set_default_time_zone)
 
 @pytest.mark.asyncio

@@ -212,7 +212,7 @@ def mock_intelligent_devices():
   ]
 
 def is_intelligent_product(product_code: str):
-  # Need to ignore Octopus Intelligent Go tariffs
+  # TODO: confirm EDF Smart Charging tariff code prefix(es) — currently using Octopus/Kraken INTELLI patterns as placeholder
   return product_code is not None and (
     "INTELLI-BB-VAR" in product_code.upper() or
     "INTELLI-VAR" in product_code.upper() or
@@ -461,7 +461,7 @@ FULLY_SUPPORTED_INTELLIGENT_PROVIDERS = [
   "HYPERVOLT",
   "INDRA",
   "OCPP",
-  "OCTOPUS_ENERGY"
+  "EDF_ENERGY"
 ]
 
 def get_intelligent_features(provider: str) -> IntelligentFeatures:

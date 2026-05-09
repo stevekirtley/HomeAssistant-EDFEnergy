@@ -24,20 +24,20 @@ from . import (
   calculate_gas_consumption_and_cost,
 )
 
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult
 from ..statistics.consumption import async_import_external_statistics_from_consumption, get_gas_consumption_statistic_unique_id
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyPreviousAccumulativeGasConsumptionKwh(CoordinatorEntity, OctopusEnergyGasSensor, RestoreSensor):
+class EDFEnergyPreviousAccumulativeGasConsumptionKwh(CoordinatorEntity, EDFEnergyGasSensor, RestoreSensor):
   """Sensor for displaying the previous days accumulative gas consumption in kwh."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point, calorific_value):
     """Init sensor."""
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point)
+    EDFEnergyGasSensor.__init__(self, hass, meter, point)
 
     self._hass = hass
     self._native_consumption_units = meter["consumption_units"]
@@ -56,7 +56,7 @@ class OctopusEnergyPreviousAccumulativeGasConsumptionKwh(CoordinatorEntity, Octo
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_gas_{self._serial_number}_{self._mprn}_previous_accumulative_consumption_kwh"
+    return f"edf_energy_gas_{self._serial_number}_{self._mprn}_previous_accumulative_consumption_kwh"
     
   @property
   def name(self):
@@ -167,4 +167,4 @@ class OctopusEnergyPreviousAccumulativeGasConsumptionKwh(CoordinatorEntity, Octo
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes)
     
-      _LOGGER.debug(f'Restored OctopusEnergyPreviousAccumulativeGasConsumptionKwh state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyPreviousAccumulativeGasConsumptionKwh state: {self._state}')

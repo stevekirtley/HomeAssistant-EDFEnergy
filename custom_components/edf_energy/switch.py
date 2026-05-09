@@ -1,8 +1,8 @@
 import logging
 
 from .utils.debug_overrides import async_get_account_debug_override
-from .intelligent.smart_charge import OctopusEnergyIntelligentSmartCharge
-from .intelligent.bump_charge import OctopusEnergyIntelligentBumpCharge
+from .intelligent.smart_charge import EDFEnergyIntelligentSmartCharge
+from .intelligent.bump_charge import EDFEnergyIntelligentBumpCharge
 from .intelligent import get_intelligent_features
 from .api_client.intelligent_device import IntelligentDevice
 from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult
@@ -49,9 +49,9 @@ async def async_setup_intelligent_sensors(hass, config, async_add_entities):
     dispatches_coordinator = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DISPATCHES_COORDINATOR.format(intelligent_device.id)]
 
     if intelligent_features.bump_charge_supported:
-      entities.append(OctopusEnergyIntelligentSmartCharge(hass, settings_coordinator, client, intelligent_device, account_id, account_debug_override.mock_intelligent_controls if account_debug_override is not None else False))
+      entities.append(EDFEnergyIntelligentSmartCharge(hass, settings_coordinator, client, intelligent_device, account_id, account_debug_override.mock_intelligent_controls if account_debug_override is not None else False))
 
     if intelligent_features.smart_charge_supported:
-      entities.append(OctopusEnergyIntelligentBumpCharge(hass, dispatches_coordinator, client, intelligent_device, account_id, account_debug_override.mock_intelligent_controls if account_debug_override is not None else False))
+      entities.append(EDFEnergyIntelligentBumpCharge(hass, dispatches_coordinator, client, intelligent_device, account_id, account_debug_override.mock_intelligent_controls if account_debug_override is not None else False))
 
   async_add_entities(entities)

@@ -1,18 +1,18 @@
 {
-  "domain": "octopus_energy",
-  "name": "Octopus Energy",
+  "domain": "edf_energy",
+  "name": "EDF Energy",
   "codeowners": [
-    "@bottlecapdave"
+    "@stevekirtley"
   ],
   "config_flow": true,
   "dependencies": [
     "repairs",
     "recorder"
   ],
-  "documentation": "https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy",
+  "documentation": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy",
   "homekit": {},
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues",
+  "issue_tracker": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues",
   "requirements": [
     "pydantic"
   ],

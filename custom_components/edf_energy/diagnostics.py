@@ -15,18 +15,16 @@ from .const import (
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
   CONFIG_MAIN_API_KEY,
   DATA_ACCOUNT,
-  DATA_HEAT_PUMP_IDS,
   DOMAIN,
 
   DATA_CLIENT
 )
-from .api_client import OctopusEnergyApiClient, TimeoutException
-from .heat_pump import get_mock_heat_pump_id, mock_heat_pump_status_and_configuration
+from .api_client import EDFEnergyApiClient, TimeoutException
 from .utils.debug_overrides import AccountDebugOverride, async_get_account_debug_override
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_get_device_consumption_data(client: OctopusEnergyApiClient, device_id: str):
+async def async_get_device_consumption_data(client: EDFEnergyApiClient, device_id: str):
   current: datetime = now()
   period_from = current - timedelta(minutes=120)
   period_to = current
@@ -44,7 +42,7 @@ async def async_get_device_consumption_data(client: OctopusEnergyApiClient, devi
   except Exception as e:
     return f"Failed to retrieve - {e}"
 
-async def async_get_diagnostics(client: OctopusEnergyApiClient, account_id: str, existing_account_info: dict, account_debug_override: AccountDebugOverride | None, get_entity_info: Callable[[dict], dict]):
+async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, existing_account_info: dict, account_debug_override: AccountDebugOverride | None, get_entity_info: Callable[[dict], dict]):
   _LOGGER.info('Retrieving account details for diagnostics...')
 
   if existing_account_info is None:
@@ -124,28 +122,12 @@ async def async_get_diagnostics(client: OctopusEnergyApiClient, account_id: str,
 
   account_info = async_redact_data(account_info, { "id" }) if account_info is not None else None
 
-  mock_heat_pump = account_debug_override.mock_heat_pump if account_debug_override is not None else False
-
-  heat_pumps = {}
-  if mock_heat_pump:
-    heat_pump_id = get_mock_heat_pump_id()
-    heat_pumps[heat_pump_id] = mock_heat_pump_status_and_configuration().dict()
-  else:
-    heat_pump_ids = await client.async_get_heat_pump_ids(account_id, account_info["property_ids"]) if account_info is not None else []
-    for heat_pump_id in heat_pump_ids:
-      try:
-        heat_pump = await client.async_get_heat_pump_configuration_and_status(account_id, heat_pump_id)
-        heat_pumps[heat_pump_id] = heat_pump.dict() if heat_pump is not None else "Not found"
-      except Exception as e:
-        heat_pumps[heat_pump_id] = f"Failed to retrieve - {e}"
-
   return {
     "timestamp_captured": now(),
     "account": account_info,
     "using_cached_account_data": existing_account_info is not None,
     "entities": get_entity_info(redacted_mappings),
     "intelligent_devices": list(map(lambda x: x.to_dict(), intelligent_devices)),
-    "heat_pumps": heat_pumps,
   }
 
 ignored_attributes = ['mpan', 'mprn', 'serial_number', 'friendly_name', 'icon', 'unit_of_measurement', 'device_class', 'state_class', 'account_id']
@@ -158,7 +140,7 @@ async def async_get_device_diagnostics(hass, entry, device):
     account_id = config[CONFIG_ACCOUNT_ID]
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT]
     account_info = account_result.account if account_result is not None else None
-    client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+    client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
     account_debug_override = await async_get_account_debug_override(hass, account_id)
 
     def get_entity_info(redacted_mappings):
@@ -169,7 +151,7 @@ async def async_get_device_diagnostics(hass, entry, device):
       for item in entities:
         unique_id: str = item[1].unique_id
 
-        if "octopus_energy" in unique_id:
+        if "edf_energy" in unique_id:
           state = None
           for s in states:
             if s.entity_id == item[1].entity_id:
@@ -203,7 +185,7 @@ async def async_get_config_entry_diagnostics(hass, entry):
     account_id = config[CONFIG_ACCOUNT_ID]
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT]
     account_info = account_result.account if account_result is not None else None
-    client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+    client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
     account_debug_override = await async_get_account_debug_override(hass, account_id)
 
     def get_entity_info(redacted_mappings):
@@ -214,7 +196,7 @@ async def async_get_config_entry_diagnostics(hass, entry):
       for item in entities:
         unique_id: str = item[1].unique_id
 
-        if "octopus_energy" in unique_id:
+        if "edf_energy" in unique_id:
           state = None
           for s in states:
             if s.entity_id == item[1].entity_id:

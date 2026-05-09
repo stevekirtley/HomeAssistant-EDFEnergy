@@ -20,20 +20,20 @@ from homeassistant.const import (
 )
 
 from ..coordinators.current_consumption import CurrentConsumptionCoordinatorResult
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 
 from ..utils.consumption import (calculate_current_consumption, get_current_consumption_delta, get_total_consumption)
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyCurrentGasConsumption(CoordinatorEntity, OctopusEnergyGasSensor, RestoreSensor):
+class EDFEnergyCurrentGasConsumption(CoordinatorEntity, EDFEnergyGasSensor, RestoreSensor):
   """Sensor for displaying the current gas consumption."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point):
     """Init sensor."""
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point)
+    EDFEnergyGasSensor.__init__(self, hass, meter, point)
 
     self._state = None
     self._latest_date = None
@@ -51,7 +51,7 @@ class OctopusEnergyCurrentGasConsumption(CoordinatorEntity, OctopusEnergyGasSens
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_gas_{self._serial_number}_{self._mprn}_current_consumption"
+    return f"edf_energy_gas_{self._serial_number}_{self._mprn}_current_consumption"
 
   @property
   def name(self):
@@ -95,7 +95,7 @@ class OctopusEnergyCurrentGasConsumption(CoordinatorEntity, OctopusEnergyGasSens
   @callback
   def _handle_coordinator_update(self) -> None:
     """The current consumption for the meter."""
-    _LOGGER.debug('Updating OctopusEnergyCurrentGasConsumption')
+    _LOGGER.debug('Updating EDFEnergyCurrentGasConsumption')
     consumption_result: CurrentConsumptionCoordinatorResult = self.coordinator.data if self.coordinator is not None and self.coordinator.data is not None else None
     current_date = now()
 
@@ -133,4 +133,4 @@ class OctopusEnergyCurrentGasConsumption(CoordinatorEntity, OctopusEnergyGasSens
       if "last_reset" in self._attributes:
         del self._attributes["last_reset"]
     
-      _LOGGER.debug(f'Restored OctopusEnergyCurrentGasConsumption state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyCurrentGasConsumption state: {self._state}')

@@ -23,7 +23,7 @@ from ..utils.error import exception_to_string
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyBaseDataLastRetrieved(CoordinatorEntity, RestoreSensor):
+class EDFEnergyBaseDataLastRetrieved(CoordinatorEntity, RestoreSensor):
   """Base sensor for data last retrieved."""
   _unrecorded_attributes = frozenset({ "attempts", "next_refresh" })
 

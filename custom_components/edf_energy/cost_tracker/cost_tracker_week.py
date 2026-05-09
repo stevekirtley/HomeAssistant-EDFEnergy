@@ -37,7 +37,7 @@ from .base import BaseCostTracker
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyCostTrackerWeekSensor(RestoreSensor, BaseCostTracker):
+class EDFEnergyCostTrackerWeekSensor(RestoreSensor, BaseCostTracker):
   """Sensor for calculating the cost for a given sensor over the course of a week."""
 
   def __init__(self, hass: HomeAssistant, config_entry, config, device_entry, tracked_entity_id: str, peak_type = None):
@@ -70,7 +70,7 @@ class OctopusEnergyCostTrackerWeekSensor(RestoreSensor, BaseCostTracker):
   @property
   def unique_id(self):
     """The id of the sensor."""
-    base_name = f"octopus_energy_cost_tracker_{self._config[CONFIG_COST_TRACKER_NAME]}_week"
+    base_name = f"edf_energy_cost_tracker_{self._config[CONFIG_COST_TRACKER_NAME]}_week"
     if self._peak_type is not None:
       return f"{base_name}_{self._peak_type}"
     
@@ -79,7 +79,7 @@ class OctopusEnergyCostTrackerWeekSensor(RestoreSensor, BaseCostTracker):
   @property
   def name(self):
     """Name of the sensor."""
-    base_name = f"Octopus Energy Cost Tracker {self._config[CONFIG_COST_TRACKER_NAME]} Week"
+    base_name = f"EDF Energy Cost Tracker {self._config[CONFIG_COST_TRACKER_NAME]} Week"
     if self._peak_type is not None:
       return f"{base_name} ({self._peak_type})"
 

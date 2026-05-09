@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 
-from custom_components.octopus_energy.statistics import get_statistic_ids_to_remove
+from custom_components.edf_energy.statistics import get_statistic_ids_to_remove
 
 def get_account_info():
   return {
@@ -76,9 +76,9 @@ def test_when_electricity_meter_have_valid_tariff_then_electricity_meters_return
 
   # Assert
   assert len(result) == 3
-  assert result[0] == "octopus_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_consumption"
-  assert result[1] == "octopus_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_cost"
-  assert result[2] == "octopus_energy:electricity_elec-sn_elec-mpan_previous_accumulative_cost"
+  assert result[0] == "edf_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_consumption"
+  assert result[1] == "edf_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_cost"
+  assert result[2] == "edf_energy:electricity_elec-sn_elec-mpan_previous_accumulative_cost"
 
 def test_when_gas_meter_have_valid_tariff_then_gas_meters_returned():
   # Arrange
@@ -90,8 +90,8 @@ def test_when_gas_meter_have_valid_tariff_then_gas_meters_returned():
 
   # Assert
   assert len(result) == 2
-  assert result[0] == "octopus_energy:gas_gas-sn_gas-mprn_previous_accumulative_consumption"
-  assert result[1] == "octopus_energy:gas_gas-sn_gas-mprn_previous_accumulative_cost"
+  assert result[0] == "edf_energy:gas_gas-sn_gas-mprn_previous_accumulative_consumption"
+  assert result[1] == "edf_energy:gas_gas-sn_gas-mprn_previous_accumulative_cost"
 
 def test_when_electricity_and_gas_meter_have_valid_tariff_then_electricity_and_gas_meters_returned():
   # Arrange
@@ -103,8 +103,8 @@ def test_when_electricity_and_gas_meter_have_valid_tariff_then_electricity_and_g
 
   # Assert
   assert len(result) == 5
-  assert result[0] == "octopus_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_consumption"
-  assert result[1] == "octopus_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_cost"
-  assert result[2] == "octopus_energy:electricity_elec-sn_elec-mpan_previous_accumulative_cost"
-  assert result[3] == "octopus_energy:gas_gas-sn_gas-mprn_previous_accumulative_consumption"
-  assert result[4] == "octopus_energy:gas_gas-sn_gas-mprn_previous_accumulative_cost"
+  assert result[0] == "edf_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_consumption"
+  assert result[1] == "edf_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_cost"
+  assert result[2] == "edf_energy:electricity_elec-sn_elec-mpan_previous_accumulative_cost"
+  assert result[3] == "edf_energy:gas_gas-sn_gas-mprn_previous_accumulative_consumption"
+  assert result[4] == "edf_energy:gas_gas-sn_gas-mprn_previous_accumulative_cost"

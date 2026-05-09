@@ -14,21 +14,21 @@ from homeassistant.helpers.update_coordinator import (
 from homeassistant.components.number import RestoreNumber, NumberDeviceClass, NumberMode
 from homeassistant.util.dt import (utcnow)
 
-from .base import OctopusEnergyIntelligentSensor
-from ..api_client import OctopusEnergyApiClient
+from .base import EDFEnergyIntelligentSensor
+from ..api_client import EDFEnergyApiClient
 from ..coordinators.intelligent_settings import IntelligentCoordinatorResult
 from ..utils.attributes import dict_to_typed_dict
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyIntelligentChargeTarget(CoordinatorEntity, RestoreNumber, OctopusEnergyIntelligentSensor):
+class EDFEnergyIntelligentChargeTarget(CoordinatorEntity, RestoreNumber, EDFEnergyIntelligentSensor):
   """Sensor for setting the target percentage for car charging."""
 
-  def __init__(self, hass: HomeAssistant, coordinator, client: OctopusEnergyApiClient, device, account_id: str, is_mocked: bool):
+  def __init__(self, hass: HomeAssistant, coordinator, client: EDFEnergyApiClient, device, account_id: str, is_mocked: bool):
     """Init sensor."""
     # Pass coordinator to base class
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyIntelligentSensor.__init__(self, device)
+    EDFEnergyIntelligentSensor.__init__(self, device)
 
     self._state = None
     self._last_updated = None
@@ -46,12 +46,12 @@ class OctopusEnergyIntelligentChargeTarget(CoordinatorEntity, RestoreNumber, Oct
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_{self._device.id}_intelligent_charge_target"
+    return f"edf_energy_{self._device.id}_intelligent_charge_target"
     
   @property
   def name(self):
     """Name of the sensor."""
-    return f"Intelligent Charge Target ({self._device.id})"
+    return f"Smart Charging Charge Target ({self._device.id})"
 
   @property
   def icon(self):
@@ -123,4 +123,4 @@ class OctopusEnergyIntelligentChargeTarget(CoordinatorEntity, RestoreNumber, Oct
       if last_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
         self._state = last_number_data.native_value
           
-    _LOGGER.debug(f'Restored OctopusEnergyIntelligentChargeTarget state: {self._state}')
+    _LOGGER.debug(f'Restored EDFEnergyIntelligentChargeTarget state: {self._state}')

@@ -1,7 +1,7 @@
 from datetime import (datetime)
 import pytest
 
-from custom_components.octopus_energy.utils.consumption import get_current_consumption_delta
+from custom_components.edf_energy.utils.consumption import get_current_consumption_delta
 
 @pytest.mark.asyncio
 async def test_when_previous_updated_is_none_then_none_returned():

@@ -21,7 +21,7 @@ from ..const import (
   REPAIR_INVALID_API_KEY,
 )
 
-from ..api_client import ApiException, AuthenticationException, OctopusEnergyApiClient
+from ..api_client import ApiException, AuthenticationException, EDFEnergyApiClient
 from . import BaseCoordinatorResult
 from ..utils import get_active_tariff
 from ..utils.repairs import safe_repair_key
@@ -42,7 +42,6 @@ def raise_product_not_found(hass, product_code: str, is_electricity: bool):
     f"unknown_product_{product_code}",
     is_fixable=False,
     severity=ir.IssueSeverity.ERROR,
-    learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/repairs/unknown_product",
     translation_key="unknown_product",
     translation_placeholders={ "type": "Electricity" if is_electricity else "Gas", "product_code": product_code },
   )
@@ -54,7 +53,6 @@ def raise_account_not_found(hass, account_id: str):
     safe_repair_key(REPAIR_ACCOUNT_NOT_FOUND, account_id),
     is_fixable=False,
     severity=ir.IssueSeverity.ERROR,
-    learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/repairs/account_not_found",
     translation_key="account_not_found",
     translation_placeholders={ "account_id": account_id },
   )
@@ -91,12 +89,11 @@ def raise_meter_removed(hass, account_id: str, mprn_mpan: str, serial_number: st
     safe_repair_key("meter_removed_{}_{}_{}_{}", account_id, mprn_mpan, serial_number, is_electricity),
     is_fixable=False,
     severity=ir.IssueSeverity.WARNING,
-    learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/repairs/meter_removed",
     translation_key="meter_removed",
     translation_placeholders={ "account_id": account_id, "mprn_mpan": mprn_mpan, "serial_number": serial_number, "meter_type": "Electricity" if is_electricity else "Gas" },
   )
 
-async def async_check_valid_product(client: OctopusEnergyApiClient, product_code: str, is_electricity: bool, raise_product_not_found: Callable[[str, bool], None]):
+async def async_check_valid_product(client: EDFEnergyApiClient, product_code: str, is_electricity: bool, raise_product_not_found: Callable[[str, bool], None]):
   try:
     _LOGGER.debug(f"Retrieving product information for '{product_code}'")
     product = await client.async_get_product(product_code)
@@ -163,7 +160,7 @@ def check_for_removed_and_added_meters(account_id: str,
 
 async def async_refresh_account(
   current: datetime,
-  client: OctopusEnergyApiClient,
+  client: EDFEnergyApiClient,
   account_id: str,
   previous_request: AccountCoordinatorResult,
   raise_account_not_found: Callable[[], None],
@@ -233,7 +230,7 @@ async def async_setup_account_info_coordinator(hass, account_id: str):
     """Fetch data from API endpoint."""
     # Only get data every half hour or if we don't have any data
     current = now()
-    client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+    client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
 
     if DATA_ACCOUNT not in hass.data[DOMAIN][account_id] or hass.data[DOMAIN][account_id][DATA_ACCOUNT] is None:
       raise Exception("Failed to find account information")

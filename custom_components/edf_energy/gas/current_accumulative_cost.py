@@ -18,18 +18,18 @@ from . import (
 
 from ..coordinators import MultiCoordinatorEntity
 from ..coordinators.current_consumption import CurrentConsumptionCoordinatorResult
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 
 _LOGGER = logging.getLogger(__name__)
   
-class OctopusEnergyCurrentAccumulativeGasCost(MultiCoordinatorEntity, OctopusEnergyGasSensor, RestoreSensor):
+class EDFEnergyCurrentAccumulativeGasCost(MultiCoordinatorEntity, EDFEnergyGasSensor, RestoreSensor):
   """Sensor for displaying the current days accumulative gas cost."""
 
   def __init__(self, hass: HomeAssistant, coordinator, rates_coordinator, standing_charge_coordinator, meter, point, calorific_value):
     """Init sensor."""
     MultiCoordinatorEntity.__init__(self, coordinator, [rates_coordinator, standing_charge_coordinator])
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point)
+    EDFEnergyGasSensor.__init__(self, hass, meter, point)
     
     self._hass = hass
 
@@ -50,7 +50,7 @@ class OctopusEnergyCurrentAccumulativeGasCost(MultiCoordinatorEntity, OctopusEne
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_gas_{self._serial_number}_{self._mprn}_current_accumulative_cost"
+    return f"edf_energy_gas_{self._serial_number}_{self._mprn}_current_accumulative_cost"
     
   @property
   def name(self):
@@ -144,4 +144,4 @@ class OctopusEnergyCurrentAccumulativeGasCost(MultiCoordinatorEntity, OctopusEne
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes)
 
-      _LOGGER.debug(f'Restored OctopusEnergyCurrentAccumulativeGasCost state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyCurrentAccumulativeGasCost state: {self._state}')

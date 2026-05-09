@@ -6,7 +6,7 @@ from ..const import (
   DOMAIN,
 )
 
-class OctopusEnergyElectricitySensor:
+class EDFEnergyElectricitySensor:
   _unrecorded_attributes = frozenset({"data_last_retrieved"})
 
   def __init__(self, hass: HomeAssistant, meter, point, entity_domain = "sensor"):

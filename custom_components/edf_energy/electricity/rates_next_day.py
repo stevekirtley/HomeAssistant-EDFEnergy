@@ -8,13 +8,13 @@ from homeassistant.components.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .base import (OctopusEnergyElectricitySensor)
+from .base import (EDFEnergyElectricitySensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..const import EVENT_ELECTRICITY_NEXT_DAY_RATES
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyElectricityNextDayRates(OctopusEnergyElectricitySensor, EventEntity, RestoreEntity):
+class EDFEnergyElectricityNextDayRates(EDFEnergyElectricitySensor, EventEntity, RestoreEntity):
   """Sensor for displaying the next day's rates."""
 
   _attr_translation_key = "electricity_next_day_rates"
@@ -22,7 +22,7 @@ class OctopusEnergyElectricityNextDayRates(OctopusEnergyElectricitySensor, Event
   def __init__(self, hass: HomeAssistant, meter, point):
     """Init sensor."""
     # Pass coordinator to base class
-    OctopusEnergyElectricitySensor.__init__(self, hass, meter, point, "event")
+    EDFEnergyElectricitySensor.__init__(self, hass, meter, point, "event")
 
     self._hass = hass
     self._state = None
@@ -33,7 +33,7 @@ class OctopusEnergyElectricityNextDayRates(OctopusEnergyElectricitySensor, Event
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_next_day_rates"
+    return f"edf_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_next_day_rates"
     
   @property
   def name(self):

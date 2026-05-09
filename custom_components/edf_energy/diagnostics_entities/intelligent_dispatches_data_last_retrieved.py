@@ -6,29 +6,29 @@ from homeassistant.helpers.update_coordinator import (
 
 from ..utils.error import exception_to_string
 from ..coordinators.intelligent_dispatches import MAXIMUM_DISPATCH_REQUESTS_PER_HOUR, IntelligentDispatchesCoordinatorResult
-from .base import OctopusEnergyBaseDataLastRetrieved
-from ..intelligent.base import OctopusEnergyIntelligentSensor
+from .base import EDFEnergyBaseDataLastRetrieved
+from ..intelligent.base import EDFEnergyIntelligentSensor
 from ..api_client.intelligent_device import IntelligentDevice
 
-class OctopusEnergyIntelligentDispatchesDataLastRetrieved(OctopusEnergyIntelligentSensor, OctopusEnergyBaseDataLastRetrieved):
+class EDFEnergyIntelligentDispatchesDataLastRetrieved(EDFEnergyIntelligentSensor, EDFEnergyBaseDataLastRetrieved):
   """Sensor for displaying the last time the intelligent dispatches data was last retrieved."""
 
   def __init__(self, hass, coordinator, account_id: str, device: IntelligentDevice):
     """Init sensor."""
     self._account_id = account_id
     self._device_id = device.id
-    OctopusEnergyBaseDataLastRetrieved.__init__(self, hass, coordinator)
-    OctopusEnergyIntelligentSensor.__init__(self, device)
+    EDFEnergyBaseDataLastRetrieved.__init__(self, hass, coordinator)
+    EDFEnergyIntelligentSensor.__init__(self, device)
 
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_{self._device_id}_intelligent_dispatches_data_last_retrieved"
+    return f"edf_energy_{self._device_id}_intelligent_dispatches_data_last_retrieved"
     
   @property
   def name(self):
     """Name of the sensor."""
-    return f"Intelligent Dispatches Data Last Retrieved ({self._device_id})"
+    return f"Smart Charging Dispatches Data Last Retrieved ({self._device_id})"
   
   @callback
   def _handle_coordinator_update(self) -> None:

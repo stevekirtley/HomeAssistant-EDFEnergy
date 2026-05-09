@@ -3,7 +3,7 @@ import logging
 from .utils.debug_overrides import async_get_account_debug_override
 
 from .intelligent import get_intelligent_features
-from .intelligent.charge_target import OctopusEnergyIntelligentChargeTarget
+from .intelligent.charge_target import EDFEnergyIntelligentChargeTarget
 from .api_client.intelligent_device import IntelligentDevice
 from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult
 
@@ -53,6 +53,6 @@ async def async_setup_intelligent_sensors(hass, config):
     settings_coordinator = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_SETTINGS_COORDINATOR.format(intelligent_device.id)]
 
     if intelligent_features.charge_limit_supported == True:
-      entities.append(OctopusEnergyIntelligentChargeTarget(hass, settings_coordinator, client, intelligent_device, account_id, account_debug_override.mock_intelligent_controls if account_debug_override is not None else False))
+      entities.append(EDFEnergyIntelligentChargeTarget(hass, settings_coordinator, client, intelligent_device, account_id, account_debug_override.mock_intelligent_controls if account_debug_override is not None else False))
 
   return entities

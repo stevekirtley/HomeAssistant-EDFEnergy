@@ -8,13 +8,13 @@ from homeassistant.components.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..const import EVENT_GAS_CURRENT_DAY_RATES
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyGasCurrentDayRates(OctopusEnergyGasSensor, EventEntity, RestoreEntity):
+class EDFEnergyGasCurrentDayRates(EDFEnergyGasSensor, EventEntity, RestoreEntity):
   """Sensor for displaying the current day's rates."""
 
   _attr_translation_key = "gas_current_day_rates"
@@ -22,7 +22,7 @@ class OctopusEnergyGasCurrentDayRates(OctopusEnergyGasSensor, EventEntity, Resto
   def __init__(self, hass: HomeAssistant, meter, point):
     """Init sensor."""
     # Pass coordinator to base class
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point, "event")
+    EDFEnergyGasSensor.__init__(self, hass, meter, point, "event")
 
     self._hass = hass
     self._state = None
@@ -33,7 +33,7 @@ class OctopusEnergyGasCurrentDayRates(OctopusEnergyGasSensor, EventEntity, Resto
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_gas_{self._serial_number}_{self._mprn}_current_day_rates"
+    return f"edf_energy_gas_{self._serial_number}_{self._mprn}_current_day_rates"
     
   @property
   def name(self):

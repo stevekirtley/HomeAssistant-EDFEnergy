@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.octopus_energy.utils.repairs import safe_repair_key
+from custom_components.edf_energy.utils.repairs import safe_repair_key
 
 @pytest.mark.asyncio
 async def test_safe_repair_key_when_ids_provided_then_ids_hashed():

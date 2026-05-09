@@ -66,7 +66,7 @@ class DiscoveryManager:
         for item in entities:
             unique_id: str = str(item[1].unique_id)
 
-            if "octopus_energy" in unique_id:
+            if "edf_energy" in unique_id:
                 continue
 
             if item[1].disabled_by is not None:

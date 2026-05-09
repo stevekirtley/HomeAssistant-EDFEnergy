@@ -46,7 +46,7 @@ class IntelligentDispatchesHistory:
     }
 
 async def async_load_cached_intelligent_dispatches_history(hass, device_id: str) -> IntelligentDispatchesHistory | None:
-  store = storage.Store(hass, "1", f"octopus_energy.intelligent_dispatches_history_{device_id}")
+  store = storage.Store(hass, "1", f"edf_energy.intelligent_dispatches_history_{device_id}")
 
   try:
     data = await store.async_load()
@@ -60,6 +60,6 @@ async def async_load_cached_intelligent_dispatches_history(hass, device_id: str)
   
 async def async_save_cached_intelligent_dispatches_history(hass, device_id: str, intelligent_dispatches_history: IntelligentDispatchesHistory):
   if intelligent_dispatches_history is not None:
-    store = storage.Store(hass, "1", f"octopus_energy.intelligent_dispatches_history_{device_id}")
+    store = storage.Store(hass, "1", f"edf_energy.intelligent_dispatches_history_{device_id}")
     await store.async_save(intelligent_dispatches_history.to_dict())
     _LOGGER.debug(f"Saved intelligent dispatches history data for ({device_id})")

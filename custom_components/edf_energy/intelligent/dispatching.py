@@ -23,7 +23,7 @@ from ..intelligent import (
   simple_dispatches_to_dictionary_list
 )
 
-from .base import OctopusEnergyIntelligentSensor
+from .base import EDFEnergyIntelligentSensor
 from ..coordinators.intelligent_dispatches import IntelligentDispatchDataUpdateCoordinator, IntelligentDispatchesCoordinatorResult
 from ..utils.attributes import dict_to_typed_dict
 from ..api_client.intelligent_device import IntelligentDevice
@@ -32,7 +32,7 @@ from ..const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyIntelligentDispatching(MultiCoordinatorEntity, BinarySensorEntity, OctopusEnergyIntelligentSensor, RestoreEntity):
+class EDFEnergyIntelligentDispatching(MultiCoordinatorEntity, BinarySensorEntity, EDFEnergyIntelligentSensor, RestoreEntity):
   """Sensor for determining if an intelligent is dispatching."""
 
   def __init__(self,
@@ -46,7 +46,7 @@ class OctopusEnergyIntelligentDispatching(MultiCoordinatorEntity, BinarySensorEn
     """Init sensor."""
 
     MultiCoordinatorEntity.__init__(self, coordinator, [])
-    OctopusEnergyIntelligentSensor.__init__(self, device)
+    EDFEnergyIntelligentSensor.__init__(self, device)
   
     self._account_id = account_id
     self._state = None
@@ -60,12 +60,12 @@ class OctopusEnergyIntelligentDispatching(MultiCoordinatorEntity, BinarySensorEn
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_{self._device.id}_intelligent_dispatching"
+    return f"edf_energy_{self._device.id}_intelligent_dispatching"
     
   @property
   def name(self):
     """Name of the sensor."""
-    return f"Intelligent Dispatching ({self._device.id})"
+    return f"Smart Charging Dispatching ({self._device.id})"
 
   @property
   def icon(self):
@@ -135,7 +135,7 @@ class OctopusEnergyIntelligentDispatching(MultiCoordinatorEntity, BinarySensorEn
       self._attributes["next_end"] = None
 
     if self._state != is_dispatching:
-      _LOGGER.debug(f"OctopusEnergyIntelligentDispatching state changed from {self._state} to {is_dispatching}; dispatches: {result.dispatches.to_dict() if result.dispatches is not None else None}; started_dispatches: {list(map(lambda x: x.to_dict(), started_dispatches)) if started_dispatches is not None else []}")
+      _LOGGER.debug(f"EDFEnergyIntelligentDispatching state changed from {self._state} to {is_dispatching}; dispatches: {result.dispatches.to_dict() if result.dispatches is not None else None}; started_dispatches: {list(map(lambda x: x.to_dict(), started_dispatches)) if started_dispatches is not None else []}")
     
     self._state = is_dispatching
 
@@ -155,7 +155,7 @@ class OctopusEnergyIntelligentDispatching(MultiCoordinatorEntity, BinarySensorEn
     if (self._state is None):
       self._state = False
     
-    _LOGGER.debug(f'Restored OctopusEnergyIntelligentDispatching state: {self._state}')
+    _LOGGER.debug(f'Restored EDFEnergyIntelligentDispatching state: {self._state}')
 
   @callback
   async def async_refresh_dispatches(self):

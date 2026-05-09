@@ -4,7 +4,7 @@ import pytest
 from homeassistant.util.dt import (now)
 
 from integration import (get_test_context)
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
+from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("product_code,tariff_code,price_cap,period_from,period_to",[
@@ -18,7 +18,7 @@ async def test_when_get_gas_rates_is_called_for_existent_tariff_then_rates_are_r
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key, None, price_cap)
+    client = EDFEnergyApiClient(context.api_key, None, price_cap)
 
     # Act
     data = await client.async_get_gas_rates(product_code, tariff_code, period_from, period_to)
@@ -55,7 +55,7 @@ async def test_when_get_gas_rates_is_called_for_non_existent_tariff_then_none_is
     period_from = now().replace(hour=0, minute=0, second=0, microsecond=0)
     period_to = (now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    client = OctopusEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.api_key)
 
     # Act
     data = await client.async_get_gas_rates(product_code, tariff_code, period_from, period_to)

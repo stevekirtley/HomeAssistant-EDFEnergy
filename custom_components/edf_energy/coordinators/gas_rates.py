@@ -21,7 +21,7 @@ from ..const import (
   REPAIR_NO_ACTIVE_TARIFF,
 )
 
-from ..api_client import ApiException, OctopusEnergyApiClient
+from ..api_client import ApiException, EDFEnergyApiClient
 from ..utils import Tariff, private_rates_to_public_rates
 from . import BaseCoordinatorResult, clear_rates_empty, combine_rates, get_gas_meter_tariff, raise_rate_events, raise_rates_empty
 from ..utils.repairs import safe_repair_key
@@ -37,7 +37,7 @@ class GasRatesCoordinatorResult(BaseCoordinatorResult):
 
 async def async_refresh_gas_rates_data(
     current: datetime,
-    client: OctopusEnergyApiClient,
+    client: EDFEnergyApiClient,
     account_info,
     target_mprn: str,
     target_serial_number: str,
@@ -87,7 +87,7 @@ async def async_refresh_gas_rates_data(
         new_rates = existing_rates_result.rates
         last_retrieved = existing_rates_result.last_retrieved
 
-      # Make sure our rate information doesn't contain any negative values https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues/506
+      # Make sure our rate information doesn't contain any negative values https://github.com/BottlecapDave/HomeAssistant-EDFEnergy/issues/506
       if new_rates is not None:
         for rate in new_rates:
           if rate["value_inc_vat"] < 0:
@@ -136,7 +136,6 @@ async def async_raise_no_active_tariff(hass, account_id: str, mprn: str, serial_
     safe_repair_key(REPAIR_NO_ACTIVE_TARIFF, mprn, serial_number),
     is_fixable=False,
     severity=ir.IssueSeverity.ERROR,
-    learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/repairs/no_active_tariff",
     translation_key="no_active_tariff",
     translation_placeholders={ "account_id": account_id, "mpan_mprn": mprn, "serial_number": serial_number, "meter_type": "Gas" }
   )
@@ -148,7 +147,7 @@ async def async_remove_no_active_tariff(hass, mprn: str, serial_number: str):
     safe_repair_key(REPAIR_NO_ACTIVE_TARIFF, mprn, serial_number)
   )
 
-async def async_setup_gas_rates_coordinator(hass, account_id: str, client: OctopusEnergyApiClient, target_mprn: str, target_serial_number: str):
+async def async_setup_gas_rates_coordinator(hass, account_id: str, client: EDFEnergyApiClient, target_mprn: str, target_serial_number: str):
   key = DATA_GAS_RATES_KEY.format(target_mprn, target_serial_number)
 
   # Reset data rates as we might have new information

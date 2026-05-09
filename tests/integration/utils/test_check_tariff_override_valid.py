@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 import pytest
 
 from integration import (get_test_context)
-from custom_components.octopus_energy.utils.tariff_check import check_tariff_override_valid
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
+from custom_components.edf_energy.utils.tariff_check import check_tariff_override_valid
+from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("original_tariff_code,tariff_code,expected_error_message",[
@@ -24,7 +24,7 @@ from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
 async def test_when_data_provided_then_expected_error_is_returned(original_tariff_code, tariff_code, expected_error_message):
   # Arrange
   context = get_test_context()
-  client = OctopusEnergyApiClient(context.api_key)
+  client = EDFEnergyApiClient(context.api_key)
   
   # Act
   result = await check_tariff_override_valid(client, original_tariff_code, tariff_code)

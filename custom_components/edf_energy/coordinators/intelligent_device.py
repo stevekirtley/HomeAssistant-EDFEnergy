@@ -22,7 +22,7 @@ from ..const import (
   REPAIR_INTELLIGENT_DEVICE_REMOVED,
 )
 
-from ..api_client import ApiException, OctopusEnergyApiClient
+from ..api_client import ApiException, EDFEnergyApiClient
 from . import BaseCoordinatorResult
 from ..api_client.intelligent_device import IntelligentDevice
 from ..intelligent import mock_intelligent_devices
@@ -40,7 +40,7 @@ class IntelligentDeviceCoordinatorResult(BaseCoordinatorResult):
 async def async_refresh_devices(
   hass,
   current: datetime,
-  client: OctopusEnergyApiClient,
+  client: EDFEnergyApiClient,
   account_id: str,
   current_intelligent_devices: list[IntelligentDevice],
   mock_intelligent_data: bool,
@@ -125,7 +125,7 @@ async def async_setup_intelligent_devices_coordinator(hass, account_id: str, int
     """Fetch data from API endpoint."""
     # Only get data every half hour or if we don't have any data
     current = now()
-    client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+    client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
 
     hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DEVICES] = await async_refresh_devices(
       hass,

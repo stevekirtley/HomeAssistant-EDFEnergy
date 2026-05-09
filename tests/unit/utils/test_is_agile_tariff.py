@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.octopus_energy.utils.tariff_check import is_agile_tariff
+from custom_components.edf_energy.utils.tariff_check import is_agile_tariff
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tariff_code,expected_result",[

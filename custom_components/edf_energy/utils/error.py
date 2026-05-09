@@ -2,13 +2,13 @@ from ..api_client import ApiException, RequestException, ServerException, Timeou
 
 def api_exception_to_string(e: ApiException):
   if isinstance(e, ServerException):
-    return "Error on Octopus Energy servers. Please try again later."
+    return "Error on EDF Energy servers. Please try again later."
   if isinstance(e, TimeoutException):
-    return "Octopus Energy servers did not respond in a timely manner"
+    return "EDF Energy servers did not respond in a timely manner"
   if isinstance(e, RequestException):
-    return f"Octopus Energy server returned one or more errors - {', '.join(e.errors)}"
+    return f"EDF Energy server returned one or more errors - {', '.join(e.errors)}"
 
-  return "Error on Octopus Energy servers. Please try again later."
+  return "Error on EDF Energy servers. Please try again later."
 
 def exception_to_string(e: Exception):
   if e is None:

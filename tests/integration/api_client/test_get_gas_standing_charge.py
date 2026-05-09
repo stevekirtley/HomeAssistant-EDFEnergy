@@ -2,7 +2,7 @@ from datetime import datetime
 import pytest
 
 from integration import (get_test_context)
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
+from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
 period_from = datetime.strptime("2026-03-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
 period_to = datetime.strptime("2026-03-02T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
@@ -17,7 +17,7 @@ async def test_when_get_gas_standing_charge_is_called_for_existent_tariff_then_r
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key, favour_direct_debit_rates=favour_direct_debit)
+    client = EDFEnergyApiClient(context.api_key, favour_direct_debit_rates=favour_direct_debit)
 
     # Act
     result = await client.async_get_gas_standing_charge(product_code, tariff_code, period_from, period_to)
@@ -34,7 +34,7 @@ async def test_when_get_gas_standing_charge_is_called_for_existent_tariff_then_r
 async def test_when_get_gas_standing_charge_is_called_with_tracker_tariff_then_rates_are_returned(product_code, tariff_code, favour_direct_debit):
     # Arrange
     context = get_test_context()
-    client = OctopusEnergyApiClient(context.api_key, favour_direct_debit_rates=favour_direct_debit)
+    client = EDFEnergyApiClient(context.api_key, favour_direct_debit_rates=favour_direct_debit)
 
     period_from = datetime.strptime("2022-12-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
     period_to = datetime.strptime("2022-12-02T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
@@ -57,7 +57,7 @@ async def test_when_get_gas_standing_charge_is_called_for_non_existent_tariff_th
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.api_key)
 
     # Act
     result = await client.async_get_gas_standing_charge(product_code, tariff_code, period_from, period_to)

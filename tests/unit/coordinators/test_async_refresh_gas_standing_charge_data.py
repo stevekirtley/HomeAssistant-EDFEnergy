@@ -2,9 +2,9 @@ from datetime import datetime, timedelta
 import pytest
 import mock
 
-from custom_components.octopus_energy.const import REFRESH_RATE_IN_MINUTES_STANDING_CHARGE
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient, RequestException
-from custom_components.octopus_energy.coordinators.gas_standing_charges import GasStandingChargeCoordinatorResult, async_refresh_gas_standing_charges_data
+from custom_components.edf_energy.const import REFRESH_RATE_IN_MINUTES_STANDING_CHARGE
+from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edf_energy.coordinators.gas_standing_charges import GasStandingChargeCoordinatorResult, async_refresh_gas_standing_charges_data
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 period_from = datetime.strptime("2023-07-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")
@@ -59,8 +59,8 @@ async def test_when_account_info_is_none_then_existing_standing_charge_returned(
   account_info = None
   existing_standing_charge = GasStandingChargeCoordinatorResult(period_from, 1, { "start": period_from - timedelta(days=60), "end": period_to - timedelta(days=60), "value_inc_vat": 2, "tariff_code": tariff_code })
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_standing_charge: GasStandingChargeCoordinatorResult = await async_refresh_gas_standing_charges_data(
       current,
       client,
@@ -90,8 +90,8 @@ async def test_when_no_active_standing_charge_then_none_returned():
   account_info = get_account_info(False)
   existing_standing_charge = GasStandingChargeCoordinatorResult(period_from, 1, { "start": period_from - timedelta(days=60), "end": period_to - timedelta(days=60), "value_inc_vat": 2, "tariff_code": tariff_code })
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_standing_charge: GasStandingChargeCoordinatorResult = await async_refresh_gas_standing_charges_data(
       current,
       client,
@@ -127,8 +127,8 @@ async def test_when_next_refresh_is_in_the_past_then_existing_standing_charge_re
     "tariff_code": tariff_code
   })
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_standing_charge: GasStandingChargeCoordinatorResult = await async_refresh_gas_standing_charges_data(
       current,
       client,
@@ -168,8 +168,8 @@ async def test_when_existing_standing_charge_is_none_then_standing_charge_retrie
   account_info = get_account_info()
   expected_retrieved_standing_charge = GasStandingChargeCoordinatorResult(current, 1, expected_standing_charge)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_standing_charge: GasStandingChargeCoordinatorResult = await async_refresh_gas_standing_charges_data(
       current,
       client,
@@ -204,8 +204,8 @@ async def test_when_existing_standing_charge_is_old_then_standing_charge_retriev
   existing_standing_charge = GasStandingChargeCoordinatorResult(period_to - timedelta(days=60), 1, { "start": period_from - timedelta(days=60), "end": period_to - timedelta(days=60), "value_inc_vat": 2, "tariff_code": tariff_code })
   expected_retrieved_standing_charge = GasStandingChargeCoordinatorResult(current, 1, expected_standing_charge)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_standing_charge: GasStandingChargeCoordinatorResult = await async_refresh_gas_standing_charges_data(
       current,
       client,
@@ -231,8 +231,8 @@ async def test_when_standing_charge_not_retrieved_then_existing_standing_charge_
   account_info = get_account_info()
   existing_standing_charge = GasStandingChargeCoordinatorResult(period_from, 1, { "start": period_from - timedelta(days=60), "end": period_to - timedelta(days=60), "value_inc_vat": 2, "tariff_code": tariff_code })
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_standing_charge: GasStandingChargeCoordinatorResult = await async_refresh_gas_standing_charges_data(
       current,
       client,
@@ -262,8 +262,8 @@ async def test_when_exception_raised_then_existing_standing_charge_returned_and_
   account_info = get_account_info()
   existing_standing_charge = GasStandingChargeCoordinatorResult(period_from, 1, { "start": period_from - timedelta(days=60), "end": period_to - timedelta(days=60), "value_inc_vat": 2, "tariff_code": tariff_code })
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_standing_charge: GasStandingChargeCoordinatorResult = await async_refresh_gas_standing_charges_data(
       current,
       client,
@@ -298,8 +298,8 @@ async def test_when_previous_standing_charge_is_current_then_data_is_not_re_retr
   account_info = get_account_info()
   existing_standing_charge = GasStandingChargeCoordinatorResult(period_from, 1, { "start": period_from, "end": period_to, "value_inc_vat": 2, "tariff_code": tariff_code })
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_standing_charge: GasStandingChargeCoordinatorResult = await async_refresh_gas_standing_charges_data(
       current,
       client,
@@ -332,8 +332,8 @@ async def test_when_previous_standing_charge_is_current_but_different_tariff_cod
   account_info = get_account_info()
   existing_standing_charge = GasStandingChargeCoordinatorResult(period_from, 1, { "start": period_from, "end": period_to, "value_inc_vat": 2, "tariff_code": "not-a-tariff" })
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_standing_charge=async_mocked_get_gas_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_standing_charge: GasStandingChargeCoordinatorResult = await async_refresh_gas_standing_charges_data(
       current,
       client,

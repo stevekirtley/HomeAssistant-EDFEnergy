@@ -18,8 +18,6 @@ from .const import (
   CONFIG_COST_TRACKER_DISCOVERY_ACCOUNT_ID,
   CONFIG_COST_TRACKER_DISCOVERY_NAME,
   CONFIG_COST_TRACKER_MANUAL_RESET,
-  CONFIG_DEFAULT_LIVE_ELECTRICITY_CONSUMPTION_REFRESH_IN_MINUTES,
-  CONFIG_DEFAULT_LIVE_GAS_CONSUMPTION_REFRESH_IN_MINUTES,
   CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_KIND_ROLLING_TARGET_RATE,
   CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS,
@@ -27,20 +25,13 @@ from .const import (
   CONFIG_MAIN_ELECTRICITY_PRICE_CAP,
   CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES,
   CONFIG_MAIN_GAS_PRICE_CAP,
-  CONFIG_MAIN_HOME_MINI_SETTINGS,
-  CONFIG_MAIN_HOME_PRO_ADDRESS,
-  CONFIG_MAIN_HOME_PRO_API_KEY,
-  CONFIG_MAIN_HOME_PRO_SETTINGS,
   CONFIG_MAIN_INTELLIGENT_MANUAL_DISPATCHES,
   CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE_STARTED_DISPATCHES_ONLY,
   CONFIG_MAIN_INTELLIGENT_SETTINGS,
-  CONFIG_MAIN_LIVE_ELECTRICITY_CONSUMPTION_REFRESH_IN_MINUTES,
-  CONFIG_MAIN_LIVE_GAS_CONSUMPTION_REFRESH_IN_MINUTES,
   CONFIG_MAIN_PRICE_CAP_SETTINGS,
-  CONFIG_MAIN_SUPPORTS_LIVE_CONSUMPTION,
   CONFIG_TARIFF_COMPARISON_MPAN_MPRN,
   CONFIG_TARIFF_COMPARISON_NAME,
   CONFIG_TARIFF_COMPARISON_PRODUCT_CODE,
@@ -133,15 +124,11 @@ def get_account_ids(hass):
     return account_ids
 
 description_placeholders = {
-  "setup_account_docs_url": "https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/setup/account",
-  "octopus_energy_dashboard_url": "https://octopus.energy/dashboard",
-  "octopus_energy_api_access_url": "https://octopus.energy/dashboard/new/accounts/personal-details/api-access",
-  "home_mini_url": "https://octopus.energy/home-mini",
-  "setup_cost_tracker_docs_url": "https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/setup/cost_tracker",
-  "setup_tariff_comparison_docs_url": "https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/setup/tariff_comparison",
+  "edf_energy_dashboard_url": "https://www.edfenergy.com/electric-cars/smart-ev-charger",
+  "edf_energy_api_access_url": "https://api.edfgb-kraken.energy/v1/graphql/",
 }
 
-class OctopusEnergyConfigFlow(ConfigFlow, domain=DOMAIN): 
+class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN): 
   """Config flow."""
 
   VERSION = CONFIG_VERSION
@@ -162,7 +149,7 @@ class OctopusEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
         "name": discovery_info[CONFIG_COST_TRACKER_DISCOVERY_NAME],
       }
 
-      unique_id = f"octopus_energy_ct_{self._account_id}_{self._target_entity_id}"
+      unique_id = f"edf_energy_ct_{self._account_id}_{self._target_entity_id}"
       await self.async_set_unique_id(unique_id)
       self._abort_if_unique_id_configured()
       
@@ -195,16 +182,6 @@ class OctopusEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
       vol.Required(CONFIG_MAIN_CALORIFIC_VALUE, default=DEFAULT_CALORIFIC_VALUE): cv.positive_float,
       vol.Required(CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES): bool,
       vol.Required(CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS): bool,
-      vol.Required(CONFIG_MAIN_HOME_MINI_SETTINGS): section(
-        vol.Schema(
-            {
-                vol.Required(CONFIG_MAIN_SUPPORTS_LIVE_CONSUMPTION): bool,
-                vol.Required(CONFIG_MAIN_LIVE_ELECTRICITY_CONSUMPTION_REFRESH_IN_MINUTES, default=CONFIG_DEFAULT_LIVE_ELECTRICITY_CONSUMPTION_REFRESH_IN_MINUTES): cv.positive_int,
-                vol.Required(CONFIG_MAIN_LIVE_GAS_CONSUMPTION_REFRESH_IN_MINUTES, default=CONFIG_DEFAULT_LIVE_GAS_CONSUMPTION_REFRESH_IN_MINUTES): cv.positive_int,
-            }
-        ),
-        {"collapsed": True},
-      ),
       vol.Required(CONFIG_MAIN_INTELLIGENT_SETTINGS): section(
         vol.Schema(
             {
@@ -219,15 +196,6 @@ class OctopusEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
                   )
                 ),
                 vol.Required(CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES, default=CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES): cv.positive_int,
-            }
-        ),
-        {"collapsed": True},
-      ),
-      vol.Required(CONFIG_MAIN_HOME_PRO_SETTINGS): section(
-        vol.Schema(
-            {
-                vol.Optional(CONFIG_MAIN_HOME_PRO_ADDRESS): str,
-                vol.Optional(CONFIG_MAIN_HOME_PRO_API_KEY): str,
             }
         ),
         {"collapsed": True},

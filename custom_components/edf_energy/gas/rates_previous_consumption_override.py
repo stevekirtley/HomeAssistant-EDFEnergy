@@ -8,13 +8,13 @@ from homeassistant.components.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..const import CONFIG_TARIFF_COMPARISON_NAME, CONFIG_TARIFF_COMPARISON_PRODUCT_CODE, CONFIG_TARIFF_COMPARISON_TARIFF_CODE, EVENT_GAS_PREVIOUS_CONSUMPTION_TARIFF_COMPARISON_RATES
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyGasPreviousConsumptionOverrideRates(OctopusEnergyGasSensor, EventEntity, RestoreEntity):
+class EDFEnergyGasPreviousConsumptionOverrideRates(EDFEnergyGasSensor, EventEntity, RestoreEntity):
   """Sensor for displaying the previous consumption override's rates."""
 
   _attr_translation_key = "gas_previous_consumption_override_rates"
@@ -28,12 +28,12 @@ class OctopusEnergyGasPreviousConsumptionOverrideRates(OctopusEnergyGasSensor, E
     self._last_updated = None
 
     self._attr_event_types = [EVENT_GAS_PREVIOUS_CONSUMPTION_TARIFF_COMPARISON_RATES]
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point, "event")
+    EDFEnergyGasSensor.__init__(self, hass, meter, point, "event")
 
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_gas_{self._serial_number}_{self._mprn}_previous_consumption_rates_{self._config[CONFIG_TARIFF_COMPARISON_NAME]}"
+    return f"edf_energy_gas_{self._serial_number}_{self._mprn}_previous_consumption_rates_{self._config[CONFIG_TARIFF_COMPARISON_NAME]}"
     
   @property
   def name(self):

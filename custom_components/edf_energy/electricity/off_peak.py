@@ -19,19 +19,19 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from ..utils import get_off_peak_times, is_off_peak
 
-from .base import OctopusEnergyElectricitySensor
+from .base import EDFEnergyElectricitySensor
 from ..utils.attributes import dict_to_typed_dict
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyElectricityOffPeak(CoordinatorEntity, OctopusEnergyElectricitySensor, BinarySensorEntity, RestoreEntity):
+class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor, BinarySensorEntity, RestoreEntity):
   """Sensor for determining if the current rate is off peak."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point):
     """Init sensor."""
 
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
+    EDFEnergyElectricitySensor.__init__(self, hass, meter, point)
   
     self._state = None
     self._attributes = {
@@ -47,7 +47,7 @@ class OctopusEnergyElectricityOffPeak(CoordinatorEntity, OctopusEnergyElectricit
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_off_peak"
+    return f"edf_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_off_peak"
     
   @property
   def name(self):
@@ -74,7 +74,7 @@ class OctopusEnergyElectricityOffPeak(CoordinatorEntity, OctopusEnergyElectricit
     current = now()
     rates = self.coordinator.data.rates if self.coordinator is not None and self.coordinator.data is not None else None
     if (rates is not None):
-      _LOGGER.debug(f"Updating OctopusEnergyElectricityOffPeak for '{self._mpan}/{self._serial_number}'")
+      _LOGGER.debug(f"Updating EDFEnergyElectricityOffPeak for '{self._mpan}/{self._serial_number}'")
 
       self._state = False
       self._attributes = {
@@ -118,4 +118,4 @@ class OctopusEnergyElectricityOffPeak(CoordinatorEntity, OctopusEnergyElectricit
     if (self._state is None):
       self._state = False
     
-    _LOGGER.debug(f'Restored OctopusEnergyElectricityOffPeak state: {self._state}')
+    _LOGGER.debug(f'Restored EDFEnergyElectricityOffPeak state: {self._state}')

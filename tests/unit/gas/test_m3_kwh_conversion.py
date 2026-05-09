@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.octopus_energy.gas import convert_m3_to_kwh
+from custom_components.edf_energy.gas import convert_m3_to_kwh
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("m3,calorificValue,expected_kwh",[

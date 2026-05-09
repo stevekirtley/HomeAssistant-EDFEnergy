@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
 
-from custom_components.octopus_energy.const import (
+from custom_components.edf_energy.const import (
     CONFIG_MAIN_INTELLIGENT_RATE_MODE_STARTED_DISPATCHES_ONLY,
     CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES,
     INTELLIGENT_SOURCE_SMART_CHARGE_OPTIONS
 )
-from custom_components.octopus_energy.intelligent import get_applicable_dispatch_periods
-from custom_components.octopus_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, SimpleIntelligentDispatchItem
+from custom_components.edf_energy.intelligent import get_applicable_dispatch_periods
+from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, SimpleIntelligentDispatchItem
 
 now = datetime.strptime("2025-09-14T10:40:00+01:00", "%Y-%m-%dT%H:%M:%S%z")
 

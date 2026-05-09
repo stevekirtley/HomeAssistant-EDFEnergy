@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.octopus_energy.intelligent import get_intelligent_features
+from custom_components.edf_energy.intelligent import get_intelligent_features
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("provider,expected_bump_charge_supported,expected_charge_limit_supported,expected_planned_dispatches_supported,expected_ready_time_supported,expected_smart_charge_supported,expected_default_features,expected_current_state_supported",[
@@ -27,7 +27,7 @@ from custom_components.octopus_energy.intelligent import get_intelligent_feature
   ("INDRA", True, True, True, True, True, False, True),
   ("OHME", False, False, False, False, False, False, False),
   ("OCPP", True, True, True, True, True, False, True),
-  ("OCTOPUS_ENERGY", True, True, True, True, True, False, True),
+  ("EDF_ENERGY", True, True, True, True, True, False, True),
   ("DAIKIN".lower(), True, True, True, True, True, False, True),
   ("ECOBEE".lower(), True, True, True, True, True, False, True),
   ("ENERGIZER".lower(), True, True, True, True, True, False, True),
@@ -51,7 +51,7 @@ from custom_components.octopus_energy.intelligent import get_intelligent_feature
   ("INDRA".lower(), True, True, True, True, True, False, True),
   ("OHME".lower(), False, False, False, False, False, False, False),
   ("OCPP".lower(), True, True, True, True, True, False, True),
-  ("OCTOPUS_ENERGY".lower(), True, True, True, True, True, False, True),
+  ("EDF_ENERGY".lower(), True, True, True, True, True, False, True),
   # Unexpected providers
   ("unexpected".lower(), False, False, False, False, False, True, False),
   ("".lower(), False, False, False, False, False, True, False),

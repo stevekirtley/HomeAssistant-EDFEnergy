@@ -17,20 +17,20 @@ from homeassistant.components.sensor import (
   SensorStateClass
 )
 
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..utils.rate_information import get_next_rate_information
 from ..coordinators.gas_rates import GasRatesCoordinatorResult
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyGasNextRate(CoordinatorEntity, OctopusEnergyGasSensor, RestoreSensor):
+class EDFEnergyGasNextRate(CoordinatorEntity, EDFEnergyGasSensor, RestoreSensor):
   """Sensor for displaying the next rate."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point):
     """Init sensor."""
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point)
+    EDFEnergyGasSensor.__init__(self, hass, meter, point)
 
     self._state = None
     self._last_updated = None
@@ -46,7 +46,7 @@ class OctopusEnergyGasNextRate(CoordinatorEntity, OctopusEnergyGasSensor, Restor
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f'octopus_energy_gas_{self._serial_number}_{self._mprn}_next_rate'
+    return f'edf_energy_gas_{self._serial_number}_{self._mprn}_next_rate'
     
   @property
   def name(self):
@@ -88,7 +88,7 @@ class OctopusEnergyGasNextRate(CoordinatorEntity, OctopusEnergyGasSensor, Restor
     current = now()
     rates_result: GasRatesCoordinatorResult = self.coordinator.data if self.coordinator is not None and self.coordinator.data is not None else None
     if (rates_result is not None):
-      _LOGGER.debug(f"Updating OctopusEnergyGasNextRate for '{self._mprn}/{self._serial_number}'")
+      _LOGGER.debug(f"Updating EDFEnergyGasNextRate for '{self._mprn}/{self._serial_number}'")
 
       rate_information = get_next_rate_information(rates_result.rates, current)
 
@@ -129,4 +129,4 @@ class OctopusEnergyGasNextRate(CoordinatorEntity, OctopusEnergyGasSensor, Restor
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes, ['all_rates', 'applicable_rates'])
     
-      _LOGGER.debug(f'Restored OctopusEnergyGasNextRate state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyGasNextRate state: {self._state}')

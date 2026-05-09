@@ -24,23 +24,23 @@ from . import (
   calculate_gas_consumption_and_cost,
 )
 
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult
 
-from ..api_client import OctopusEnergyApiClient
+from ..api_client import EDFEnergyApiClient
 from ..statistics.consumption import async_import_external_statistics_from_consumption, get_gas_consumption_statistic_unique_id
 from ..statistics.refresh import async_refresh_previous_gas_consumption_data
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyPreviousAccumulativeGasConsumptionCubicMeters(CoordinatorEntity, OctopusEnergyGasSensor, RestoreSensor):
+class EDFEnergyPreviousAccumulativeGasConsumptionCubicMeters(CoordinatorEntity, EDFEnergyGasSensor, RestoreSensor):
   """Sensor for displaying the previous days accumulative gas reading."""
 
-  def __init__(self, hass: HomeAssistant, client: OctopusEnergyApiClient, coordinator, account_id, meter, point, calorific_value):
+  def __init__(self, hass: HomeAssistant, client: EDFEnergyApiClient, coordinator, account_id, meter, point, calorific_value):
     """Init sensor."""
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point)
+    EDFEnergyGasSensor.__init__(self, hass, meter, point)
 
     self._hass = hass
     self._client = client
@@ -61,7 +61,7 @@ class OctopusEnergyPreviousAccumulativeGasConsumptionCubicMeters(CoordinatorEnti
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_gas_{self._serial_number}_{self._mprn}_previous_accumulative_consumption_m3"
+    return f"edf_energy_gas_{self._serial_number}_{self._mprn}_previous_accumulative_consumption_m3"
     
   @property
   def name(self):
@@ -174,7 +174,7 @@ class OctopusEnergyPreviousAccumulativeGasConsumptionCubicMeters(CoordinatorEnti
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes)
     
-      _LOGGER.debug(f'Restored OctopusEnergyPreviousAccumulativeGasConsumption state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyPreviousAccumulativeGasConsumption state: {self._state}')
 
   @callback
   async def async_refresh_previous_consumption_data(self, start_date):

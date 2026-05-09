@@ -17,20 +17,20 @@ from homeassistant.const import (
 
 from ..coordinators import MultiCoordinatorEntity
 from ..coordinators.current_consumption import CurrentConsumptionCoordinatorResult
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 
 from . import calculate_gas_consumption_and_cost
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyCurrentAccumulativeGasConsumptionCubicMeters(MultiCoordinatorEntity, OctopusEnergyGasSensor, RestoreSensor):
+class EDFEnergyCurrentAccumulativeGasConsumptionCubicMeters(MultiCoordinatorEntity, EDFEnergyGasSensor, RestoreSensor):
   """Sensor for displaying the current accumulative gas consumption."""
 
   def __init__(self, hass: HomeAssistant, coordinator, rates_coordinator, standing_charge_coordinator, meter, point, calorific_value):
     """Init sensor."""
     MultiCoordinatorEntity.__init__(self, coordinator, [rates_coordinator, standing_charge_coordinator])
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point)
+    EDFEnergyGasSensor.__init__(self, hass, meter, point)
     
     self._hass = hass
 
@@ -43,7 +43,7 @@ class OctopusEnergyCurrentAccumulativeGasConsumptionCubicMeters(MultiCoordinator
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_gas_{self._serial_number}_{self._mprn}_current_accumulative_consumption_m3"
+    return f"edf_energy_gas_{self._serial_number}_{self._mprn}_current_accumulative_consumption_m3"
 
   @property
   def name(self):
@@ -133,4 +133,4 @@ class OctopusEnergyCurrentAccumulativeGasConsumptionCubicMeters(MultiCoordinator
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes)
     
-      _LOGGER.debug(f'Restored OctopusEnergyCurrentAccumulativeGasConsumption state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyCurrentAccumulativeGasConsumption state: {self._state}')

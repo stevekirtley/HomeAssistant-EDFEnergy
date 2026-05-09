@@ -1,14 +1,14 @@
 import pytest
 
 from integration import get_test_context
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
+from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
 @pytest.mark.asyncio
 async def test_when_get_intelligent_dispatches_is_called_for_account_on_different_tariff_then_exception_is_raised():
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.api_key)
     account_id = context.account_id
 
     # Act
