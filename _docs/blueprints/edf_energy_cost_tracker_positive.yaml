@@ -1,8 +1,8 @@
 blueprint:
-  name: Octopus Energy - Cost tracker (positive)
+  name: EDF Energy - Cost tracker (positive)
   description: Automatically updates the tracking state of the specified cost trackers when the monitored sensor goes positive (including zero).
   domain: automation
-  author: BottlecapDave
+  author: BottlecapDave (amended for EDF Energy by Steve Kirtley)
 
   input:
     cost_tracker_entity:
@@ -13,7 +13,7 @@ blueprint:
           filter:
           - domain:
             - sensor
-            integration: octopus_energy
+            integration: edf_energy
           multiple: true
     cost_tracker_tracking_state:
       name: Cost tracker tracking state
@@ -37,7 +37,7 @@ trigger:
     entity_id: !input monitored_entity
     above: -0.000001
 action:
-  - service: octopus_energy.update_cost_tracker
+  - service: edf_energy.update_cost_tracker
     target:
       entity_id: !input cost_tracker_entity
     data:

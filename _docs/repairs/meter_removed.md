@@ -106,4 +106,4 @@ The best way to determine why this has occurred is to [download the diagnostics]
 
 The meter MPAN/MPRN and Serial numbers are automatically changed to numbers for PII purposes, so you will need to find you meter either by it's active date or the manufacturer/model.
 
-If the meter is no longer present or there is no active agreement, then you'll need to contact Octopus Energy to get this fixed. Otherwise, please raise an [issue](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues) with the diagnostic data and any associated errors in your logs to try and fix the problem.
+If the meter is no longer present or there is no active agreement, then you'll need to contact EDF Energy to get this fixed. Otherwise, please raise an [issue](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues) with the diagnostic data and any associated errors in your logs to try and fix the problem.
