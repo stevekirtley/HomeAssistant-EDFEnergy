@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.octopus_energy.utils.rate_information import get_rate_index
+from custom_components.edf_energy.utils.rate_information import get_rate_index
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("total_unique_rates,peak_type,expected_index",[

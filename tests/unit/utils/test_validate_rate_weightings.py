@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pytest
 
-from custom_components.octopus_energy.utils.weightings import validate_rate_weightings
+from custom_components.edf_energy.utils.weightings import validate_rate_weightings
 
 @pytest.mark.asyncio
 async def test_when_weightings_is_none_then_empty_list_returned():

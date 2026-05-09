@@ -2,8 +2,8 @@ import pytest
 
 from homeassistant.util.dt import (as_utc, parse_datetime)
 
-from custom_components.octopus_energy.intelligent import clean_previous_dispatches, dictionary_list_to_dispatches
-from custom_components.octopus_energy.api_client.intelligent_dispatches import IntelligentDispatchItem
+from custom_components.edf_energy.intelligent import clean_previous_dispatches, dictionary_list_to_dispatches
+from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem
 
 @pytest.mark.asyncio
 async def test_when_clean_previous_dispatches_called_then_old_dispatches_removed():

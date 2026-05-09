@@ -4,13 +4,13 @@ import mock
 
 from unit import (create_rate_data)
 from tests.unit.coordinators import assert_raised_target_timeframe_update_event
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient, RequestException
-from custom_components.octopus_energy.coordinators.electricity_rates import ElectricityRatesCoordinatorResult, async_refresh_electricity_rates_data
-from custom_components.octopus_energy.const import EVENT_ELECTRICITY_CURRENT_DAY_RATES, EVENT_ELECTRICITY_NEXT_DAY_RATES, EVENT_ELECTRICITY_PREVIOUS_DAY_RATES, REFRESH_RATE_IN_MINUTES_RATES
-from custom_components.octopus_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
-from custom_components.octopus_energy.api_client.intelligent_device import IntelligentDevice
-from custom_components.octopus_energy.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
-from custom_components.octopus_energy.storage.intelligent_dispatches_history import IntelligentDispatchesHistory
+from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edf_energy.coordinators.electricity_rates import ElectricityRatesCoordinatorResult, async_refresh_electricity_rates_data
+from custom_components.edf_energy.const import EVENT_ELECTRICITY_CURRENT_DAY_RATES, EVENT_ELECTRICITY_NEXT_DAY_RATES, EVENT_ELECTRICITY_PREVIOUS_DAY_RATES, REFRESH_RATE_IN_MINUTES_RATES
+from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
+from custom_components.edf_energy.api_client.intelligent_device import IntelligentDevice
+from custom_components.edf_energy.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
+from custom_components.edf_energy.storage.intelligent_dispatches_history import IntelligentDispatchesHistory
 from zoneinfo import ZoneInfo
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
@@ -124,8 +124,8 @@ async def test_when_account_info_is_none_then_existing_rates_returned():
   existing_rates = ElectricityRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, [2, 4]))
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -186,8 +186,8 @@ async def test_when_no_active_rates_then_none_returned():
   existing_rates = ElectricityRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, [2, 4]))
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -250,8 +250,8 @@ async def test_when_next_refresh_is_in_the_future_then_existing_rates_returned()
   existing_rates = ElectricityRatesCoordinatorResult(current - timedelta(minutes=4, seconds=59), 1, create_rate_data(period_from, period_to, [2, 4]))
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -331,8 +331,8 @@ async def test_when_existing_rates_is_none_then_rates_retrieved(existing_rates):
   expected_retrieved_rates = ElectricityRatesCoordinatorResult(current, 1, expected_rates_unsorted)
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -424,8 +424,8 @@ async def test_when_dispatches_is_not_defined_and_existing_rates_is_none_then_ra
   expected_retrieved_rates = ElectricityRatesCoordinatorResult(current, 1, expected_rates_unsorted)
   existing_rates = None
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -500,8 +500,8 @@ async def test_when_existing_rates_is_old_then_rates_retrieved():
   expected_retrieved_rates = ElectricityRatesCoordinatorResult(current, 1, expected_rates)
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -574,8 +574,8 @@ async def test_when_existing_rates_are_requested_period_and_same_tariff_then_exi
   expected_retrieved_rates = ElectricityRatesCoordinatorResult(current, 1, existing_rates.rates)
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -650,8 +650,8 @@ async def test_when_existing_rates_are_requested_period_and_different_tariff_the
   expected_retrieved_rates = ElectricityRatesCoordinatorResult(current, 1, existing_rates.rates)
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -733,8 +733,8 @@ async def test_when_existing_rates_contains_some_of_period_and_same_tariff_then_
   expected_retrieved_rates = ElectricityRatesCoordinatorResult(current, 1, expected_rates)
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -836,8 +836,8 @@ async def test_when_existing_rates_contains_some_of_period_and_different_tariff_
   expected_retrieved_rates = ElectricityRatesCoordinatorResult(current, 1, expected_rates)
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -941,8 +941,8 @@ async def test_when_dispatched_rates_provided_then_rates_are_adjusted_if_meter_i
     )
   }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1053,8 +1053,8 @@ async def test_when_started_dispatched_rates_provided_then_rates_are_adjusted_if
   1,
   dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1160,8 +1160,8 @@ async def test_when_dispatched_rates_provided_then_rates_are_adjusted():
     []
   ), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1248,8 +1248,8 @@ async def test_when_rates_not_retrieved_then_existing_rates_returned():
   existing_rates = ElectricityRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, [1, 2, 3, 4]))
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1317,8 +1317,8 @@ async def test_when_exception_is_raised_then_existing_rates_returned_and_excepti
   existing_rates = ElectricityRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, [1, 2, 3, 4]))
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1403,8 +1403,8 @@ async def test_when_rates_next_refresh_is_in_the_future_dispatches_retrieved_aft
     []
   ), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1504,8 +1504,8 @@ async def test_when_rates_next_refresh_is_in_the_future_started_dispatches_retri
     ],
   ), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1606,8 +1606,8 @@ async def test_when_rates_next_refresh_is_in_the_future_dispatches_retrieved_bef
     []
   ), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1683,8 +1683,8 @@ async def test_when_rates_next_refresh_is_in_the_future_dispatches_retrieved_bef
     []
   ), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1747,8 +1747,8 @@ async def test_when_rate_is_intelligent_and_dispatches_not_available_then_existi
   existing_rates = ElectricityRatesCoordinatorResult(period_to - timedelta(days=60), 1, create_rate_data(period_from - timedelta(days=60), period_to - timedelta(days=60), [2, 4]))
   dispatches_result = { "1": None }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1825,8 +1825,8 @@ async def test_when_rate_is_intelligent_and_dispatches_available_and_rates_not_r
     []
   ), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -1956,8 +1956,8 @@ async def test_when_rate_is_intelligent_and_one_intelligent_device_dispatches_av
                                                 dispatches_last_retrieved),                                 
   }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -2062,8 +2062,8 @@ async def test_when_rates_change_correctly_then_unique_rates_changed_event_fired
   account_info = get_account_info()
   existing_rates = ElectricityRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, previous_unique_rates))
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -2165,8 +2165,8 @@ async def test_when_clocks_change_then_rates_are_correct(existing_rates):
   expected_retrieved_rates = ElectricityRatesCoordinatorResult(current, 1, expected_rates_unsorted)
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,
@@ -2240,8 +2240,8 @@ async def test_when_existing_rates_is_old_but_no_rates_returned_then_rates_retri
   expected_retrieved_rates = ElectricityRatesCoordinatorResult(current, 1, expected_rates)
   dispatches_result = { "1": IntelligentDispatchesCoordinatorResult(dispatches_last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved) }
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
       current,
       client,

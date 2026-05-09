@@ -22,13 +22,13 @@ from homeassistant.const import (
 from homeassistant.util.dt import (now)
 
 from ..coordinators.current_consumption import CurrentConsumptionCoordinatorResult
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 from . import convert_m3_to_kwh
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyCurrentTotalGasConsumptionKwh(CoordinatorEntity, OctopusEnergyGasSensor, RestoreSensor):
+class EDFEnergyCurrentTotalGasConsumptionKwh(CoordinatorEntity, EDFEnergyGasSensor, RestoreSensor):
   """Sensor for displaying the current total gas consumption in kwh."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point, calorific_value: float):
@@ -39,7 +39,7 @@ class OctopusEnergyCurrentTotalGasConsumptionKwh(CoordinatorEntity, OctopusEnerg
     self._last_reset = None
     self._calorific_value = calorific_value
     
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point)
+    EDFEnergyGasSensor.__init__(self, hass, meter, point)
 
   @property
   def entity_registry_enabled_default(self) -> bool:
@@ -52,7 +52,7 @@ class OctopusEnergyCurrentTotalGasConsumptionKwh(CoordinatorEntity, OctopusEnerg
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_gas_{self._serial_number}_{self._mprn}_current_total_consumption_kwh"
+    return f"edf_energy_gas_{self._serial_number}_{self._mprn}_current_total_consumption_kwh"
 
   @property
   def name(self):

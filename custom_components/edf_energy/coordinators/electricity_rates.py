@@ -26,7 +26,7 @@ from ..const import (
   REPAIR_UNIQUE_RATES_CHANGED_KEY,
 )
 
-from ..api_client import ApiException, OctopusEnergyApiClient
+from ..api_client import ApiException, EDFEnergyApiClient
 from ..coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
 from ..utils import Tariff, private_rates_to_public_rates
 from . import BaseCoordinatorResult, clear_rates_empty, combine_rates, get_electricity_meter_tariff, raise_rate_events, raise_rates_empty
@@ -50,7 +50,7 @@ class ElectricityRatesCoordinatorResult(BaseCoordinatorResult):
 
 async def async_refresh_electricity_rates_data(
     current: datetime,
-    client: OctopusEnergyApiClient,
+    client: EDFEnergyApiClient,
     account_info,
     target_mpan: str,
     target_serial_number: str,
@@ -263,7 +263,6 @@ async def async_raise_no_active_tariff(hass, account_id: str, mpan: str, serial_
     safe_repair_key(REPAIR_NO_ACTIVE_TARIFF, mpan, serial_number),
     is_fixable=False,
     severity=ir.IssueSeverity.ERROR,
-    learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/repairs/no_active_tariff",
     translation_key="no_active_tariff",
     translation_placeholders={ "account_id": account_id, "mpan_mprn": mpan, "serial_number": serial_number, "meter_type": "Electricity" }
   )
@@ -300,7 +299,7 @@ async def async_setup_electricity_rates_coordinator(hass,
     ir.async_delete_issue(hass, DOMAIN, REPAIR_NO_ACTIVE_TARIFF.format(target_mpan, target_serial_number))
 
     current = now()
-    client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+    client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT] if DATA_ACCOUNT in hass.data[DOMAIN][account_id] else None
     account_info = account_result.account if account_result is not None else None
 

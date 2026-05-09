@@ -18,18 +18,18 @@ from homeassistant.components.sensor import (
 )
 
 from ..coordinators.current_consumption import CurrentConsumptionCoordinatorResult
-from .base import (OctopusEnergyElectricitySensor)
+from .base import (EDFEnergyElectricitySensor)
 from ..utils.attributes import dict_to_typed_dict
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyCurrentElectricityDemand(CoordinatorEntity, OctopusEnergyElectricitySensor, RestoreSensor):
+class EDFEnergyCurrentElectricityDemand(CoordinatorEntity, EDFEnergyElectricitySensor, RestoreSensor):
   """Sensor for displaying the current electricity demand."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point):
     """Init sensor."""
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
+    EDFEnergyElectricitySensor.__init__(self, hass, meter, point)
 
     self._state = None
     self._latest_date = None
@@ -37,7 +37,7 @@ class OctopusEnergyCurrentElectricityDemand(CoordinatorEntity, OctopusEnergyElec
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_electricity_{self._serial_number}_{self._mpan}_current_demand"
+    return f"edf_energy_electricity_{self._serial_number}_{self._mpan}_current_demand"
 
   @property
   def name(self):
@@ -76,7 +76,7 @@ class OctopusEnergyCurrentElectricityDemand(CoordinatorEntity, OctopusEnergyElec
   @callback
   def _handle_coordinator_update(self) -> None:
     """Handle updated data from the coordinator."""
-    _LOGGER.debug('Updating OctopusEnergyCurrentElectricityDemand')
+    _LOGGER.debug('Updating EDFEnergyCurrentElectricityDemand')
     consumption_result: CurrentConsumptionCoordinatorResult = self.coordinator.data if self.coordinator is not None and self.coordinator.data is not None else None
     consumption_data = consumption_result.data if consumption_result is not None else None
 
@@ -100,4 +100,4 @@ class OctopusEnergyCurrentElectricityDemand(CoordinatorEntity, OctopusEnergyElec
       if "last_updated_timestamp" in self._attributes:
         del self._attributes["last_updated_timestamp"]
     
-      _LOGGER.debug(f'Restored OctopusEnergyCurrentElectricityDemand state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyCurrentElectricityDemand state: {self._state}')

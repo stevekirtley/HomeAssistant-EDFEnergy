@@ -22,22 +22,22 @@ from . import (
   calculate_electricity_consumption_and_cost,
 )
 
-from .base import (OctopusEnergyElectricitySensor)
+from .base import (EDFEnergyElectricitySensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..utils.requests import calculate_next_refresh
 from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult
 from ..utils import get_tariff_parts, private_rates_to_public_rates
 
-from ..api_client import (ApiException, OctopusEnergyApiClient)
+from ..api_client import (ApiException, EDFEnergyApiClient)
 
 from ..const import (CONFIG_TARIFF_COMPARISON_NAME, CONFIG_TARIFF_COMPARISON_PRODUCT_CODE, CONFIG_TARIFF_COMPARISON_TARIFF_CODE, EVENT_ELECTRICITY_PREVIOUS_CONSUMPTION_TARIFF_COMPARISON_RATES, MINIMUM_CONSUMPTION_DATA_LENGTH, REFRESH_RATE_IN_MINUTES_PREVIOUS_CONSUMPTION)
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyPreviousAccumulativeElectricityCostOverride(CoordinatorEntity, OctopusEnergyElectricitySensor, RestoreSensor):
+class EDFEnergyPreviousAccumulativeElectricityCostOverride(CoordinatorEntity, EDFEnergyElectricitySensor, RestoreSensor):
   """Sensor for displaying the previous days accumulative electricity cost for a different tariff."""
 
-  def __init__(self, hass: HomeAssistant, account_id: str, coordinator, client: OctopusEnergyApiClient, meter, point, config):
+  def __init__(self, hass: HomeAssistant, account_id: str, coordinator, client: EDFEnergyApiClient, meter, point, config):
     """Init sensor."""
 
     self._hass = hass
@@ -54,12 +54,12 @@ class OctopusEnergyPreviousAccumulativeElectricityCostOverride(CoordinatorEntity
     self._standing_charge = None
     
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
+    EDFEnergyElectricitySensor.__init__(self, hass, meter, point)
 
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_previous_accumulative_cost_{self._config[CONFIG_TARIFF_COMPARISON_NAME]}"
+    return f"edf_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_previous_accumulative_cost_{self._config[CONFIG_TARIFF_COMPARISON_NAME]}"
     
   @property
   def name(self):
@@ -215,4 +215,4 @@ class OctopusEnergyPreviousAccumulativeElectricityCostOverride(CoordinatorEntity
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes)
     
-      _LOGGER.debug(f'Restored OctopusEnergyPreviousAccumulativeElectricityCostOverride state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyPreviousAccumulativeElectricityCostOverride state: {self._state}')

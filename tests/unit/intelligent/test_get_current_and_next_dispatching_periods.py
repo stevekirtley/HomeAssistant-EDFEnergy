@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
-from custom_components.octopus_energy.intelligent import get_current_and_next_dispatching_periods
-from custom_components.octopus_energy.api_client.intelligent_dispatches import SimpleIntelligentDispatchItem
+from custom_components.edf_energy.intelligent import get_current_and_next_dispatching_periods
+from custom_components.edf_energy.api_client.intelligent_dispatches import SimpleIntelligentDispatchItem
 
 now = datetime.strptime("2025-09-14T10:40:00+01:00", "%Y-%m-%dT%H:%M:%S%z")
 

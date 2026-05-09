@@ -1,8 +1,8 @@
-from custom_components.octopus_energy.intelligent import has_dispatches_changed
+from custom_components.edf_energy.intelligent import has_dispatches_changed
 import pytest
 
 from datetime import datetime
-from custom_components.octopus_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
+from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
 
 
 def test_when_nothing_has_changed_then_false_returned():

@@ -2,11 +2,11 @@ from datetime import datetime, timedelta, time
 import pytest
 import mock
 
-from custom_components.octopus_energy.const import REFRESH_RATE_IN_MINUTES_INTELLIGENT
-from custom_components.octopus_energy.intelligent import mock_intelligent_settings
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient, RequestException
-from custom_components.octopus_energy.coordinators.intelligent_settings import IntelligentCoordinatorResult, async_refresh_intelligent_settings
-from custom_components.octopus_energy.api_client.intelligent_device_settings import IntelligentDeviceSettingPreference, IntelligentDeviceSettingStatus, IntelligentDeviceSettings
+from custom_components.edf_energy.const import REFRESH_RATE_IN_MINUTES_INTELLIGENT
+from custom_components.edf_energy.intelligent import mock_intelligent_settings
+from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edf_energy.coordinators.intelligent_settings import IntelligentCoordinatorResult, async_refresh_intelligent_settings
+from custom_components.edf_energy.api_client.intelligent_device_settings import IntelligentDeviceSettingPreference, IntelligentDeviceSettingStatus, IntelligentDeviceSettings
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 last_retrieved = datetime.strptime("2023-07-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")
@@ -124,8 +124,8 @@ async def test_when_account_info_is_none_then_existing_settings_returned():
   account_info = None
   existing_settings = IntelligentCoordinatorResult(last_retrieved, 1, mock_intelligent_settings())
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_settings: IntelligentCoordinatorResult = await async_refresh_intelligent_settings(
       current,
       client,
@@ -150,8 +150,8 @@ async def test_when_not_on_intelligent_tariff_then_none_returned():
   account_info = get_account_info(True, active_product_code="GO-18-06-12")
   existing_settings = None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_settings: IntelligentCoordinatorResult = await async_refresh_intelligent_settings(
       current,
       client,
@@ -177,8 +177,8 @@ async def test_when_device_id_is_none_then_none_returned():
   account_info = get_account_info(True)
   existing_settings = None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_settings: IntelligentCoordinatorResult = await async_refresh_intelligent_settings(
       current,
       client,
@@ -203,8 +203,8 @@ async def test_when_mock_is_true_then_none_returned():
   account_info = get_account_info()
   existing_settings = None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_settings: IntelligentCoordinatorResult = await async_refresh_intelligent_settings(
       current,
       client,
@@ -231,8 +231,8 @@ async def test_when_next_refresh_is_in_the_future_then_existing_settings_returne
   account_info = get_account_info()
   existing_settings = IntelligentCoordinatorResult(current, 1, mock_intelligent_settings())
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_settings: IntelligentCoordinatorResult = await async_refresh_intelligent_settings(
       current,
       client,
@@ -263,8 +263,8 @@ async def test_when_existing_settings_is_none_then_settings_retrieved(existing_s
   account_info = get_account_info()
   expected_retrieved_settings = IntelligentCoordinatorResult(current, 1, expected_settings)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_settings: IntelligentCoordinatorResult = await async_refresh_intelligent_settings(
       current,
       client,
@@ -292,8 +292,8 @@ async def test_when_existing_settings_is_old_then_settings_retrieved():
   existing_settings = IntelligentCoordinatorResult(last_retrieved - timedelta(days=60), 1, mock_intelligent_settings())
   expected_retrieved_settings = IntelligentCoordinatorResult(current, 1, expected_settings)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_settings: IntelligentCoordinatorResult = await async_refresh_intelligent_settings(
       current,
       client,
@@ -320,8 +320,8 @@ async def test_when_settings_not_retrieved_then_existing_settings_returned():
   account_info = get_account_info()
   existing_settings = IntelligentCoordinatorResult(last_retrieved, 1, get_intelligent_settings(False, 50, time(6,30)))
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_settings: IntelligentCoordinatorResult = await async_refresh_intelligent_settings(
       current,
       client,
@@ -351,8 +351,8 @@ async def test_when_exception_raised_then_existing_settings_returned_and_excepti
   account_info = get_account_info()
   existing_settings = IntelligentCoordinatorResult(last_retrieved, 1, get_intelligent_settings(False, 50, time(6,30)))
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_settings=async_mock_get_intelligent_settings):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_settings: IntelligentCoordinatorResult = await async_refresh_intelligent_settings(
       current,
       client,

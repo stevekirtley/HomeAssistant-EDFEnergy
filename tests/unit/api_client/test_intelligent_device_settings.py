@@ -1,6 +1,6 @@
 from datetime import time
 
-from custom_components.octopus_energy.api_client.intelligent_device_settings import IntelligentDeviceSettings
+from custom_components.edf_energy.api_client.intelligent_device_settings import IntelligentDeviceSettings
 
 def test_when_valid_dictionary_returned_then_it_can_be_parsed_into_intelligent_device_settings_object():
   # Arrange

@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 
-from custom_components.octopus_energy.intelligent import has_intelligent_tariff
+from custom_components.edf_energy.intelligent import has_intelligent_tariff
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from unit import (create_consumption_data, create_rate_data)
 
-from custom_components.octopus_energy.statistics import build_cost_statistics
+from custom_components.edf_energy.statistics import build_cost_statistics
 
 @pytest.mark.asyncio
 async def test_when_target_rate_specified_then_statistics_restructed():

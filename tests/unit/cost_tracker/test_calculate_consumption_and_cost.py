@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from unit import (create_consumption_data, create_rate_data)
-from custom_components.octopus_energy.cost_tracker import calculate_consumption_and_cost
+from custom_components.edf_energy.cost_tracker import calculate_consumption_and_cost
 
 @pytest.mark.asyncio
 async def test_when_consumption_is_none_then_no_calculation_is_returned():
@@ -252,7 +252,7 @@ async def test_when_consumption_has_target_rate_then_calculations_returned_restr
   assert result["total_cost_without_standing_charge"] == round((2 * expected_peak_rate_price) / 100, 2)
 
 
-# https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues/1325
+# https://github.com/BottlecapDave/HomeAssistant-EDFEnergy/issues/1325
 @pytest.mark.asyncio
 async def test_when_consumption_is_small_then_costs_are_not_lost_due_to_rounding_error():
   # Arrange

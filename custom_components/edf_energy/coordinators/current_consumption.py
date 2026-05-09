@@ -12,7 +12,7 @@ from ..const import (
   DOMAIN,
 )
 
-from ..api_client import (ApiException, OctopusEnergyApiClient)
+from ..api_client import (ApiException, EDFEnergyApiClient)
 from . import BaseCoordinatorResult
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class CurrentConsumptionCoordinatorResult(BaseCoordinatorResult):
 
 async def async_get_live_consumption(
   current_date: datetime,
-  client: OctopusEnergyApiClient,
+  client: EDFEnergyApiClient,
   device_id: str,
   previous_consumption: CurrentConsumptionCoordinatorResult | None,
   refresh_rate_in_minutes: float
@@ -71,7 +71,7 @@ async def async_get_live_consumption(
   
   return previous_consumption
 
-async def async_create_current_consumption_coordinator(hass, account_id: str, client: OctopusEnergyApiClient, device_id: str, refresh_rate_in_minutes: float):
+async def async_create_current_consumption_coordinator(hass, account_id: str, client: EDFEnergyApiClient, device_id: str, refresh_rate_in_minutes: float):
   """Create current consumption coordinator"""
   key = DATA_CURRENT_CONSUMPTION_KEY.format(device_id)
 

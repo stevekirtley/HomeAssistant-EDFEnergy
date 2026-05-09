@@ -5,9 +5,9 @@ import mock
 from tests.unit.coordinators import assert_raised_target_timeframe_update_event
 from unit import (create_rate_data)
 
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient, RequestException
-from custom_components.octopus_energy.coordinators.gas_rates import GasRatesCoordinatorResult, async_refresh_gas_rates_data
-from custom_components.octopus_energy.const import EVENT_GAS_CURRENT_DAY_RATES, EVENT_GAS_NEXT_DAY_RATES, EVENT_GAS_PREVIOUS_DAY_RATES, REFRESH_RATE_IN_MINUTES_RATES
+from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edf_energy.coordinators.gas_rates import GasRatesCoordinatorResult, async_refresh_gas_rates_data
+from custom_components.edf_energy.const import EVENT_GAS_CURRENT_DAY_RATES, EVENT_GAS_NEXT_DAY_RATES, EVENT_GAS_PREVIOUS_DAY_RATES, REFRESH_RATE_IN_MINUTES_RATES
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 period_from = datetime.strptime("2023-07-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")
@@ -117,8 +117,8 @@ async def test_when_account_info_is_none_then_existing_gas_rates_returned():
   account_info = None
   existing_rates = GasRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, [2, 4]))
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates = await async_refresh_gas_rates_data(
       current,
       client,
@@ -175,8 +175,8 @@ async def test_when_no_active_rates_then_none_returned():
   account_info = get_account_info(False)
   existing_rates = GasRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, [2, 4]))
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates = await async_refresh_gas_rates_data(
       current,
       client,
@@ -234,8 +234,8 @@ async def test_when_next_refresh_is_in_the_past_then_existing_gas_rates_returned
   account_info = get_account_info()
   existing_rates = GasRatesCoordinatorResult(current - timedelta(minutes=4, seconds=59), 1, create_rate_data(period_from, period_to, [2, 4]))
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates = await async_refresh_gas_rates_data(
       current,
       client,
@@ -303,8 +303,8 @@ async def test_when_existing_rates_is_none_then_rates_retrieved(existing_rates):
   account_info = get_account_info()
   expected_retrieved_rates = GasRatesCoordinatorResult(current, 1, expected_rates)
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates = await async_refresh_gas_rates_data(
       current,
       client,
@@ -374,8 +374,8 @@ async def test_when_existing_rates_is_old_then_rates_retrieved():
   existing_rates = GasRatesCoordinatorResult(period_from, 1, create_rate_data(period_from - timedelta(days=60), period_to - timedelta(days=60), [2, 4]))
   expected_retrieved_rates = GasRatesCoordinatorResult(current, 1, expected_rates)
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates = await async_refresh_gas_rates_data(
       current,
       client,
@@ -442,8 +442,8 @@ async def test_when_existing_rates_are_requested_period_and_same_tariff_code_the
   existing_rates = GasRatesCoordinatorResult(period_to - timedelta(days=1), 1, create_rate_data(expected_period_from, expected_period_to, [2, 4], tariff_code))
   expected_retrieved_rates = GasRatesCoordinatorResult(current, 1, existing_rates.rates)
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: GasRatesCoordinatorResult = await async_refresh_gas_rates_data(
       current,
       client,
@@ -513,8 +513,8 @@ async def test_when_existing_rates_are_requested_period_and_different_tariff_cod
   existing_rates = GasRatesCoordinatorResult(period_to - timedelta(days=1), 1, create_rate_data(expected_period_from, expected_period_to, [2, 4], f"{tariff_code}-diff"))
   expected_retrieved_rates = GasRatesCoordinatorResult(current, 1, existing_rates.rates)
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: GasRatesCoordinatorResult = await async_refresh_gas_rates_data(
       current,
       client,
@@ -590,8 +590,8 @@ async def test_when_existing_rates_contains_some_of_period_and_same_tariff_code_
   existing_rates = GasRatesCoordinatorResult(period_to - timedelta(days=60), 1, create_rate_data(expected_period_from, expected_rates[0]["start"], [1], tariff_code))
   expected_retrieved_rates = GasRatesCoordinatorResult(current, 1, expected_rates)
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: GasRatesCoordinatorResult = await async_refresh_gas_rates_data(
       current,
       client,
@@ -677,8 +677,8 @@ async def test_when_existing_rates_contains_some_of_period_and_different_tariff_
   existing_rates = GasRatesCoordinatorResult(period_to - timedelta(days=60), 1, create_rate_data(expected_period_from, expected_rates[0]["start"], [1], f"{tariff_code}-diff"))
   expected_retrieved_rates = GasRatesCoordinatorResult(current, 1, expected_rates)
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates: GasRatesCoordinatorResult = await async_refresh_gas_rates_data(
       current,
       client,
@@ -745,8 +745,8 @@ async def test_when_rates_not_retrieved_then_existing_gas_rates_returned():
   account_info = get_account_info()
   existing_rates = GasRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, [1, 2, 3, 4]))
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates = await async_refresh_gas_rates_data(
       current,
       client,
@@ -810,8 +810,8 @@ async def test_when_negative_rates_present_then_existing_rates_retrieved():
   account_info = get_account_info()
   existing_rates = GasRatesCoordinatorResult(period_from, 1, create_rate_data(period_from - timedelta(days=60), period_to - timedelta(days=60), [2, 4]))
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates = await async_refresh_gas_rates_data(
       current,
       client,
@@ -875,8 +875,8 @@ async def test_when_exception_raised_then_existing_gas_rates_returned_and_except
   account_info = get_account_info()
   existing_rates = GasRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, [1, 2, 3, 4]))
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates = await async_refresh_gas_rates_data(
       current,
       client,
@@ -940,8 +940,8 @@ async def test_when_existing_rates_is_old_and_rates_empty_then_rates_retrieved()
   existing_rates = GasRatesCoordinatorResult(period_from, 1, create_rate_data(expected_period_from, expected_period_to, [2, 4]))
   expected_retrieved_rates = GasRatesCoordinatorResult(current, 1, expected_rates)
 
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_gas_rates=async_mocked_get_gas_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_rates = await async_refresh_gas_rates_data(
       current,
       client,

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pytest
 
-from custom_components.octopus_energy.utils.requests import calculate_next_refresh
+from custom_components.edf_energy.utils.requests import calculate_next_refresh
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("request_attempts,expected_next_refresh",[

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import pytest
 
-from custom_components.octopus_energy.utils.weightings import RateWeighting, merge_weightings
+from custom_components.edf_energy.utils.weightings import RateWeighting, merge_weightings
 
 def create_weightings(start: datetime, end: datetime, weighting: Decimal):
   weightings = []

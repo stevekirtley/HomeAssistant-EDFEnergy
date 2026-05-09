@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pytest
 
-from custom_components.octopus_energy.cost_tracker import add_consumption
+from custom_components.edf_energy.cost_tracker import add_consumption
 
 def assert_consumption(consumption_data: list, expected_start: datetime, expected_end: datetime, expected_consumption: float):
   assert len(consumption_data) == 1

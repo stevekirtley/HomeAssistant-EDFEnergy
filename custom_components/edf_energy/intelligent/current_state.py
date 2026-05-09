@@ -15,21 +15,21 @@ from homeassistant.components.sensor import (
   RestoreSensor,
 )
 
-from .base import OctopusEnergyIntelligentSensor
+from .base import EDFEnergyIntelligentSensor
 from ..coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
 from ..utils.attributes import dict_to_typed_dict
 from ..api_client.intelligent_device import IntelligentDevice
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyIntelligentCurrentState(CoordinatorEntity, OctopusEnergyIntelligentSensor, RestoreSensor):
+class EDFEnergyIntelligentCurrentState(CoordinatorEntity, EDFEnergyIntelligentSensor, RestoreSensor):
   """Sensor for determining the current intelligent state."""
 
   def __init__(self, hass: HomeAssistant, coordinator, device: IntelligentDevice, account_id: str):
     """Init sensor."""
 
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyIntelligentSensor.__init__(self, device)
+    EDFEnergyIntelligentSensor.__init__(self, device)
   
     self._account_id = account_id
     self._state = None
@@ -40,12 +40,12 @@ class OctopusEnergyIntelligentCurrentState(CoordinatorEntity, OctopusEnergyIntel
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_{self._device.id}_intelligent_state"
+    return f"edf_energy_{self._device.id}_intelligent_state"
     
   @property
   def name(self):
     """Name of the sensor."""
-    return f"Intelligent State ({self._device.id})"
+    return f"Smart Charging State ({self._device.id})"
 
   @property
   def icon(self):
@@ -68,7 +68,7 @@ class OctopusEnergyIntelligentCurrentState(CoordinatorEntity, OctopusEnergyIntel
     current = now()
     result: IntelligentDispatchesCoordinatorResult = self.coordinator.data if self.coordinator is not None and self.coordinator.data is not None else None
     if (result is not None and result.dispatches is not None):
-      _LOGGER.debug(f"Updating OctopusEnergyIntelligentCurrentState for '{self._device.id}'")
+      _LOGGER.debug(f"Updating EDFEnergyIntelligentCurrentState for '{self._device.id}'")
 
       self._state = result.dispatches.current_state
     else:
@@ -87,4 +87,4 @@ class OctopusEnergyIntelligentCurrentState(CoordinatorEntity, OctopusEnergyIntel
     if state is not None and last_sensor_state is not None and self._state is None:
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes, [])
-      _LOGGER.debug(f'Restored OctopusEnergyIntelligentCurrentState state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyIntelligentCurrentState state: {self._state}')

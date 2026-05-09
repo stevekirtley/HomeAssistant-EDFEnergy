@@ -17,7 +17,7 @@ from homeassistant.components.sensor import (
   SensorStateClass,
 )
 
-from .base import (OctopusEnergyElectricitySensor)
+from .base import (EDFEnergyElectricitySensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..coordinators.electricity_rates import ElectricityRatesCoordinatorResult
 
@@ -25,14 +25,14 @@ from ..utils.rate_information import (get_current_rate_information)
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyElectricityCurrentRate(CoordinatorEntity, OctopusEnergyElectricitySensor, RestoreSensor):
+class EDFEnergyElectricityCurrentRate(CoordinatorEntity, EDFEnergyElectricitySensor, RestoreSensor):
   """Sensor for displaying the current rate."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point, electricity_price_cap, account_id: str):
     """Init sensor."""
     # Pass coordinator to base class
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
+    EDFEnergyElectricitySensor.__init__(self, hass, meter, point)
 
     self._state = None
     self._last_updated = None
@@ -57,7 +57,7 @@ class OctopusEnergyElectricityCurrentRate(CoordinatorEntity, OctopusEnergyElectr
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_current_rate"
+    return f"edf_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_current_rate"
     
   @property
   def name(self):
@@ -100,7 +100,7 @@ class OctopusEnergyElectricityCurrentRate(CoordinatorEntity, OctopusEnergyElectr
     current = now()
     rates_result: ElectricityRatesCoordinatorResult = self.coordinator.data if self.coordinator is not None and self.coordinator.data is not None else None
     if (rates_result is not None):
-      _LOGGER.debug(f"Updating OctopusEnergyElectricityCurrentRate for '{self._mpan}/{self._serial_number}'")
+      _LOGGER.debug(f"Updating EDFEnergyElectricityCurrentRate for '{self._mpan}/{self._serial_number}'")
 
       rate_information = get_current_rate_information(rates_result.rates, current)
 
@@ -157,4 +157,4 @@ class OctopusEnergyElectricityCurrentRate(CoordinatorEntity, OctopusEnergyElectr
     if state is not None and last_sensor_state is not None and self._state is None:
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes, ['all_rates', 'applicable_rates'])
-      _LOGGER.debug(f'Restored OctopusEnergyElectricityCurrentRate state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyElectricityCurrentRate state: {self._state}')

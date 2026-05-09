@@ -173,7 +173,6 @@ def raise_rates_empty(hass, account_id: str, tariff: Tariff, mprn_mpan: str, ser
     safe_repair_key(REPAIR_TARIFF_RATES_EMPTY, account_id, tariff.code),
     is_fixable=False,
     severity=ir.IssueSeverity.WARNING,
-    learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/repairs/tariff_rates_empty",
     translation_key="tariff_rates_empty",
     translation_placeholders={ "account_id": account_id, "product_code": tariff.product, "tariff_code": tariff.code, "product_code": tariff.product, "mprn_mpan": mprn_mpan, "serial_number": serial_number, "meter_type": "electricity" if is_electricity else "gas" },
   )

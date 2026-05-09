@@ -22,9 +22,9 @@ from . import (
   calculate_gas_consumption_and_cost
 )
 
-from ..api_client import (ApiException, OctopusEnergyApiClient)
+from ..api_client import (ApiException, EDFEnergyApiClient)
 
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..utils.requests import calculate_next_refresh
 from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult
@@ -34,10 +34,10 @@ from ..const import CONFIG_TARIFF_COMPARISON_NAME, CONFIG_TARIFF_COMPARISON_PROD
 
 _LOGGER = logging.getLogger(__name__)
   
-class OctopusEnergyPreviousAccumulativeGasCostOverride(CoordinatorEntity, OctopusEnergyGasSensor, RestoreSensor):
+class EDFEnergyPreviousAccumulativeGasCostOverride(CoordinatorEntity, EDFEnergyGasSensor, RestoreSensor):
   """Sensor for displaying the previous days accumulative gas cost for a different tariff."""
 
-  def __init__(self, hass: HomeAssistant, account_id: str, coordinator, client: OctopusEnergyApiClient, meter, point, calorific_value, config):
+  def __init__(self, hass: HomeAssistant, account_id: str, coordinator, client: EDFEnergyApiClient, meter, point, calorific_value, config):
     """Init sensor."""
     
     self._hass = hass
@@ -57,12 +57,12 @@ class OctopusEnergyPreviousAccumulativeGasCostOverride(CoordinatorEntity, Octopu
     self._standing_charge = None
 
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point)
+    EDFEnergyGasSensor.__init__(self, hass, meter, point)
 
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_gas_{self._serial_number}_{self._mprn}_previous_accumulative_cost_{self._config[CONFIG_TARIFF_COMPARISON_NAME]}"
+    return f"edf_energy_gas_{self._serial_number}_{self._mprn}_previous_accumulative_cost_{self._config[CONFIG_TARIFF_COMPARISON_NAME]}"
     
   @property
   def name(self):
@@ -217,4 +217,4 @@ class OctopusEnergyPreviousAccumulativeGasCostOverride(CoordinatorEntity, Octopu
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes)
 
-      _LOGGER.debug(f'Restored OctopusEnergyPreviousAccumulativeGasCostOverride state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyPreviousAccumulativeGasCostOverride state: {self._state}')

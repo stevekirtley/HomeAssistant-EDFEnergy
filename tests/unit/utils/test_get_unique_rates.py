@@ -3,7 +3,7 @@ import pytest
 
 from tests.unit import create_rate_data
 
-from custom_components.octopus_energy.utils.rate_information import get_unique_rates
+from custom_components.edf_energy.utils.rate_information import get_unique_rates
 
 @pytest.mark.asyncio
 async def test_when_called_then_unique_rates_for_current_day_returned_in_order():

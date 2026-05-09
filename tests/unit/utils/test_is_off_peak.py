@@ -1,7 +1,7 @@
 from datetime import (datetime)
 import pytest
 
-from custom_components.octopus_energy.utils import is_off_peak
+from custom_components.edf_energy.utils import is_off_peak
 from tests.unit import create_rate_data
 
 @pytest.mark.asyncio

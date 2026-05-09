@@ -1,5 +1,5 @@
 from . import get_tariff_parts
-from ..api_client import (OctopusEnergyApiClient)
+from ..api_client import (EDFEnergyApiClient)
 
 def is_agile_tariff(tariff_code: str):
   parts = get_tariff_parts(tariff_code.upper())
@@ -15,7 +15,7 @@ def is_tariff_present(root_key: str, region: str, tariff_code: str, product) -> 
             product[root_key][target_region][first_key]['code'] == tariff_code)
   return False
 
-async def check_tariff_override_valid(client: OctopusEnergyApiClient, original_tariff_code: str, tariff_code: str):
+async def check_tariff_override_valid(client: EDFEnergyApiClient, original_tariff_code: str, tariff_code: str):
   tariff_parts = get_tariff_parts(tariff_code)
   original_tariff_parts = get_tariff_parts(original_tariff_code)
   if tariff_parts.energy != original_tariff_parts.energy:

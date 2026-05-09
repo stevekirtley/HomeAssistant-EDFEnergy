@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 
 from tests.unit import create_rate_data
-from custom_components.octopus_energy.utils.weightings import RateWeighting, apply_weighting
+from custom_components.edf_energy.utils.weightings import RateWeighting, apply_weighting
 
 period_from = datetime.strptime("2024-11-26T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%z")
 period_to = datetime.strptime("2024-11-27T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%z")

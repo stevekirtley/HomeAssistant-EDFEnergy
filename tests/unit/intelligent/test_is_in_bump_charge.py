@@ -2,8 +2,8 @@ import pytest
 import datetime
 
 from homeassistant.util.dt import (as_utc, parse_datetime)
-from custom_components.octopus_energy.intelligent import is_in_bump_charge
-from custom_components.octopus_energy.api_client.intelligent_dispatches import IntelligentDispatchItem
+from custom_components.edf_energy.intelligent import is_in_bump_charge
+from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("current_date,expected_result",[

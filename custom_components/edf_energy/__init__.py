@@ -16,17 +16,12 @@ from homeassistant.helpers.helper_integration import (
     async_remove_helper_config_entry_from_source_device,
 )
 
-from .api_client_home_pro import OctopusEnergyHomeProApiClient
 from .coordinators.account import AccountCoordinatorResult, async_setup_account_info_coordinator
 from .coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult, async_setup_intelligent_dispatches_coordinator
 from .coordinators.intelligent_settings import async_setup_intelligent_settings_coordinator
 from .coordinators.electricity_rates import async_setup_electricity_rates_coordinator
-from .coordinators.saving_sessions import async_setup_saving_sessions_coordinators
-from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinators
-from .coordinators.greenness_forecast import async_setup_greenness_forecast_coordinator
 from .statistics import get_statistic_ids_to_remove
 from .intelligent import get_intelligent_features, mock_intelligent_devices
-from .coordinators.heat_pump_configuration_and_status import HeatPumpCoordinatorResult, async_setup_heat_pump_coordinator
 from .config.tariff_comparison import async_migrate_tariff_comparison_config
 
 from .config.main import async_migrate_main_config
@@ -42,10 +37,7 @@ from .api_client.intelligent_dispatches import IntelligentDispatches
 from .discovery import DiscoveryManager
 from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult, async_setup_intelligent_devices_coordinator
 
-from .heat_pump import get_mock_heat_pump_id, mock_heat_pump_status_and_configuration
-from .storage.heat_pump import async_load_cached_heat_pump, async_save_cached_heat_pump
 from .utils.repairs import safe_repair_key
-from .storage.heat_pump_ids import async_load_cached_heat_pump_ids, async_save_cached_heat_pump_ids
 
 from .const import (
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
@@ -58,9 +50,6 @@ from .const import (
   CONFIG_KIND_TARIFF_COMPARISON,
   CONFIG_KIND_COST_TRACKER,
   CONFIG_KIND_TARGET_RATE,
-  CONFIG_MAIN_HOME_PRO_ADDRESS,
-  CONFIG_MAIN_HOME_PRO_API_KEY,
-  CONFIG_MAIN_HOME_PRO_SETTINGS,
   CONFIG_MAIN_INTELLIGENT_MANUAL_DISPATCHES,
   CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE,
@@ -70,9 +59,6 @@ from .const import (
   CONFIG_MAIN_PRICE_CAP_SETTINGS,
   CONFIG_VERSION,
   DATA_DISCOVERY_MANAGER,
-  DATA_HEAT_PUMP_CONFIGURATION_AND_STATUS_KEY,
-  DATA_HEAT_PUMP_IDS,
-  DATA_HOME_PRO_CLIENT,
   DATA_INTELLIGENT_DEVICES,
   DATA_INTELLIGENT_DISPATCHES,
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
@@ -94,11 +80,11 @@ from .const import (
   REPAIR_UNKNOWN_INTELLIGENT_PROVIDER
 )
 
-ACCOUNT_PLATFORMS = ["sensor", "binary_sensor", "number", "switch", "text", "time", "event", "select", "climate", "water_heater", "calendar"]
+ACCOUNT_PLATFORMS = ["sensor", "binary_sensor", "number", "switch", "text", "time", "event", "select", "calendar"]
 COST_TRACKER_PLATFORMS = ["sensor"]
 TARIFF_COMPARISON_PLATFORMS = ["sensor"]
 
-from .api_client import ApiException, AuthenticationException, OctopusEnergyApiClient
+from .api_client import ApiException, AuthenticationException, EDFEnergyApiClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -148,15 +134,9 @@ async def _async_close_client(hass, account_id: str):
   if account_id in hass.data[DOMAIN]:
     if DATA_CLIENT in hass.data[DOMAIN][account_id]:
       _LOGGER.debug('Closing client...')
-      client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+      client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
       await client.async_close()
       _LOGGER.debug('Client closed.')
-
-    if DATA_HOME_PRO_CLIENT in hass.data[DOMAIN][account_id]:
-      _LOGGER.debug('Closing home pro client...')
-      client: OctopusEnergyHomeProApiClient = hass.data[DOMAIN][account_id][DATA_HOME_PRO_CLIENT]
-      await client.async_close()
-      _LOGGER.debug('Home pro client closed.')
 
 async def async_setup_entry(hass, entry):
   """This is called from the config flow."""
@@ -200,7 +180,6 @@ async def async_setup_entry(hass, entry):
       REPAIR_TARGET_RATE_NOT_SUPPORTED,
       is_fixable=False,
       severity=ir.IssueSeverity.ERROR,
-      learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/migrations/target_timeframes",
       translation_key="target_rate_not_supported",
     )
     
@@ -286,15 +265,9 @@ async def async_setup_dependencies(hass, config):
 
   # Close any existing clients, as our new client may have changed
   await _async_close_client(hass, account_id)
-  client = OctopusEnergyApiClient(config[CONFIG_MAIN_API_KEY], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates)
+  client = EDFEnergyApiClient(config[CONFIG_MAIN_API_KEY], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates)
   hass.data[DOMAIN][account_id][DATA_CLIENT] = client
 
-  if (CONFIG_MAIN_HOME_PRO_SETTINGS in config and
-      CONFIG_MAIN_HOME_PRO_ADDRESS in config[CONFIG_MAIN_HOME_PRO_SETTINGS] and
-      config[CONFIG_MAIN_HOME_PRO_SETTINGS][CONFIG_MAIN_HOME_PRO_ADDRESS] is not None):
-    home_pro_client = OctopusEnergyHomeProApiClient(config[CONFIG_MAIN_HOME_PRO_SETTINGS][CONFIG_MAIN_HOME_PRO_ADDRESS], config[CONFIG_MAIN_HOME_PRO_SETTINGS][CONFIG_MAIN_HOME_PRO_API_KEY] if CONFIG_MAIN_HOME_PRO_API_KEY in config[CONFIG_MAIN_HOME_PRO_SETTINGS] else None)
-    hass.data[DOMAIN][account_id][DATA_HOME_PRO_CLIENT] = home_pro_client
-  
   # Delete any issues that may have been previously raised
   ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_UNIQUE_RATES_CHANGED_KEY, account_id))
   ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_ACCOUNT_NOT_FOUND, account_id))
@@ -408,46 +381,8 @@ async def async_setup_dependencies(hass, config):
                                                         tariff_override,
                                                         minimum_dispatch_duration_in_minutes)
 
-  mock_heat_pump = account_debug_override.mock_heat_pump if account_debug_override is not None else False
-  if mock_heat_pump:
-    _LOGGER.info("Mocking heat pump configuration and status")
-    heat_pump_id = get_mock_heat_pump_id()
-    await async_setup_heat_pump_coordinator(hass, account_id, heat_pump_id, True)
-
-    key = DATA_HEAT_PUMP_CONFIGURATION_AND_STATUS_KEY.format(heat_pump_id)
-    try:
-      hass.data[DOMAIN][account_id][key] = HeatPumpCoordinatorResult(now, 1, heat_pump_id, mock_heat_pump_status_and_configuration())
-      await async_save_cached_heat_pump(hass, account_id, heat_pump_id, hass.data[DOMAIN][account_id][key].data)
-    except:
-      _LOGGER.warning(f"Failed to retrieve mocked heat pump information for {account_id} during startup. Loading from cache.")
-      hass.data[DOMAIN][account_id][key] = HeatPumpCoordinatorResult(now, 1, heat_pump_id, await async_load_cached_heat_pump(hass, account_id, heat_pump_id))
-  elif "property_ids" in account_info:
-    heat_pump_ids = []
-    try:
-      heat_pump_ids = await client.async_get_heat_pump_ids(account_id, account_info["property_ids"])
-      await async_save_cached_heat_pump_ids(hass, account_id, heat_pump_ids)
-    except:
-      _LOGGER.warning(f"Failed to retrieve heat pump information for {account_id} during startup. Loading from cache.")
-      heat_pump_ids = await async_load_cached_heat_pump_ids(hass, account_id)
-
-    hass.data[DOMAIN][account_id][DATA_HEAT_PUMP_IDS] = heat_pump_ids
-    for heat_pump_id in heat_pump_ids:
-      await async_setup_heat_pump_coordinator(hass, account_id, heat_pump_id, False)
-
-      key = DATA_HEAT_PUMP_CONFIGURATION_AND_STATUS_KEY.format(heat_pump_id)
-      try:
-        hass.data[DOMAIN][account_id][key] = HeatPumpCoordinatorResult(now, 1, heat_pump_id, await client.async_get_heat_pump_configuration_and_status(account_id, heat_pump_id))
-        await async_save_cached_heat_pump(hass, account_id, heat_pump_id, hass.data[DOMAIN][account_id][key].data)
-      except:
-        hass.data[DOMAIN][account_id][key] = HeatPumpCoordinatorResult(now, 1, heat_pump_id, await async_load_cached_heat_pump(hass, account_id, heat_pump_id))
-
   await async_setup_account_info_coordinator(hass, account_id)
 
-  await async_setup_saving_sessions_coordinators(hass, account_id, region)
-
-  await async_setup_free_electricity_sessions_coordinators(hass, account_id)
-
-  await async_setup_greenness_forecast_coordinator(hass, account_id)
 
 async def options_update_listener(hass, entry):
   """Handle options update."""
@@ -515,7 +450,7 @@ def setup(hass, config):
 async def async_register_intelligent_devices(hass, config: dict, now: datetime, account_id: str, should_mock_intelligent_data: bool):
   intelligent_manual_service_enabled = True
   intelligent_devices = []
-  client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+  client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
 
   if should_mock_intelligent_data:
     # Load from cache to make sure everything works as intended
@@ -570,7 +505,6 @@ async def async_register_intelligent_devices(hass, config: dict, now: datetime, 
           REPAIR_UNKNOWN_INTELLIGENT_PROVIDER.format(intelligent_device.provider),
           is_fixable=False,
           severity=ir.IssueSeverity.WARNING,
-          learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/repairs/unknown_intelligent_provider",
           translation_key="unknown_intelligent_provider",
           translation_placeholders={ "account_id": account_id, "provider": intelligent_device.provider },
         )
@@ -583,7 +517,6 @@ async def async_register_intelligent_devices(hass, config: dict, now: datetime, 
           intelligent_repair_key,
           is_fixable=False,
           severity=ir.IssueSeverity.WARNING,
-          learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/setup/account/#manually-refresh-intelligent-dispatches",
           translation_key="intelligent_manual_service",
           translation_placeholders={ "account_id": account_id, "polling_time": REFRESH_RATE_IN_MINUTES_INTELLIGENT },
         )

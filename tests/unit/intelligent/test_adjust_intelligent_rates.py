@@ -1,10 +1,10 @@
 import pytest
 
 from homeassistant.util.dt import (as_utc, parse_datetime)
-from custom_components.octopus_energy.intelligent import adjust_intelligent_rates
-from custom_components.octopus_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, SimpleIntelligentDispatchItem
+from custom_components.edf_energy.intelligent import adjust_intelligent_rates
+from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, SimpleIntelligentDispatchItem
 from tests.integration import create_rate_data
-from custom_components.octopus_energy.const import CONFIG_MAIN_INTELLIGENT_RATE_MODE_STARTED_DISPATCHES_ONLY, CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES
+from custom_components.edf_energy.const import CONFIG_MAIN_INTELLIGENT_RATE_MODE_STARTED_DISPATCHES_ONLY, CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES
 
 def create_rates():
   return [

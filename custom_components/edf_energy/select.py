@@ -1,8 +1,8 @@
 import logging
 
 from .utils.debug_overrides import async_get_account_debug_override
-from .intelligent.target_time_select import OctopusEnergyIntelligentTargetTimeSelect
-from .api_client import OctopusEnergyApiClient
+from .intelligent.target_time_select import EDFEnergyIntelligentTargetTimeSelect
+from .api_client import EDFEnergyApiClient
 from .intelligent import get_intelligent_features
 from .api_client.intelligent_device import IntelligentDevice
 from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult
@@ -48,6 +48,6 @@ async def async_setup_intelligent_sensors(hass, config, async_add_entities):
     settings_coordinator = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_SETTINGS_COORDINATOR.format(intelligent_device.id)]
 
     if intelligent_features.ready_time_supported:
-      entities.append(OctopusEnergyIntelligentTargetTimeSelect(hass, settings_coordinator, client, intelligent_device, account_id, account_debug_override.mock_intelligent_controls if account_debug_override is not None else False))
+      entities.append(EDFEnergyIntelligentTargetTimeSelect(hass, settings_coordinator, client, intelligent_device, account_id, account_debug_override.mock_intelligent_controls if account_debug_override is not None else False))
 
   async_add_entities(entities)

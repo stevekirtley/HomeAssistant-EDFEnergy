@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.octopus_energy.intelligent import is_intelligent_product
+from custom_components.edf_energy.intelligent import is_intelligent_product
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("product_code",[

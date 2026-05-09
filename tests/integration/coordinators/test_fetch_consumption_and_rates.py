@@ -5,8 +5,8 @@ import zoneinfo
 from homeassistant.util.dt import (set_default_time_zone, now)
 from integration import (create_consumption_data, create_rate_data, get_test_context)
 
-from custom_components.octopus_energy.coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult, async_fetch_consumption_and_rates
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
+from custom_components.edf_energy.coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult, async_fetch_consumption_and_rates
+from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("previous_data_available",[
@@ -16,7 +16,7 @@ from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
 async def test_when_next_refresh_is_in_the_past_and_electricity_sensor_then_requested_data_returned(previous_data_available):
   # Arrange
   context = get_test_context()
-  client = OctopusEnergyApiClient(context.api_key)
+  client = EDFEnergyApiClient(context.api_key)
   set_default_time_zone(zoneinfo.ZoneInfo("Europe/London"))
 
   account_info = await client.async_get_account(context.account_id)
@@ -101,7 +101,7 @@ async def test_when_next_refresh_is_in_the_past_and_electricity_sensor_then_requ
 async def test_when_next_refresh_is_in_the_past_and_gas_sensor_then_requested_data_returned(previous_data_available):
   # Arrange
   context = get_test_context()
-  client = OctopusEnergyApiClient(context.api_key)
+  client = EDFEnergyApiClient(context.api_key)
   set_default_time_zone(zoneinfo.ZoneInfo("Europe/London"))
 
   account_info = await client.async_get_account(context.account_id)

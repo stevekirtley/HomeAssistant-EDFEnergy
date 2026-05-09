@@ -14,22 +14,22 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.util.dt import (utcnow)
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .base import OctopusEnergyIntelligentSensor
-from ..api_client import OctopusEnergyApiClient
+from .base import EDFEnergyIntelligentSensor
+from ..api_client import EDFEnergyApiClient
 from . import is_in_bump_charge
 from ..coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
 from ..utils.attributes import dict_to_typed_dict
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyIntelligentBumpCharge(CoordinatorEntity, SwitchEntity, OctopusEnergyIntelligentSensor, RestoreEntity):
+class EDFEnergyIntelligentBumpCharge(CoordinatorEntity, SwitchEntity, EDFEnergyIntelligentSensor, RestoreEntity):
   """Switch for turning intelligent bump charge on and off."""
 
-  def __init__(self, hass: HomeAssistant, coordinator, client: OctopusEnergyApiClient, device, account_id: str, is_mocked: bool):
+  def __init__(self, hass: HomeAssistant, coordinator, client: EDFEnergyApiClient, device, account_id: str, is_mocked: bool):
     """Init sensor."""
     # Pass coordinator to base class
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyIntelligentSensor.__init__(self, device)
+    EDFEnergyIntelligentSensor.__init__(self, device)
 
     self._state = False
     self._last_updated = None
@@ -42,12 +42,12 @@ class OctopusEnergyIntelligentBumpCharge(CoordinatorEntity, SwitchEntity, Octopu
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_{self._device.id}_intelligent_bump_charge"
+    return f"edf_energy_{self._device.id}_intelligent_bump_charge"
     
   @property
   def name(self):
     """Name of the sensor."""
-    return f"Intelligent Bump Charge ({self._device.id})"
+    return f"Smart Charging Boost Charge ({self._device.id})"
 
   @property
   def icon(self):
@@ -121,4 +121,4 @@ class OctopusEnergyIntelligentBumpCharge(CoordinatorEntity, SwitchEntity, Octopu
     if (self._state is None):
       self._state = False
     
-    _LOGGER.debug(f'Restored OctopusEnergyIntelligentBumpCharge state: {self._state}')
+    _LOGGER.debug(f'Restored EDFEnergyIntelligentBumpCharge state: {self._state}')

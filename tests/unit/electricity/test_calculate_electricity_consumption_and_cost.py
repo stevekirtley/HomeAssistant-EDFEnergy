@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from unit import (create_consumption_data, create_rate_data)
-from custom_components.octopus_energy.electricity import calculate_electricity_consumption_and_cost
+from custom_components.edf_energy.electricity import calculate_electricity_consumption_and_cost
 
 @pytest.mark.asyncio
 async def test_when_electricity_consumption_is_none_then_no_calculation_is_returned():

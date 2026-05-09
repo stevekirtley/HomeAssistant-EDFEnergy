@@ -22,12 +22,12 @@ from homeassistant.const import (
 from homeassistant.util.dt import (now)
 
 from ..coordinators.current_consumption import CurrentConsumptionCoordinatorResult
-from .base import (OctopusEnergyElectricitySensor)
+from .base import (EDFEnergyElectricitySensor)
 from ..utils.attributes import dict_to_typed_dict
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyCurrentTotalElectricityExport(CoordinatorEntity, OctopusEnergyElectricitySensor, RestoreSensor):
+class EDFEnergyCurrentTotalElectricityExport(CoordinatorEntity, EDFEnergyElectricitySensor, RestoreSensor):
   """Sensor for displaying the current total electricity export."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point):
@@ -37,7 +37,7 @@ class OctopusEnergyCurrentTotalElectricityExport(CoordinatorEntity, OctopusEnerg
     self._state = None
     self._last_reset = None
     
-    OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
+    EDFEnergyElectricitySensor.__init__(self, hass, meter, point)
 
   @property
   def entity_registry_enabled_default(self) -> bool:
@@ -50,7 +50,7 @@ class OctopusEnergyCurrentTotalElectricityExport(CoordinatorEntity, OctopusEnerg
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f"octopus_energy_electricity_{self._serial_number}_{self._mpan}_current_total_export"
+    return f"edf_energy_electricity_{self._serial_number}_{self._mpan}_current_total_export"
 
   @property
   def name(self):

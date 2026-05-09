@@ -4,8 +4,8 @@ import pytest
 from homeassistant.util.dt import (utcnow)
 
 from integration import get_test_context
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient
-from custom_components.octopus_energy.diagnostics import async_get_diagnostics
+from custom_components.edf_energy.api_client import EDFEnergyApiClient
+from custom_components.edf_energy.diagnostics import async_get_diagnostics
 
 def assert_meter(meter, expected_serial_number: int):
   assert meter["is_smart_meter"] == True
@@ -32,7 +32,7 @@ async def test_when_async_get_diagnostics_called_then_account_info_is_returned()
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.api_key)
     account_id = context.account_id
 
     now = utcnow()
@@ -90,22 +90,18 @@ async def test_when_async_get_diagnostics_called_then_account_info_is_returned()
         assert "start" in agreement
         assert "end" in agreement
 
-    assert "octoplus_enrolled" in account
-
     assert "entities" in data
     assert data["entities"]["foo"]["last_updated"] == now
     assert data["entities"]["foo"]["last_changed"] == now
 
     assert "intelligent_devices" in data
 
-    assert "heat_pumps" in data
-
 @pytest.mark.asyncio
 async def test_when_async_get_diagnostics_called_and_account_exists_then_account_info_is_returned():
     # Arrange
     context = get_test_context()
 
-    client = OctopusEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.api_key)
     account_id = context.account_id
     existing_account = await client.async_get_account(account_id)
 
@@ -165,12 +161,8 @@ async def test_when_async_get_diagnostics_called_and_account_exists_then_account
         assert "start" in agreement
         assert "end" in agreement
 
-    assert "octoplus_enrolled" in account
-
     assert "entities" in data
     assert data["entities"]["foo"]["last_updated"] == now
     assert data["entities"]["foo"]["last_changed"] == now
 
     assert "intelligent_devices" in data
-
-    assert "heat_pumps" in data

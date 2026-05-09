@@ -20,7 +20,7 @@ from ..const import (
   REFRESH_RATE_IN_MINUTES_INTELLIGENT,
 )
 
-from ..api_client import ApiException, OctopusEnergyApiClient
+from ..api_client import ApiException, EDFEnergyApiClient
 from ..api_client.intelligent_device_settings import IntelligentDeviceSettings
 from . import BaseCoordinatorResult
 
@@ -37,7 +37,7 @@ class IntelligentCoordinatorResult(BaseCoordinatorResult):
 
 async def async_refresh_intelligent_settings(
   current: datetime,
-  client: OctopusEnergyApiClient,
+  client: EDFEnergyApiClient,
   account_info,
   device_id: str,
   existing_intelligent_settings_result: IntelligentCoordinatorResult | None,
@@ -101,7 +101,7 @@ async def async_setup_intelligent_settings_coordinator(hass, account_id: str, de
       await intelligent_device_coordinator.async_request_refresh()
 
     current = utcnow()
-    client: OctopusEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
+    client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT]
     account_info = account_result.account if account_result is not None else None
       

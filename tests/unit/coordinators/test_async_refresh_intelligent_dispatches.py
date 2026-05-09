@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta
-from custom_components.octopus_energy.storage.intelligent_dispatches_history import IntelligentDispatchesHistory, IntelligentDispatchesHistoryItem
+from custom_components.edf_energy.storage.intelligent_dispatches_history import IntelligentDispatchesHistory, IntelligentDispatchesHistoryItem
 import pytest
 import mock
 
-from custom_components.octopus_energy.const import INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLE_CHARGERS, REFRESH_RATE_IN_MINUTES_INTELLIGENT
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient, RequestException
-from custom_components.octopus_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
-from custom_components.octopus_energy.api_client.intelligent_device import IntelligentDevice
-from custom_components.octopus_energy.intelligent import mock_intelligent_devices, mock_intelligent_dispatches
-from custom_components.octopus_energy.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult, async_refresh_intelligent_dispatches
+from custom_components.edf_energy.const import INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLE_CHARGERS, REFRESH_RATE_IN_MINUTES_INTELLIGENT
+from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
+from custom_components.edf_energy.api_client.intelligent_device import IntelligentDevice
+from custom_components.edf_energy.intelligent import mock_intelligent_devices, mock_intelligent_dispatches
+from custom_components.edf_energy.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult, async_refresh_intelligent_dispatches
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 last_retrieved = datetime.strptime("2023-07-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")
@@ -77,8 +77,8 @@ async def test_when_account_info_is_none_then_existing_dispatches_returned():
   account_info = None
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved, 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -129,8 +129,8 @@ async def test_when_intelligent_device_is_none_then_none_returned():
   account_info = get_account_info(True, active_product_code="GO-18-06-12")
   existing_dispatches = None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -182,8 +182,8 @@ async def test_when_not_on_intelligent_tariff_then_none_returned():
   account_info = get_account_info(True, active_product_code="GO-18-06-12")
   existing_dispatches = None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -234,8 +234,8 @@ async def test_when_mock_is_true_then_none_returned():
   account_info = get_account_info()
   existing_dispatches = None
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -308,8 +308,8 @@ async def test_when_next_refresh_is_in_the_future_then_existing_dispatches_retur
   account_info = get_account_info()
   existing_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -371,8 +371,8 @@ async def test_when_existing_dispatches_returned_and_planned_dispatch_started_an
     )
   ]
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -430,8 +430,8 @@ async def test_when_existing_dispatches_is_none_then_dispatches_retrieved(existi
   account_info = get_account_info()
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -491,8 +491,8 @@ async def test_when_existing_dispatches_is_old_then_dispatches_retrieved():
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved - timedelta(days=60), 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory(expected_history), 1, last_retrieved)
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -558,8 +558,8 @@ async def test_when_existing_dispatches_history_is_old_then_not_included_in_new_
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved - timedelta(days=60), 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory(expected_history), 1, last_retrieved)
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -619,8 +619,8 @@ async def test_when_settings_not_retrieved_then_existing_dispatches_returned():
   account_info = get_account_info()
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -676,8 +676,8 @@ async def test_when_exception_raised_then_existing_dispatches_returned_and_excep
   account_info = get_account_info()
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved, 1, IntelligentDispatches("SMART_CONTROL_IN_PROGRESS", [], []), IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -735,8 +735,8 @@ async def test_when_requests_reached_for_hour_and_due_to_be_reset_then_dispatche
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved - timedelta(days=60), 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory([]), 20, current - timedelta(hours=1))
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -793,8 +793,8 @@ async def test_when_requests_reached_for_hour_and_not_due_to_be_reset_then_exist
   account_info = get_account_info()
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved - timedelta(days=60), 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory([]), 20, current)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -852,8 +852,8 @@ async def test_when_manual_refresh_is_called_within_one_minute_then_existing_dis
   account_info = get_account_info()
   existing_dispatches = IntelligentDispatchesCoordinatorResult(current - timedelta(seconds=1), 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory([]), 1, current)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -912,8 +912,8 @@ async def test_when_manual_refresh_is_called_after_one_minute_then_dispatches_re
   existing_dispatches = IntelligentDispatchesCoordinatorResult(current - timedelta(minutes=1), 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory([]), 1, current - timedelta(hours=1))
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -985,8 +985,8 @@ async def test_when_no_dispatches_are_retrieved_and_none_exist_then_dispatches_r
 
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -1049,8 +1049,8 @@ async def test_when_retrieved_planned_dispatch_started_and_in_boosting_mode_then
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved - timedelta(days=60), 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory([]), 1, last_retrieved)
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -1116,8 +1116,8 @@ async def test_when_retrieved_planned_dispatch_started_and_not_in_boosting_mode_
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved - timedelta(days=60), 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory([]), 1, last_retrieved)
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -1194,8 +1194,8 @@ async def test_when_retrieved_planned_dispatch_started_and_existing_started_disp
   ]
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -1270,8 +1270,8 @@ async def test_when_retrieved_planned_dispatch_started_and_existing_started_disp
   ]
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,
@@ -1349,8 +1349,8 @@ async def test_when_existing_started_dispatches_more_than_three_days_old_then_ol
   ]
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
   
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_intelligent_dispatches=async_mock_get_intelligent_dispatches):
+    client = EDFEnergyApiClient("NOT_REAL")
     retrieved_dispatches: IntelligentDispatchesCoordinatorResult = await async_refresh_intelligent_dispatches(
       current,
       client,

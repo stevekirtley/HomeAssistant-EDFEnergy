@@ -25,21 +25,21 @@ from . import (
   calculate_electricity_consumption_and_cost,
 )
 
-from .base import (OctopusEnergyElectricitySensor)
+from .base import (EDFEnergyElectricitySensor)
 from ..utils.attributes import dict_to_typed_dict
 
 from ..statistics.consumption import async_import_external_statistics_from_consumption, get_electricity_consumption_statistic_unique_id
 from ..statistics.refresh import async_refresh_previous_electricity_consumption_data
-from ..api_client import OctopusEnergyApiClient
+from ..api_client import EDFEnergyApiClient
 from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult
 from ..utils.rate_information import get_peak_name, get_rate_index, get_unique_rates
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyPreviousAccumulativeElectricityConsumption(CoordinatorEntity, OctopusEnergyElectricitySensor, RestoreSensor):
+class EDFEnergyPreviousAccumulativeElectricityConsumption(CoordinatorEntity, EDFEnergyElectricitySensor, RestoreSensor):
   """Sensor for displaying the previous days accumulative electricity reading."""
 
-  def __init__(self, hass: HomeAssistant, client: OctopusEnergyApiClient, coordinator, account_id, meter, point, peak_type = None):
+  def __init__(self, hass: HomeAssistant, client: EDFEnergyApiClient, coordinator, account_id, meter, point, peak_type = None):
     """Init sensor."""
     CoordinatorEntity.__init__(self, coordinator)
 
@@ -50,7 +50,7 @@ class OctopusEnergyPreviousAccumulativeElectricityConsumption(CoordinatorEntity,
     self._hass = hass
     self._peak_type = peak_type
     
-    OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
+    EDFEnergyElectricitySensor.__init__(self, hass, meter, point)
 
   @property
   def entity_registry_enabled_default(self) -> bool:
@@ -63,7 +63,7 @@ class OctopusEnergyPreviousAccumulativeElectricityConsumption(CoordinatorEntity,
   @property
   def unique_id(self):
     """The id of the sensor."""
-    base_name = f"octopus_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_previous_accumulative_consumption"
+    base_name = f"edf_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_previous_accumulative_consumption"
     if self._peak_type is not None:
       return f"{base_name}_{self._peak_type}"
     

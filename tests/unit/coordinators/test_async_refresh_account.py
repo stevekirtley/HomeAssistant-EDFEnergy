@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 import pytest
 import mock
 
-from custom_components.octopus_energy.api_client import OctopusEnergyApiClient, AuthenticationException, ApiException
-from custom_components.octopus_energy.coordinators.account import AccountCoordinatorResult, async_refresh_account
+from custom_components.edf_energy.api_client import EDFEnergyApiClient, AuthenticationException, ApiException
+from custom_components.edf_energy.coordinators.account import AccountCoordinatorResult, async_refresh_account
 
 current = datetime.strptime("2025-08-30T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 expected_next_refresh = datetime.strptime("2025-08-30T16:30:00+01:00", "%Y-%m-%dT%H:%M:%S%z")
@@ -139,8 +139,8 @@ async def test_when_gas_meter_is_missing_then_event_raised():
     return None
 
   # Act
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
     
     result = await async_refresh_account(
       current,
@@ -223,8 +223,8 @@ async def test_when_electricity_meter_is_missing_then_event_raised():
     return None
 
   # Act
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
     
     result = await async_refresh_account(
       current,
@@ -307,8 +307,8 @@ async def test_when_electricity_meter_is_added_then_event_raised():
     return None
 
   # Act
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
     
     result = await async_refresh_account(
       current,
@@ -391,8 +391,8 @@ async def test_when_gas_meter_is_added_then_event_raised():
     return None
 
   # Act
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
     
     result = await async_refresh_account(
       current,
@@ -474,8 +474,8 @@ async def test_when_account_info_is_none_then_account_not_found_raised():
     return None
 
   # Act
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
     
     result = await async_refresh_account(
       current,
@@ -556,8 +556,8 @@ async def test_when_authentication_exception_raised_then_invalid_api_key_raised(
     return None
 
   # Act
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
     
     result = await async_refresh_account(
       current,
@@ -639,8 +639,8 @@ async def test_when_api_exception_raised_then_previous_account_returned_with_err
     return None
 
   # Act
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
     
     result = await async_refresh_account(
       current,
@@ -723,8 +723,8 @@ async def test_when_next_refresh_is_in_future_then_existing_account_returned():
     return None
 
   # Act
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
     
     result = await async_refresh_account(
       current,
@@ -807,8 +807,8 @@ async def test_when_product_not_found_then_event_raised():
     return None
 
   # Act
-  with mock.patch.multiple(OctopusEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
-    client = OctopusEnergyApiClient("NOT_REAL")
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
     
     result = await async_refresh_account(
       current,

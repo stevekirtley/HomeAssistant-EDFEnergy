@@ -22,7 +22,7 @@ from . import (
   calculate_electricity_consumption_and_cost,
 )
 
-from .base import (OctopusEnergyElectricitySensor)
+from .base import (EDFEnergyElectricitySensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult
 from ..utils.rate_information import get_peak_name, get_rate_index, get_unique_rates
@@ -31,7 +31,7 @@ from ..statistics.cost import async_import_external_statistics_from_cost, get_el
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyPreviousAccumulativeElectricityCost(CoordinatorEntity, OctopusEnergyElectricitySensor, RestoreSensor):
+class EDFEnergyPreviousAccumulativeElectricityCost(CoordinatorEntity, EDFEnergyElectricitySensor, RestoreSensor):
   """Sensor for displaying the previous days accumulative electricity cost."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point, peak_type = None):
@@ -43,7 +43,7 @@ class OctopusEnergyPreviousAccumulativeElectricityCost(CoordinatorEntity, Octopu
     self._last_reset = None
     self._peak_type = peak_type
 
-    OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
+    EDFEnergyElectricitySensor.__init__(self, hass, meter, point)
 
   @property
   def entity_registry_enabled_default(self) -> bool:
@@ -56,7 +56,7 @@ class OctopusEnergyPreviousAccumulativeElectricityCost(CoordinatorEntity, Octopu
   @property
   def unique_id(self):
     """The id of the sensor."""
-    base_name = f"octopus_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_previous_accumulative_cost"
+    base_name = f"edf_energy_electricity_{self._serial_number}_{self._mpan}{self._export_id_addition}_previous_accumulative_cost"
     if self._peak_type is not None:
       return f"{base_name}_{self._peak_type}"
     

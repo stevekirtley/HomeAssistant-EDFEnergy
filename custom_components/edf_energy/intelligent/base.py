@@ -6,7 +6,7 @@ from ..const import (
 from ..api_client.intelligent_device import IntelligentDevice
 from ..intelligent import device_type_to_friendly_string
 
-class OctopusEnergyIntelligentSensor:
+class EDFEnergyIntelligentSensor:
   
   _unrecorded_attributes = frozenset({"data_last_retrieved"})
   

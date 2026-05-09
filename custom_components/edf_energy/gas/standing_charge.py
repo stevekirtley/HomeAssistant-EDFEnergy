@@ -15,19 +15,19 @@ from homeassistant.components.sensor import (
   SensorStateClass
 )
 
-from .base import (OctopusEnergyGasSensor)
+from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..coordinators.gas_standing_charges import GasStandingChargeCoordinatorResult
 
 _LOGGER = logging.getLogger(__name__)
 
-class OctopusEnergyGasCurrentStandingCharge(CoordinatorEntity, OctopusEnergyGasSensor, RestoreSensor):
+class EDFEnergyGasCurrentStandingCharge(CoordinatorEntity, EDFEnergyGasSensor, RestoreSensor):
   """Sensor for displaying the current standing charge."""
 
   def __init__(self, hass: HomeAssistant, coordinator, meter, point):
     """Init sensor."""
     CoordinatorEntity.__init__(self, coordinator)
-    OctopusEnergyGasSensor.__init__(self, hass, meter, point)
+    EDFEnergyGasSensor.__init__(self, hass, meter, point)
 
     self._state = None
     self._latest_date = None
@@ -35,7 +35,7 @@ class OctopusEnergyGasCurrentStandingCharge(CoordinatorEntity, OctopusEnergyGasS
   @property
   def unique_id(self):
     """The id of the sensor."""
-    return f'octopus_energy_gas_{self._serial_number}_{self._mprn}_current_standing_charge';
+    return f'edf_energy_gas_{self._serial_number}_{self._mprn}_current_standing_charge';
     
   @property
   def name(self):
@@ -74,7 +74,7 @@ class OctopusEnergyGasCurrentStandingCharge(CoordinatorEntity, OctopusEnergyGasS
   @callback
   def _handle_coordinator_update(self) -> None:
     """Retrieve the latest gas standing charge"""
-    _LOGGER.debug('Updating OctopusEnergyGasCurrentStandingCharge')
+    _LOGGER.debug('Updating EDFEnergyGasCurrentStandingCharge')
 
     standard_charge_result: GasStandingChargeCoordinatorResult = self.coordinator.data if self.coordinator is not None and self.coordinator.data is not None else None
     
@@ -101,4 +101,4 @@ class OctopusEnergyGasCurrentStandingCharge(CoordinatorEntity, OctopusEnergyGasS
     if state is not None and last_sensor_state is not None and self._state is None:
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) else last_sensor_state.native_value
       self._attributes = dict_to_typed_dict(state.attributes, ['valid_from', 'valid_to'])
-      _LOGGER.debug(f'Restored OctopusEnergyGasCurrentStandingCharge state: {self._state}')
+      _LOGGER.debug(f'Restored EDFEnergyGasCurrentStandingCharge state: {self._state}')

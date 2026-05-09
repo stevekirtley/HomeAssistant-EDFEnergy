@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.octopus_energy.utils import get_tariff_parts
+from custom_components.edf_energy.utils import get_tariff_parts
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tariff_code,expected_energy,expected_rate,expected_product_code,expected_region",[

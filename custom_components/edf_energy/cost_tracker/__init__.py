@@ -49,7 +49,7 @@ def add_consumption(current: datetime,
   if new_value is None:
     return
 
-  # Some total increasing sensors are misbehaving and sometimes drop slightly (https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues/901),
+  # Some total increasing sensors are misbehaving and sometimes drop slightly (https://github.com/BottlecapDave/HomeAssistant-EDFEnergy/issues/901),
   # so we'll have a threshold based on https://github.com/home-assistant/core/issues/57551#issuecomment-942130660
   mean = new_value + (old_value if old_value is not None else 0) / 2
   if mean == 0:

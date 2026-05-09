@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pytest
 
-from custom_components.octopus_energy.coordinators import combine_rates
+from custom_components.edf_energy.coordinators import combine_rates
 from .. import create_rate_data
 
 @pytest.mark.asyncio
