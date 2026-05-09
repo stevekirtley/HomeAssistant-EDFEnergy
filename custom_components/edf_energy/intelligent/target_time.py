@@ -78,7 +78,9 @@ class EDFEnergyIntelligentTargetTime(CoordinatorEntity, TimeEntity, EDFEnergyInt
     if settings_result is None or (self._last_updated is not None and self._last_updated > settings_result.last_retrieved):
       return self._state
 
-    if settings_result.settings is not None and len(settings_result.settings.preferences.schedules) > 0:
+    if (settings_result.settings is not None and
+        settings_result.settings.preferences is not None and
+        len(settings_result.settings.preferences.schedules) > 0):
       target_time: time = settings_result.settings.preferences.schedules[0].time
       self._state = target_time
 
