@@ -1,54 +1,70 @@
 # Home Assistant EDF Energy
 
-This library is a Work In Progress, and not ready for use. 
+> **Work in progress — not yet ready for production use.**
 
-- [Home Assistant Octopus Energy](#home-assistant-octopus-energy)
-  - [Features](#features)
-  - [How to install](#how-to-install)
-    - [HACS](#hacs)
-    - [Manual](#manual)
-  - [How to setup](#how-to-setup)
-  - [Docs](#docs)
-  - [FAQ](#faq)
-  - [Sponsorship](#sponsorship)
+A fork of [BottlecapDave's HomeAssistant-OctopusEnergy](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy) (MIT licensed), adapted for EDF Energy customers. EDF Energy uses the same underlying Kraken platform as Octopus Energy, so the core API integration carries over with minimal changes.
 
-A fork from BottleCapDave's excellent (MIT) plugin for OctopusEnergy.
-Slowly being modified to work for EDF Energy (also based on Kraken). 
+This integration is not affiliated with EDF Energy, Kraken, or BottlecapDave.
 
-This integration is in no way affiliated with EDF Energy, Kraken, or BottleCapDave.
+If you find this useful and are planning on switching to EDF Energy, you're welcome to use my [referral link](https://edfenergy.com/quote/refer-a-friend/massive-sun-7007).
 
-If you find this useful and are planning on moving to EDF Energy, why not use my [referral link](https://edfenergy.com/quote/refer-a-friend/massive-sun-7007)?
+---
+
+## Differences from the upstream OctopusEnergy integration
+
+The following features present in the upstream integration have been **removed** as they are specific to Octopus Energy and are not available on EDF Energy's Kraken platform:
+
+| Feature | Reason removed |
+|---|---|
+| Home Mini / Home Pro | Octopus-specific hardware |
+| OctoPlus points & saving sessions | Octopus-specific loyalty scheme |
+| Free electricity sessions | Octopus-specific promotion |
+| Wheel of Fortune | Octopus-specific promotion |
+| Heat pump control | Octopus-specific (Cosy Octopus tariff) |
+| Greenness forecast | Octopus-specific API |
+
+The following features have been **renamed** to match EDF Energy terminology:
+
+| Upstream name | EDF Energy name |
+|---|---|
+| Intelligent dispatching | Smart Charging |
+| Intelligent settings | Smart Charging settings |
+
+Everything else — electricity and gas sensors, rates, standing charges, consumption history, cost trackers, tariff comparison, and Smart Charging (EV dispatch) — is carried over and adapted for the EDF Energy API endpoint (`api.edfgb-kraken.energy`).
+
+---
 
 ## Features
 
-Below are the main features of the integration
-
-TBC
+- Electricity current, previous, and next rate sensors
+- Gas current, previous, and next rate sensors
+- Electricity and gas standing charge sensors
+- Previous consumption and cost (daily, weekly, monthly)
+- Cost tracker sensors (track cost of any energy-based entity)
+- Tariff comparison sensors
+- Smart Charging (EV dispatch) sensors, switches, and controls
+- Long-term statistics for HA energy dashboard
 
 ## How to install
 
-Don't yet - it's not ready. 
-
-### HACS
-
-TBC
+Not ready for general use yet. Manual installation only.
 
 ### Manual
 
-TBC
+1. Copy `custom_components/edf_energy` into your Home Assistant `custom_components` directory.
+2. Restart Home Assistant.
+3. Add the integration via **Settings → Devices & Services → Add Integration → EDF Energy**.
+
+### HACS
+
+Not yet published to HACS.
 
 ## How to setup
 
-TBC
-
-## Docs
-
-TBC
+You will need:
+- Your EDF Energy **account ID** (format `A-AAAA1111`, shown in your account dashboard)
+- An **API key** from the EDF Energy / Kraken developer portal (`https://api.edfgb-kraken.energy/v1/graphql/`)
 
 ## FAQ
 
-TBC
-
-## Sponsorship
-
-If you are enjoying the integration, why not use my [referral link]([https://share.octopus.energy/gray-jade-372](https://edfenergy.com/quote/refer-a-friend/massive-sun-7007)) if you're not already using EDF Energy.
+See the upstream [OctopusEnergy FAQ](https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/faq/) — most answers apply equally here since the underlying Kraken API is the same.
