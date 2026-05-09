@@ -8,7 +8,7 @@ Ever wondered how much your individual appliances are costing you? You can creat
 
 ## Setup
 
-After you've configured your [account](./account.md), you'll be able to configure cost tracker sensors. These are configured by adding subsequent instances of the integration going through the [normal flow](https://my.home-assistant.io/redirect/config_flow_start/?domain=octopus_energy), and selecting `Cost Tracker` in the provided menu.
+After you've configured your [account](./account.md), you'll be able to configure cost tracker sensors. These are configured by adding subsequent instances of the integration going through the [normal flow](https://my.home-assistant.io/redirect/config_flow_start/?domain=edf_energy), and selecting `Cost Tracker` in the provided menu.
 
 ### Name
 
@@ -30,11 +30,11 @@ This should be true if the tracked entity's state increases over time (true) or 
 
     If you are tracking a "total_increasing" sensor, then based on [HA documentation](https://developers.home-assistant.io/docs/core/entity/sensor#available-state-classes) any decrease in value will be treated as a reset and the new state will be recorded as is. 
     
-    However, there have [been reports](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues/901) of some sensors misbehaving. To counteract this, if there is less than a 10% decrease, then the difference between the new and old state will be recorded.
+    However, there have [been reports](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/901) of some sensors misbehaving. To counteract this, if there is less than a 10% decrease, then the difference between the new and old state will be recorded.
 
 ### Don't automatically reset the cost sensor
 
-By default, the sensor will automatically reset when a new reading has been received and it's a different day to the previous reading. There may be times that you want to track costs for something over this threshold (e.g. how much it last cost you to charge your car). In these scenarios, you can turn off the automatic resets. In this scenario, you are in charge of resetting the core sensor via it's [available service](../services.md#octopus_energyreset_cost_tracker).
+By default, the sensor will automatically reset when a new reading has been received and it's a different day to the previous reading. There may be times that you want to track costs for something over this threshold (e.g. how much it last cost you to charge your car). In these scenarios, you can turn off the automatic resets. In this scenario, you are in charge of resetting the core sensor via it's [available service](../services.md#edf_energyreset_cost_tracker).
 
 !!! info
 
@@ -54,13 +54,13 @@ This is the day of the month the accumulative month sensor should reset. This mu
 
 ## Handling Exporting
 
-Due to everyone's HA setup being different for how they track importing/exporting, the sensors themselves assume that all consumption changes should be tracked and the cost calculated. However, you may wish to turn off tracking when you're exporting. This can be done via the related [services](../services.md#octopus_energyupdate_cost_tracker).
+Due to everyone's HA setup being different for how they track importing/exporting, the sensors themselves assume that all consumption changes should be tracked and the cost calculated. However, you may wish to turn off tracking when you're exporting. This can be done via the related [services](../services.md#edf_energyupdate_cost_tracker).
 
 ## Entities
 
 ### Cost sensor
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}`
 
 This is the total cost of the tracked entity for the current day.
 
@@ -96,7 +96,7 @@ The following variants of the [Cost Sensor](#cost-sensor) are available.
 
 ##### Off Peak
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_off_peak`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_off_peak`
 
 This is the total cost of the tracked entity for the current day during off peak hours (the lowest available rate).
 
@@ -111,11 +111,11 @@ This is the total cost of the tracked entity for the current day during off peak
 
 !!! warning
 
-    If you are on intelligent and are using a provider where [planned_dispatches](../entities/intelligent.md#is-dispatching) are not supported, then charges outside of your normal off peak periods will be counted at peak. This is because Octopus Energy doesn't provide enough information to determine if a completed dispatch was a bump charge or a planned charge.
+    If you are on intelligent and are using a provider where [planned_dispatches](../entities/intelligent.md#is-dispatching) are not supported, then charges outside of your normal off peak periods will be counted at peak. This is because EDF Energy doesn't provide enough information to determine if a completed dispatch was a bump charge or a planned charge.
 
 ##### Standard
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_standard`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_standard`
 
 This is the total cost of the tracked entity for the current day during standard hours (the middle rate).
 
@@ -130,7 +130,7 @@ This is the total cost of the tracked entity for the current day during standard
 
 ##### Peak
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_peak`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_peak`
 
 This is the total cost of the tracked entity for the current day during peak hours (the highest available rate).
 
@@ -145,7 +145,7 @@ This is the total cost of the tracked entity for the current day during peak hou
 
 ### Week cost sensor
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_week`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_week`
 
 This is the total cost of the tracked entity for the current week. This will reset on the configured day.
 
@@ -176,7 +176,7 @@ The following variants of the [Week Cost Sensor](#week-cost-sensor) are availabl
 
 ##### Off Peak
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_week_off_peak`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_week_off_peak`
 
 This is the total cost of the tracked entity for the current week during off peak hours (the lowest available rate).
 
@@ -191,11 +191,11 @@ This is the total cost of the tracked entity for the current week during off pea
 
 !!! warning
 
-    If you are on intelligent and are using a provider where [planned_dispatches](../entities/intelligent.md#is-dispatching) are not supported, then charges outside of your normal off peak periods will be counted at peak. This is because Octopus Energy doesn't provide enough information to determine if a completed dispatch was a bump charge or a planned charge.
+    If you are on intelligent and are using a provider where [planned_dispatches](../entities/intelligent.md#is-dispatching) are not supported, then charges outside of your normal off peak periods will be counted at peak. This is because EDF Energy doesn't provide enough information to determine if a completed dispatch was a bump charge or a planned charge.
 
 ##### Standard
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_week_standard`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_week_standard`
 
 This is the total cost of the tracked entity for the current week during standard hours (the middle rate).
 
@@ -210,7 +210,7 @@ This is the total cost of the tracked entity for the current week during standar
 
 ##### Peak
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_week_peak`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_week_peak`
 
 This is the total cost of the tracked entity for the current week during peak hours (the highest available rate).
 
@@ -225,7 +225,7 @@ This is the total cost of the tracked entity for the current week during peak ho
 
 ### Month cost sensor
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_month`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_month`
 
 This is the total cost of the tracked entity for the current month. This will reset on the configured day.
 
@@ -256,7 +256,7 @@ The following variants of the [Month Cost Sensor](#month-cost-sensor) are availa
 
 ##### Off Peak
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_month_off_peak`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_month_off_peak`
 
 This is the total cost of the tracked entity for the current month during off peak hours (the lowest available rate).
 
@@ -271,11 +271,11 @@ This is the total cost of the tracked entity for the current month during off pe
 
 !!! warning
 
-    If you are on intelligent and are using a provider where [planned_dispatches](../entities/intelligent.md#is-dispatching) are not supported, then charges outside of your normal off peak periods will be counted at peak. This is because Octopus Energy doesn't provide enough information to determine if a completed dispatch was a bump charge or a planned charge.
+    If you are on intelligent and are using a provider where [planned_dispatches](../entities/intelligent.md#is-dispatching) are not supported, then charges outside of your normal off peak periods will be counted at peak. This is because EDF Energy doesn't provide enough information to determine if a completed dispatch was a bump charge or a planned charge.
 
 ##### Standard
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_month_standard`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_month_standard`
 
 This is the total cost of the tracked entity for the current month during standard hours (the middle rate).
 
@@ -290,7 +290,7 @@ This is the total cost of the tracked entity for the current month during standa
 
 ##### Peak
 
-`sensor.octopus_energy_cost_tracker_{{COST_TRACKER_NAME}}_month_peak`
+`sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}_month_peak`
 
 This is the total cost of the tracked entity for the current month during peak hours (the highest available rate).
 

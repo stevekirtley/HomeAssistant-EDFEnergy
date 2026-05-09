@@ -4,7 +4,7 @@ There will probably be times when you'll want to know if you're on the right tar
 
 The tariff comparison allows you to elect a new tariff which will generate some additional sensors which will show the cost of your elected meter against that tariff.
 
-After you've configured your [account](./account.md), you'll be able to configure tariff comparison sensors. These are configured by adding subsequent instances of the integration going through the [normal flow](https://my.home-assistant.io/redirect/config_flow_start/?domain=octopus_energy), and selecting `Tariff Comparison` in the provided menu.
+After you've configured your [account](./account.md), you'll be able to configure tariff comparison sensors. These are configured by adding subsequent instances of the integration going through the [normal flow](https://my.home-assistant.io/redirect/config_flow_start/?domain=edf_energy), and selecting `Tariff Comparison` in the provided menu.
 
 !!! note
 
@@ -27,9 +27,9 @@ This is the meter whose consumption will be used as the basis for the calculatio
 
 ### Product Code
 
-To find the product code, you can use the Octopus Energy API to search for current [home](https://api.octopus.energy/v1/products/) or [business](https://api.octopus.energy/v1/products/?is_business=true) products. Once your target product has been found, you will want to set this value to the value of the `code` property in the list of products.
+To find the product code, you can use the EDF Energy API to search for current [home](https://api.edfgb-kraken.energy/v1/products/) or [business](https://api.edfgb-kraken.energy/v1/products/?is_business=true) products. Once your target product has been found, you will want to set this value to the value of the `code` property in the list of products.
 
-For example if I wanted to check `Flexible Octopus November 2022 v1`. I would look up all of the [products](https://api.octopus.energy/v1/products) and look for my target under `full_name` or `display_name`.
+For example if I wanted to check `Flexible Octopus November 2022 v1`. I would look up all of the [products](https://api.edfgb-kraken.energy/v1/products) and look for my target under `full_name` or `display_name`.
 
 ![All products example](../assets/product_lookup.png)
 
@@ -37,13 +37,13 @@ I would then set my product code to `VAR-22-11-01`.
 
 ### Tariff Code
 
-To find the tariff code, you can use the Octopus Energy API to search for the available tariffs for your target product.
+To find the tariff code, you can use the EDF Energy API to search for the available tariffs for your target product.
 
-For example if I wanted to check `Flexible Octopus November 2022 v1`. I would look up all of the [products](https://api.octopus.energy/v1/products) and look for my target under `full_name` or `display_name`. I would then look up the product by taking the value specified in the `code` field and putting it at the end of the [products url](https://api.octopus.energy/v1/products). Alternatively, you can follow the link that is present in the product listing.
+For example if I wanted to check `Flexible Octopus November 2022 v1`. I would look up all of the [products](https://api.edfgb-kraken.energy/v1/products) and look for my target under `full_name` or `display_name`. I would then look up the product by taking the value specified in the `code` field and putting it at the end of the [products url](https://api.edfgb-kraken.energy/v1/products). Alternatively, you can follow the link that is present in the product listing.
 
 ![All products example](../assets/product_lookup.png)
 
-In this scenario, the `code` is `VAR-22-11-01` and so the product url is [https://api.octopus.energy/v1/products/VAR-22-11-01](https://api.octopus.energy/v1/products/VAR-22-11-01). From this list, I would then look up the tariff for my region (e.g. `A` defined at the end of my current tariff) which is defined in the `code` field. Once your target tariff has been found, you will want to set this property in the configuration to the value of the `code` property. In this example, I want the duel electricity tariff version, so will pick `E-2R-VAR-22-11-01-A`.
+In this scenario, the `code` is `VAR-22-11-01` and so the product url is [https://api.edfgb-kraken.energy/v1/products/VAR-22-11-01](https://api.edfgb-kraken.energy/v1/products/VAR-22-11-01). From this list, I would then look up the tariff for my region (e.g. `A` defined at the end of my current tariff) which is defined in the `code` field. Once your target tariff has been found, you will want to set this property in the configuration to the value of the `code` property. In this example, I want the duel electricity tariff version, so will pick `E-2R-VAR-22-11-01-A`.
 
 ![All products example](../assets/product_tariff_lookup.png)
 
@@ -53,7 +53,7 @@ The following entities will be available for each entry
 
 ### Cost Override
 
-`sensor.octopus_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_{{TARIFF COMPARISON NAME}}` for electricity based meters; `sensor.octopus_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_cost_{{TARIFF COMPARISON NAME}}` for gas based meters.
+`sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_{{TARIFF COMPARISON NAME}}` for electricity based meters; `sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_cost_{{TARIFF COMPARISON NAME}}` for gas based meters.
 
 This will display the cost of your previous accumulative consumption against the elected tariff.
 
@@ -63,7 +63,7 @@ This will display the cost of your previous accumulative consumption against the
 
 ### Previous Consumption Override Day Rates
 
-`event.octopus_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_consumption_rates_{{TARIFF COMPARISON NAME}}` for electricity based meters; `event.octopus_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_consumption_rates_{{TARIFF COMPARISON NAME}}` for gas based meters.
+`event.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_consumption_rates_{{TARIFF COMPARISON NAME}}` for electricity based meters; `event.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_consumption_rates_{{TARIFF COMPARISON NAME}}` for gas based meters.
 
 The state of this sensor states when the previous consumption tariff comparison rates were last updated. The attributes of this sensor exposes the previous consumption tariff comparison rates. 
 

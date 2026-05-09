@@ -1,16 +1,16 @@
-# Intelligent
+# Smart Charging
 
-If you are on the [intelligent tariff](https://octopus.energy/smart/intelligent-octopus/), then you'll get the following entities.
+If you are on an EDF Energy Smart Charging tariff, then you'll get the following entities.
 
 !!! warning
 
-    If you switch to the intelligent tariff after you have installed the integration, you will need to reload the integration or restart your Home Assistant instance. You will also need to do this if you re-onboard.
+    If you switch to the Smart Charging tariff after you have installed the integration, you will need to reload the integration or restart your Home Assistant instance. You will also need to do this if you re-onboard.
 
 ## Is Dispatching
 
-`binary_sensor.octopus_energy_{{DEVICE_ID}}_intelligent_dispatching`
+`binary_sensor.edf_energy_{{DEVICE_ID}}_intelligent_dispatching`
 
-This sensor is used to determine if you're within a dispatching period (i.e. "smart-charge" determined by Octopus Energy) for a **single** intelligent device. This sensor **will not** come on during a bump charge.
+This sensor is used to determine if you're within a dispatching period (i.e. "smart-charge" determined by EDF Energy) for a **single** Smart Charging device. This sensor **will not** come on during a bump charge.
 
 Depending on your [account configuration](../setup/account.md#intelligent-rates-mode), what is determined as an active dispatching period will change. If you have configured to accept [planned or started dispatches](../setup/account.md#planned-and-started-dispatches-will-turn-into-off-peak-rates), then the sensor will turn on when you're are within an active planned or started dispatch period. If you have configured to accept [only started dispatches](../setup/account.md#only-started-dispatches-will-turn-into-off-peak-rates), then the sensor will turn on when you're are within an active started dispatch period, but not planned dispatch.
 
@@ -22,25 +22,25 @@ Depending on your [account configuration](../setup/account.md#intelligent-rates-
 
 !!! warning
 
-    This sensor is only partially supported for the following intelligent providers
+    This sensor is only partially supported for the following Smart Charging providers
 
     * OHME
 
-    If you are supplied by one of the above providers, this sensor will never turn on. 
+    If you are supplied by one of the above providers, this sensor will never turn on.
 
 !!! info
 
-    This sensor will only turn on during dispatches for a single intelligent device. If you're after a sensor that turns on during the standard off peak rates as well or cover multiple intelligent devices then you're best to use the [off peak sensor](./electricity.md#off-peak).
+    This sensor will only turn on during dispatches for a single Smart Charging device. If you're after a sensor that turns on during the standard off peak rates as well or covers multiple Smart Charging devices then you're best to use the [off peak sensor](./electricity.md#off-peak).
 
 !!! note
 
-    Sensor came on when you did/didn't expected it to? You can see what the state of your dispatches were at the time by using the [get_point_in_time_intelligent_dispatch_history service](../services.md#octopus_energyget_point_in_time_intelligent_dispatch_history)
+    Sensor came on when you did/didn't expected it to? You can see what the state of your dispatches were at the time by using the [get_point_in_time_intelligent_dispatch_history service](../services.md#edf_energyget_point_in_time_intelligent_dispatch_history)
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `planned_dispatches` | `array` | An array of the dispatches that are currently planned by Octopus Energy. |
-| `completed_dispatches` | `array` | An array of the dispatches that have been completed by Octopus Energy. This will only store up to the last 3 days worth of completed dispatches. This includes dispatches that were scheduled by OE and boost dispatches issued by the user. OE do not provide details on what triggered the completed dispatches. |
-| `started_dispatches` | `array` | An array of the dispatches that have been planned by Octopus Energy and started. See the [FAQ](../faq.md#what-are-started-dispatches-and-how-are-they-calculated) for how this is calculated and why it exists. |
+| `planned_dispatches` | `array` | An array of the dispatches that are currently planned by EDF Energy. |
+| `completed_dispatches` | `array` | An array of the dispatches that have been completed by EDF Energy. This will only store up to the last 3 days worth of completed dispatches. This includes dispatches that were scheduled by EDF Energy and boost dispatches issued by the user. EDF Energy do not provide details on what triggered the completed dispatches. |
+| `started_dispatches` | `array` | An array of the dispatches that have been planned by EDF Energy and started. See the [FAQ](../faq.md#what-are-started-dispatches-and-how-are-they-calculated) for how this is calculated and why it exists. |
 | `provider` | `string` | The provider of the intelligent features |
 | `vehicle_battery_size_in_kwh` | `float` | The size of the target vehicle battery in kWh. |
 | `charge_point_power_in_kw` | `float` | The power of the charge point battery in kW. |
@@ -77,13 +77,13 @@ Each item in `started_dispatch` have the following attributes
 
 !!! info
 
-    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-dispatches-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-dispatches-data-last-retrieved) to determine when the underlying data was last retrieved from the EDF Energy servers.
 
 ## Current State
 
-`sensor.octopus_energy_{{DEVICE_ID}}_intelligent_state`
+`sensor.edf_energy_{{DEVICE_ID}}_intelligent_state`
 
-This sensor displays the current state of your intelligent provider as told by the OE API for a **single** intelligent device. The value of this sensor can be one of the following
+This sensor displays the current state of your Smart Charging provider as told by the EDF Energy API for a **single** Smart Charging device. The value of this sensor can be one of the following
 
 * `AUTHENTICATION_PENDING` - ready to start authentication and authorization, or auth is in progress.
 * `AUTHENTICATION_FAILED` - failed to connect and ready to restart authentication and authorization.
@@ -102,69 +102,69 @@ This sensor displays the current state of your intelligent provider as told by t
 
 ## Bump Charge
 
-`switch.octopus_energy_{{DEVICE_ID}}_intelligent_bump_charge`
+`switch.edf_energy_{{DEVICE_ID}}_intelligent_bump_charge`
 
-This sensor is used to turn on/off bump ("on-demand") charging for a **single** intelligent device.
+This sensor is used to turn on/off bump ("on-demand") charging for a **single** Smart Charging device.
 
 !!! info
 
-    This entity is not available for the following intelligent providers
+    This entity is not available for the following Smart Charging providers
 
     * OHME
 
 !!! info
 
-    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the EDF Energy servers.
 
 ## Smart Charge
 
-`switch.octopus_energy_{{DEVICE_ID}}_intelligent_smart_charge`
+`switch.edf_energy_{{DEVICE_ID}}_intelligent_smart_charge`
 
-This sensor is used to turn on/off intelligent smart charging for a **single** intelligent device.
+This sensor is used to turn on/off smart charging for a **single** Smart Charging device.
 
 !!! info
 
-    This entity is not available for the following intelligent providers
+    This entity is not available for the following Smart Charging providers
 
     * OHME
 
 !!! info
 
-    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the EDF Energy servers.
 
 ## Charge Target
 
-`number.octopus_energy_{{DEVICE_ID}}_intelligent_charge_target`
+`number.edf_energy_{{DEVICE_ID}}_intelligent_charge_target`
 
-This sensor is used to see and set the charge target for your future intelligent charges for a **single** intelligent device.
+This sensor is used to see and set the charge target for your future Smart Charging charges for a **single** Smart Charging device.
 
 !!! info
 
-    This entity is not available for the following intelligent providers
+    This entity is not available for the following Smart Charging providers
 
     * OHME
 
 !!! info
 
-    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the EDF Energy servers.
 
 ## Target Time (Select)
 
-`select.octopus_energy_{{DEVICE_ID}}_intelligent_target_time`
+`select.edf_energy_{{DEVICE_ID}}_intelligent_target_time`
 
-This sensor is used to see and set the target time for your future intelligent charges for a **single** intelligent device. 
+This sensor is used to see and set the target time for your future Smart Charging charges for a **single** Smart Charging device.
 
-This is limited to 30 minute increments between 4 and 11 to match the Octopus Energy app. This is useful if you use the app or have non-technical people interacting with the integration.
+This is limited to 30 minute increments between 4 and 11 to match the EDF Energy app. This is useful if you use the app or have non-technical people interacting with the integration.
 
 !!! info
 
-    This entity is not available for the following intelligent providers
+    This entity is not available for the following Smart Charging providers
 
     * OHME
 
 !!! info
 
-    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the EDF Energy servers.
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
@@ -172,21 +172,21 @@ This is limited to 30 minute increments between 4 and 11 to match the Octopus En
 
 ## Target Time (Time)
 
-`time.octopus_energy_{{DEVICE_ID}}_intelligent_target_time`
+`time.edf_energy_{{DEVICE_ID}}_intelligent_target_time`
 
-This sensor is used to see and set the target time for your future intelligent charges for a **single** intelligent device. 
+This sensor is used to see and set the target time for your future Smart Charging charges for a **single** Smart Charging device.
 
-This gives you finer control over the times (still within valid time periods), but may have unintended consequences with other apps (e.g. the Octopus Energy app) that use the data.
+This gives you finer control over the times (still within valid time periods), but may have unintended consequences with other apps (e.g. the EDF Energy app) that use the data.
 
 !!! info
 
-    This entity is not available for the following intelligent providers
+    This entity is not available for the following Smart Charging providers
 
     * OHME
 
 !!! info
 
-    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the EDF Energy servers.
 
 !!! note
     This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). If enabled, it is advised to disable the [select based sensor](#target-time-select) as the two can get out of sync. 
@@ -197,7 +197,7 @@ If you're moving to this integration from [megakid/ha_octopus_intelligent](https
 
 * `binary_sensor.octopus_intelligent_slot` - Use the [off peak sensor](./electricity.md#off-peak)
 * `binary_sensor.octopus_intelligent_planned_dispatch_slot` - Use the [is dispatching sensor](#is-dispatching)
-* `binary_sensor.octopus_intelligent_slot_next_1_hour`, `binary_sensor.octopus_intelligent_slot_next_2_hours` and `binary_sensor.octopus_intelligent_slot_next_3_hours` - These sensors felt like they would always fall short of peoples requirements as everyone has different time periods they wish to know about. The [off peak sensor](./electricity.md#off-peak) exposes the current and next start/end times which could be used in a template sensor to determine how long the rate is cheap for when on. Or a [Target Timeframe](https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/) might help for what you need.
+* `binary_sensor.octopus_intelligent_slot_next_1_hour`, `binary_sensor.octopus_intelligent_slot_next_2_hours` and `binary_sensor.octopus_intelligent_slot_next_3_hours` - These sensors felt like they would always fall short of peoples requirements as everyone has different time periods they wish to know about. The [off peak sensor](./electricity.md#off-peak) exposes the current and next start/end times which could be used in a template sensor to determine how long the rate is cheap for when on. Or a [Target Timeframe](https://github.com/BottlecapDave/HomeAssistant-TargetTimeframes) might help for what you need.
 * `sensor.octopus_intelligent_next_offpeak_start` - The default off peak start date/time can be found as an attribute on the [off peak sensor](./electricity.md#off-peak). This can be extracted using a [template sensor](https://www.home-assistant.io/integrations/template/).
 * `sensor.octopus_intelligent_offpeak_end` - The default off peak end date/time can be found as an attribute on the [off peak sensor](./electricity.md#off-peak). This can be extracted using a [template sensor](https://www.home-assistant.io/integrations/template/).
 * `switch.octopus_intelligent_bump_charge` - Use the [bump charge sensor](#bump-charge)

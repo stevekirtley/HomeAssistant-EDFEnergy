@@ -1,18 +1,18 @@
 blueprint:
-  name: Octopus Energy - Gas Anomaly
+  name: EDF Energy - Gas Anomaly
   description: Once all data is available for a day, detects if at least one 30 minute segment is equal or below the configured threshold. This is to try and detect potential gas leaks. If triggered, you should use your own judgment to determine if the warning is legitimate.
   domain: automation
-  author: BottlecapDave
+  author: BottlecapDave (amended for EDF Energy by Steve Kirtley)
   input:
     consumption_entity:
       name: Consumption entity
-      description: The entity which reports the previous accumulative consumption (e.g sensor.octopus_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_consumption_kwh)
+      description: The entity which reports the previous accumulative consumption (e.g sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_consumption_kwh)
       selector:
         entity:
           filter:
           - domain:
             - sensor
-            integration: octopus_energy
+            integration: edf_energy
     threshold:
       name: Threshold
       description: The threshold that at least one 30 minute segment must be equal or below

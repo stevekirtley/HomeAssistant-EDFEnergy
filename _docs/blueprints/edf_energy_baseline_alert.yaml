@@ -1,27 +1,27 @@
 blueprint:
-  name: Octopus Energy - Saving Session Baseline Approaching Alert
-  description: Automatically get an alert if current interval consumption is within certain percentage of the current saving session baseline
+  name: EDF Energy - Consumption Baseline Approaching Alert
+  description: Automatically get an alert if current interval consumption is within a certain percentage of the configured baseline
   domain: automation
-  author: BottlecapDave
+  author: BottlecapDave (amended for EDF Energy by Steve Kirtley)
   input:
     interval_consumption_entity:
       name: Interval consumption entity
-      description: The entity which reports the consumption for the current interval (e.g sensor.octopus_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_interval_accumulative_consumption)
+      description: The entity which reports the consumption for the current interval (e.g sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_interval_accumulative_consumption)
       selector:
         entity:
           filter:
           - domain:
             - sensor
-            integration: octopus_energy
+            integration: edf_energy
     baseline_entity:
       name: Baseline entity
-      description: The entity which reports the current target baseline (e.g sensor.octopus_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_octoplus_saving_session_baseline)
+      description: The entity which reports the current target baseline
       selector:
         entity:
           filter:
           - domain:
             - sensor
-            integration: octopus_energy
+            integration: edf_energy
     percentage_threshold:
       name: Percentage Threshold
       description: The minimum percentage of the baseline that is reached for the automation to be triggered

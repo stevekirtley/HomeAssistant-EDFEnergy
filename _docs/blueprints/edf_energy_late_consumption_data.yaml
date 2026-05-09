@@ -1,18 +1,18 @@
 blueprint:
-  name: Octopus Energy - Late Consumption Data
+  name: EDF Energy - Late Consumption Data
   description: Automatically get an alert if consumption data isn't available within the specified timeframe as long as the data has been retrieved recently.
   domain: automation
-  author: BottlecapDave
+  author: BottlecapDave (amended for EDF Energy by Steve Kirtley)
   input:
     previous_accumulative_consumption_entity:
       name: Previous accumulative consumption entity
-      description: The entity which reports the previous accumulative consumption (e.g sensor.octopus_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_consumption)
+      description: The entity which reports the previous accumulative consumption (e.g sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_consumption)
       selector:
         entity:
           filter:
           - domain:
             - sensor
-            integration: octopus_energy
+            integration: edf_energy
     energy_source:
       name: Energy source
       description: The type of energy the rate is for
