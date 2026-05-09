@@ -24,7 +24,7 @@ async def test_when_get_electricity_standing_charge_is_called_for_existent_tarif
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.api_key, favour_direct_debit_rates=favour_direct_debit)
+    client = EDFEnergyApiClient(context.refresh_token, favour_direct_debit_rates=favour_direct_debit)
 
     # Act
     result = await client.async_get_electricity_standing_charge(product_code, tariff_code, period_from, period_to)
@@ -41,7 +41,7 @@ async def test_when_get_electricity_standing_charge_is_called_for_existent_tarif
 async def test_when_get_electricity_standing_charge_is_called_with_tracker_tariff_then_rates_are_returned(product_code, tariff_code, favour_direct_debit):
     # Arrange
     context = get_test_context()
-    client = EDFEnergyApiClient(context.api_key, favour_direct_debit_rates=favour_direct_debit)
+    client = EDFEnergyApiClient(context.refresh_token, favour_direct_debit_rates=favour_direct_debit)
 
     # Act
     result = await client.async_get_electricity_standing_charge(product_code, tariff_code, period_from, period_to)
@@ -61,7 +61,7 @@ async def test_when_get_electricity_standing_charge_is_called_for_non_existent_t
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.refresh_token)
 
     # Act
     result = await client.async_get_electricity_standing_charge(product_code, tariff_code, period_from, period_to)

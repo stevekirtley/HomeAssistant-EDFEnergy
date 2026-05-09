@@ -32,7 +32,7 @@ async def test_when_async_get_diagnostics_called_then_account_info_is_returned()
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.refresh_token)
     account_id = context.account_id
 
     now = utcnow()
@@ -101,7 +101,7 @@ async def test_when_async_get_diagnostics_called_and_account_exists_then_account
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.refresh_token)
     account_id = context.account_id
     existing_account = await client.async_get_account(account_id)
 

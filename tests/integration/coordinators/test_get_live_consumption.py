@@ -13,7 +13,7 @@
 # async def test_when_get_live_consumption_is_called_then_last_5_minutes_returned_returned():
 #   # Arrange
 #   context = get_test_context()
-#   client = EDFEnergyApiClient(context.api_key)
+#   client = EDFEnergyApiClient(context.refresh_token)
 #   account_id = context.account_id
 
 #   # Get our target device

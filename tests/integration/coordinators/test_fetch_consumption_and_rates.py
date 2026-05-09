@@ -16,7 +16,7 @@ from custom_components.edf_energy.api_client import EDFEnergyApiClient
 async def test_when_next_refresh_is_in_the_past_and_electricity_sensor_then_requested_data_returned(previous_data_available):
   # Arrange
   context = get_test_context()
-  client = EDFEnergyApiClient(context.api_key)
+  client = EDFEnergyApiClient(context.refresh_token)
   set_default_time_zone(zoneinfo.ZoneInfo("Europe/London"))
 
   account_info = await client.async_get_account(context.account_id)
@@ -101,7 +101,7 @@ async def test_when_next_refresh_is_in_the_past_and_electricity_sensor_then_requ
 async def test_when_next_refresh_is_in_the_past_and_gas_sensor_then_requested_data_returned(previous_data_available):
   # Arrange
   context = get_test_context()
-  client = EDFEnergyApiClient(context.api_key)
+  client = EDFEnergyApiClient(context.refresh_token)
   set_default_time_zone(zoneinfo.ZoneInfo("Europe/London"))
 
   account_info = await client.async_get_account(context.account_id)

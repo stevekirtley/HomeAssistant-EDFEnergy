@@ -9,7 +9,7 @@ async def test_when_check_headers_is_called_then_True_returned():
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.api_key)
+    client = EDFEnergyApiClient(context.refresh_token)
 
     # Act
     result = await client.async_check_headers()
