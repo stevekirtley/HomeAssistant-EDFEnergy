@@ -1,7 +1,7 @@
 {
   "name": "octopusenergy",
   "version": "1.0.0",
-  "description": "Home Assistant integration for interacting with Octopus Energy",
+  "description": "Home Assistant integration for interacting with EDF Energy",
   "main": "index.js",
   "scripts": {
     "prepare": "husky || true",
@@ -14,14 +14,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy.git"
+    "url": "git+https://github.com/BottlecapDave/HomeAssistant-EDFEnergy.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues"
+    "url": "https://github.com/BottlecapDave/HomeAssistant-EDFEnergy/issues"
   },
-  "homepage": "https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy#readme",
+  "homepage": "https://github.com/BottlecapDave/HomeAssistant-EDFEnergy#readme",
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^6.0.3",
