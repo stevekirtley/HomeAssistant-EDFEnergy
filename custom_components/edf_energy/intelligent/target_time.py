@@ -51,11 +51,7 @@ class EDFEnergyIntelligentTargetTime(CoordinatorEntity, TimeEntity, EDFEnergyInt
   
   @property
   def entity_registry_enabled_default(self) -> bool:
-    """Return if the entity should be enabled when first added.
-
-    This only applies when fist added to the entity registry.
-    """
-    return False
+    return True
 
   @property
   def icon(self):
