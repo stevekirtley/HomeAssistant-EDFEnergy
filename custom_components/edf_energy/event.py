@@ -14,8 +14,9 @@ from .gas.rates_previous_consumption import EDFEnergyGasPreviousConsumptionRates
 
 from .const import (
   CONFIG_ACCOUNT_ID,
+  CONFIG_KIND,
+  CONFIG_KIND_ACCOUNT,
   DOMAIN,
-  CONFIG_MAIN_API_KEY,
   DATA_ACCOUNT
 )
 
@@ -23,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, entry, async_add_entities):
   """Setup event entities based on our entry"""
-  if CONFIG_MAIN_API_KEY in entry.data:
+  if CONFIG_KIND in entry.data and entry.data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
     await async_setup_main_sensors(hass, entry, async_add_entities)
 
   return True

@@ -13,7 +13,8 @@ from .const import (
   DATA_INTELLIGENT_DEVICES,
   DOMAIN,
 
-  CONFIG_MAIN_API_KEY,
+  CONFIG_KIND,
+  CONFIG_KIND_ACCOUNT,
 
   DATA_INTELLIGENT_SETTINGS_COORDINATOR
 )
@@ -25,7 +26,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
   config = dict(entry.data)
 
-  if CONFIG_MAIN_API_KEY in config:
+  if CONFIG_KIND in config and config[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
     await async_setup_intelligent_sensors(hass, config, async_add_entities)
 
   return True

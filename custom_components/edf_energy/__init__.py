@@ -65,6 +65,7 @@ from .const import (
   DOMAIN,
 
   CONFIG_MAIN_API_KEY,
+  CONFIG_MAIN_REFRESH_TOKEN,
   CONFIG_ACCOUNT_ID,
   CONFIG_MAIN_ELECTRICITY_PRICE_CAP,
   CONFIG_MAIN_GAS_PRICE_CAP,
@@ -265,7 +266,7 @@ async def async_setup_dependencies(hass, config):
 
   # Close any existing clients, as our new client may have changed
   await _async_close_client(hass, account_id)
-  client = EDFEnergyApiClient(config[CONFIG_MAIN_API_KEY], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates)
+  client = EDFEnergyApiClient(config[CONFIG_MAIN_REFRESH_TOKEN], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates)
   hass.data[DOMAIN][account_id][DATA_CLIENT] = client
 
   # Delete any issues that may have been previously raised

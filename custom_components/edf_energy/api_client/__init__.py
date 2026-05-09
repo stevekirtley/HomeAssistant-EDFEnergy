@@ -21,14 +21,6 @@ from .intelligent_device_settings import IntelligentDeviceSettingPreferenceSched
 
 _LOGGER = logging.getLogger(__name__)
 
-api_token_query = '''mutation {{
-	obtainKrakenToken(input: {{ APIKey: "{api_key}" }}) {{
-		token
-    refreshToken
-    refreshExpiresIn
-	}}
-}}'''
-
 api_token_email_query = '''mutation {{
 	obtainKrakenToken(input: {{ email: "{email}", password: "{password}" }}) {{
 		token
@@ -360,6 +352,23 @@ def get_standing_charge(data: list, tariff_code: str, favour_direct_debit_rates:
   
   return None
 
+async def async_get_refresh_token(email: str, password: str, timeout_in_seconds: int = 20) -> str:
+  """Authenticate with email/password and return a refresh token. Used only at setup time — never stores the password."""
+  url = 'https://api.edfgb-kraken.energy/v1/graphql/'
+  payload = { "query": api_token_email_query.format(email=email, password=password) }
+  timeout = aiohttp.ClientTimeout(total=None, sock_connect=timeout_in_seconds, sock_read=timeout_in_seconds)
+  async with aiohttp.ClientSession() as session:
+    async with session.post(url, json=payload, timeout=timeout) as response:
+      body = await response.json()
+  token_data = body.get("data", {}).get("obtainKrakenToken") if body else None
+  if token_data and token_data.get("refreshToken"):
+    return token_data["refreshToken"]
+  errors = body.get("errors") if body else None
+  raise AuthenticationException(
+    f"Failed to authenticate with EDF Energy",
+    [e["message"] for e in errors] if errors else []
+  )
+
 class ApiException(Exception): ...
 
 class ServerException(ApiException): ...
@@ -431,19 +440,16 @@ class EDFEnergyApiClient:
   _refresh_token_lock = RLock()
   _session_lock = RLock()
 
-  def __init__(self, api_key=None, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True, email=None, password=None):
-    if api_key is None and (email is None or password is None):
-      raise Exception('Either api_key or email and password must be set')
+  def __init__(self, refresh_token: str, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True):
+    if not refresh_token:
+      raise Exception('refresh_token must be set')
 
-    self._api_key = api_key
-    self._email = email
-    self._password = password
     self._base_url = 'https://api.edfgb-kraken.energy'
     self._backend_base_url = 'https://api.backend.edfgb-kraken.energy'
 
     self._graphql_token = None
     self._graphql_expiration = None
-    self._graphql_refresh_token = None
+    self._graphql_refresh_token = refresh_token
     self._graphql_refresh_expiration = None
 
     self._product_tracker_cache = dict()
@@ -458,9 +464,6 @@ class EDFEnergyApiClient:
     self._session = None
 
   async def _async_get_rest_auth(self, headers: dict):
-    """Return BasicAuth when an API key is set, otherwise inject a JWT header and return None."""
-    if self._api_key is not None:
-      return aiohttp.BasicAuth(self._api_key, '')
     await self.async_refresh_token()
     headers['Authorization'] = f'JWT {self._graphql_token}'
     return None
@@ -491,37 +494,22 @@ class EDFEnergyApiClient:
       if (self._graphql_expiration is not None and (self._graphql_expiration - timedelta(minutes=5)) > now()):
         return
 
-      if (self._graphql_refresh_expiration is not None and self._graphql_refresh_expiration >= now()):
-        _LOGGER.debug("Refresh token expired - clearing")
-        self._graphql_refresh_token = None
-        self._graphql_expiration = None
+      if (self._graphql_refresh_expiration is not None and self._graphql_refresh_expiration < now()):
+        _LOGGER.debug("Refresh token expired - re-authentication required")
+        raise AuthenticationException("Refresh token has expired, re-authentication required", [])
 
       try:
-        try:
-          await self.__async_fetch_token()
-        except AuthenticationException:
-          if (self._graphql_refresh_token is not None):
-            _LOGGER.debug("Failed to refresh auth token using refresh token, attempting to use original credentials")
-            self._graphql_refresh_token = None
-            self._graphql_expiration = None
-
-            await self.__async_fetch_token()
-          else:
-            raise
-
+        await self.__async_fetch_token()
       except TimeoutError:
         _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
         raise TimeoutException()
 
   async def __async_fetch_token(self):
+    if not self._graphql_refresh_token:
+      raise AuthenticationException("No refresh token available, re-authentication required", [])
     client = self._create_client_session()
     url = f'{self._base_url}/v1/graphql/'
-    if self._graphql_refresh_token is not None:
-      query = api_token_refresh_query.format(refresh_token=self._graphql_refresh_token)
-    elif self._api_key is not None:
-      query = api_token_query.format(api_key=self._api_key)
-    else:
-      query = api_token_email_query.format(email=self._email, password=self._password)
+    query = api_token_refresh_query.format(refresh_token=self._graphql_refresh_token)
     payload = { "query": query }
     headers = { integration_context_header: "refresh-token" }
     async with client.post(url, headers=headers, json=payload) as token_response:
