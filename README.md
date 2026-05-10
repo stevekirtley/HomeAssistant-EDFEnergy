@@ -1,5 +1,7 @@
 # Home Assistant EDF Energy
 
+![installation_badge](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.edf_energy.total)
+
 A fork of [BottlecapDave's HomeAssistant-OctopusEnergy](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy) (MIT licensed), adapted for EDF Energy customers. EDF Energy uses the same underlying Kraken platform as Octopus Energy, so the core API integration carries over with minimal changes.
 
 This integration is not affiliated with EDF Energy, Kraken, or BottlecapDave.
