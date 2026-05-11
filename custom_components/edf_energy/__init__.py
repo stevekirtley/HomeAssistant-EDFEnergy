@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime, timedelta
 
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -142,6 +143,29 @@ async def _async_close_client(hass, account_id: str):
 async def async_setup_entry(hass, entry):
   """This is called from the config flow."""
   hass.data.setdefault(DOMAIN, {})
+
+  if not hass.data[DOMAIN].get("_frontend_registered"):
+    www_dir = os.path.join(os.path.dirname(__file__), "www")
+
+    card_path = os.path.join(www_dir, "edf-energy-dispatches-card.js")
+    if os.path.isfile(card_path):
+      hass.http.register_static_path("/edf_energy/edf-energy-dispatches-card.js", card_path, False)
+
+    panel_path = os.path.join(www_dir, "edf-energy-panel.js")
+    if os.path.isfile(panel_path):
+      hass.http.register_static_path("/edf_energy/edf-energy-panel.js", panel_path, False)
+      await hass.components.panel_custom.async_register_panel(
+        hass,
+        webcomponent_name="edf-energy-panel",
+        frontend_url_path="edf-energy",
+        sidebar_title="EDF Energy",
+        sidebar_icon="mdi:ev-plug-type2",
+        js_url="/edf_energy/edf-energy-panel.js",
+        require_admin=False,
+        config=None,
+      )
+
+    hass.data[DOMAIN]["_frontend_registered"] = True
 
   config = dict(entry.data)
 

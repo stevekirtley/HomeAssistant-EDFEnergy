@@ -337,7 +337,7 @@ def is_in_bump_charge(current_date: datetime, dispatches: list[IntelligentDispat
   return False
 
 def clean_previous_dispatches(time: datetime, dispatches: list[IntelligentDispatchItem]) -> list[IntelligentDispatchItem]:
-  min_time = (time - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
+  min_time = (time - timedelta(days=60)).replace(hour=0, minute=0, second=0, microsecond=0)
 
   new_dispatches = {}
   for dispatch in dispatches:
@@ -353,7 +353,7 @@ def clean_intelligent_dispatch_history(time: datetime,
 
   new_history: list[IntelligentDispatchesHistoryItem] = []
   previous_history_item: IntelligentDispatchesHistoryItem | None = None
-  min_time = time - timedelta(days=2)
+  min_time = time - timedelta(days=60)
   
   for history_item in history:
 
