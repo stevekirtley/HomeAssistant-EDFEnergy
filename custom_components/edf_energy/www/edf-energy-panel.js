@@ -273,14 +273,20 @@
     _getDeviceEntityIds(dispatchEntity, hass) {
       const deviceId = this._getDeviceId(dispatchEntity);
       if (!deviceId || !hass) return {};
-      const ids = {
+      // Target time may be a `time` or `select` entity depending on charger/firmware
+      const targetTime = [
+        `time.edf_energy_${deviceId}_intelligent_target_time`,
+        `select.edf_energy_${deviceId}_intelligent_target_time`,
+        `time.edf_energy_${deviceId}_intelligent_ready_time`,
+        `select.edf_energy_${deviceId}_intelligent_ready_time`,
+      ].find(id => id in hass.states) ?? null;
+      const candidates = {
         chargeTarget: `number.edf_energy_${deviceId}_intelligent_charge_target`,
-        targetTime:   `time.edf_energy_${deviceId}_intelligent_target_time`,
+        targetTime,
         smartCharge:  `switch.edf_energy_${deviceId}_intelligent_smart_charge`,
         bumpCharge:   `switch.edf_energy_${deviceId}_intelligent_bump_charge`,
       };
-      // Only return IDs that actually exist in HA
-      return Object.fromEntries(Object.entries(ids).filter(([, v]) => v in hass.states));
+      return Object.fromEntries(Object.entries(candidates).filter(([, v]) => v != null && v in hass.states));
     }
 
     // ── Data helpers ────────────────────────────────────────────────────────────
@@ -341,8 +347,13 @@
 
     _callTime(entityId, value) {
       delete this._pending[entityId];
-      // <input type="time"> gives HH:MM — HA time service needs HH:MM:SS
-      this._hass.callService('time', 'set_value', { entity_id: entityId, value: value + ':00' });
+      const domain = entityId.split('.')[0];
+      if (domain === 'select') {
+        this._hass.callService('select', 'select_option', { entity_id: entityId, option: value });
+      } else {
+        // HA time.set_value needs HH:MM:SS
+        this._hass.callService('time', 'set_value', { entity_id: entityId, value: value.length === 5 ? value + ':00' : value });
+      }
       this._toast(`Ready-by time set to ${value}`);
     }
 
@@ -426,10 +437,20 @@
       // ── Ready-By Time ────────────────────────────────────────────────────────
       if (ids.targetTime) {
         const e = hass.states[ids.targetTime];
-        // State is HH:MM:SS — trim to HH:MM for <input type="time">
-        const raw = e?.state || '07:00:00';
-        const current = raw.length >= 5 ? raw.slice(0, 5) : raw;
-        const val = this._pending[ids.targetTime] ?? current;
+        // State may be HH:MM:SS (time entity) or HH:MM (select option) — normalise to HH:MM
+        const rawState = e?.state || '07:00';
+        const currentHHMM = rawState.slice(0, 5);
+        const val = this._pending[ids.targetTime] ?? currentHHMM;
+
+        // 30-min increments 04:00 – 11:00
+        const timeOpts = [];
+        for (let h = 4; h <= 11; h++) {
+          for (const m of [0, 30]) {
+            if (h === 11 && m === 30) break;
+            timeOpts.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+          }
+        }
+
         rows.push(`
           <div class="control-row">
             <div class="control-label">
@@ -437,8 +458,9 @@
               <div class="control-sub">Time the car should be charged to the target</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
-              <input class="time-input" type="time" value="${esc(val)}"
-                     data-entity="${esc(ids.targetTime)}" id="input-target-time">
+              <select class="time-input" id="select-target-time" data-entity="${esc(ids.targetTime)}">
+                ${timeOpts.map(t => `<option value="${t}"${val === t ? ' selected' : ''}>${t}</option>`).join('')}
+              </select>
               <button class="btn-apply" data-action="set-target-time" data-entity="${esc(ids.targetTime)}">Set</button>
             </div>
           </div>
@@ -626,16 +648,16 @@
         if (val && ids.chargeTarget) this._callNumber(ids.chargeTarget, parseInt(val, 10));
       });
 
-      // ── Ready-by time (Set button to apply) ───────────────────────────────
-      const timeInput = root.getElementById('input-target-time');
-      if (timeInput) {
-        timeInput.addEventListener('change', e => {
-          this._pending[timeInput.dataset.entity] = e.target.value;
+      // ── Ready-by time select (Set button to apply) ────────────────────────
+      const timeSelect = root.getElementById('select-target-time');
+      if (timeSelect) {
+        timeSelect.addEventListener('change', e => {
+          this._pending[timeSelect.dataset.entity] = e.target.value;
         });
       }
 
       root.querySelector('[data-action="set-target-time"]')?.addEventListener('click', () => {
-        const val = root.getElementById('input-target-time')?.value;
+        const val = root.getElementById('select-target-time')?.value;
         if (val && ids.targetTime) this._callTime(ids.targetTime, val);
       });
     }
