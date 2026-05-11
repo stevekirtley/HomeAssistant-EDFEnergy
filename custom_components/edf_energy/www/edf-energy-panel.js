@@ -183,6 +183,7 @@
 
     /* ── Dispatch/off-peak lists ── */
     .empty { color: var(--secondary-text-color); font-size: 0.9em; text-align: center; padding: 20px 16px; }
+    .section-info { font-size: 0.82em; color: var(--secondary-text-color); padding: 0 16px 12px; line-height: 1.4; }
     .no-entity { padding: 24px; color: var(--secondary-text-color); font-size: 0.9em; text-align: center; }
     .item {
       display: flex; gap: 14px; padding: 12px 16px;
@@ -534,6 +535,8 @@
               ? `<div class="card"><div class="empty">No data yet — check back after the next rate refresh.</div></div>`
               : `
               <div class="card">
+                <div class="section-title">Off-Peak &amp; Dispatch History</div>
+                <div class="section-info">A record of off-peak windows and smart charging dispatches for up to the past 60 days, accumulated as rate data is refreshed.</div>
                 <div class="nav-row">
                   <button class="nav-btn" id="btn-older" ${!canOlder ? 'disabled' : ''} title="Older">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
