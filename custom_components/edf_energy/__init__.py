@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 
+from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
@@ -154,15 +155,21 @@ async def async_setup_entry(hass, entry):
     panel_path = os.path.join(www_dir, "edf-energy-panel.js")
     if os.path.isfile(panel_path):
       hass.http.register_static_path("/edf_energy/edf-energy-panel.js", panel_path, False)
-      await hass.components.panel_custom.async_register_panel(
+      async_register_built_in_panel(
         hass,
-        webcomponent_name="edf-energy-panel",
-        frontend_url_path="edf-energy",
+        "custom",
         sidebar_title="EDF Energy",
         sidebar_icon="mdi:ev-plug-type2",
-        js_url="/edf_energy/edf-energy-panel.js",
+        frontend_url_path="edf-energy",
+        config={
+          "_panel_custom": {
+            "name": "edf-energy-panel",
+            "js_url": "/edf_energy/edf-energy-panel.js",
+            "embed_iframe": False,
+            "trust_external": False,
+          }
+        },
         require_admin=False,
-        config=None,
       )
 
     hass.data[DOMAIN]["_frontend_registered"] = True
