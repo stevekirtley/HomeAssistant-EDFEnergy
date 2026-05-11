@@ -518,7 +518,7 @@
             <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
           </svg>
           <div style="flex:1;min-width:0">
-            <div class="toolbar-title">EDF Energy · Smart Charging</div>
+            <div class="toolbar-title">EDF Energy${de ? ' · Smart Charging' : ''}</div>
             ${deviceLabel ? `<div class="toolbar-sub">${esc(deviceLabel)}</div>` : ''}
           </div>
           ${stateLabel ? `<div class="status-pill${isActive ? ' on' : ''}">${esc(stateLabel)}</div>` : ''}
@@ -526,12 +526,12 @@
 
         <div class="content">
           ${!hasAny
-            ? `<div class="card"><div class="no-entity">No EDF Energy Smart Charging entities found.</div></div>`
+            ? `<div class="card"><div class="no-entity">No EDF Energy entities found. Check the integration is set up correctly.</div></div>`
             : `
             ${this._renderControls(ids)}
 
             ${dates.length === 0
-              ? `<div class="card"><div class="empty">No dispatch or off-peak data yet — check back after the next rate refresh.</div></div>`
+              ? `<div class="card"><div class="empty">No data yet — check back after the next rate refresh.</div></div>`
               : `
               <div class="card">
                 <div class="nav-row">
@@ -578,7 +578,7 @@
                 }
               </div>
 
-              <div class="card">
+              ${de ? `<div class="card">
                 <div class="section-title">Smart Charging Dispatch Windows</div>
                 ${dayDispatches.length === 0
                   ? `<div class="empty">No dispatch windows recorded for this date.</div>`
@@ -603,7 +603,7 @@
                       `;
                     }).join('')
                 }
-              </div>
+              </div>` : ''}
             `}
           `}
         </div>
