@@ -273,20 +273,21 @@
     _getDeviceEntityIds(dispatchEntity, hass) {
       const deviceId = this._getDeviceId(dispatchEntity);
       if (!deviceId || !hass) return {};
-      // Target time may be a `time` or `select` entity depending on charger/firmware
-      const targetTime = [
-        `time.edf_energy_${deviceId}_intelligent_target_time`,
-        `select.edf_energy_${deviceId}_intelligent_target_time`,
-        `time.edf_energy_${deviceId}_intelligent_ready_time`,
-        `select.edf_energy_${deviceId}_intelligent_ready_time`,
-      ].find(id => id in hass.states) ?? null;
-      const candidates = {
-        chargeTarget: `number.edf_energy_${deviceId}_intelligent_charge_target`,
-        targetTime,
-        smartCharge:  `switch.edf_energy_${deviceId}_intelligent_smart_charge`,
-        bumpCharge:   `switch.edf_energy_${deviceId}_intelligent_bump_charge`,
-      };
-      return Object.fromEntries(Object.entries(candidates).filter(([, v]) => v != null && v in hass.states));
+      // Search all states for entities belonging to this device rather than hardcoding
+      // exact suffixes — different charger brands expose differently-named entities.
+      const prefix = `edf_energy_${deviceId}_intelligent`;
+      const result = {};
+      for (const entityId of Object.keys(hass.states)) {
+        if (!entityId.includes(prefix)) continue;
+        const domain  = entityId.split('.')[0];
+        const tail    = entityId.slice(entityId.indexOf(prefix) + prefix.length);
+        if (domain === 'number' && tail.includes('charge_target'))              result.chargeTarget = entityId;
+        else if ((domain === 'time' || domain === 'select') &&
+                 (tail.includes('target_time') || tail.includes('ready_time'))) result.targetTime   = entityId;
+        else if (domain === 'switch' && tail.includes('smart_charge'))          result.smartCharge  = entityId;
+        else if (domain === 'switch' && tail.includes('bump_charge'))           result.bumpCharge   = entityId;
+      }
+      return result;
     }
 
     // ── Data helpers ────────────────────────────────────────────────────────────
