@@ -10,8 +10,8 @@ async def test_when_clean_previous_dispatches_called_then_old_dispatches_removed
   # Arrange
   old_dispatches = dictionary_list_to_dispatches([
     {
-      "start": "2023-06-04T10:00:00Z",
-      "end": "2023-06-04T11:00:00Z",
+      "start": "2023-04-06T10:00:00Z",
+      "end": "2023-04-06T11:00:00Z",
       "charge_in_kwh": 1.1,
       "source": "smart-charge",
       "location": "home"
@@ -65,7 +65,7 @@ async def test_when_clean_previous_dispatches_called_then_old_dispatches_removed
   ]
 
   current_date = parse_datetime("2023-06-07T10:00:00Z")
-  min_date = parse_datetime("2023-06-05T00:00:00Z")
+  min_date = parse_datetime("2023-04-08T00:00:00Z")
 
   # Act
 
