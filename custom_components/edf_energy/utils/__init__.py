@@ -146,6 +146,58 @@ def get_off_peak_times(current: datetime, rates: list, include_intelligent_adjus
 
   return times
 
+def get_off_peak_windows_from_rates(rates: list) -> list:
+  """Extract all off-peak windows from rates across every day present in the data.
+
+  Unlike get_off_peak_times(), this includes windows that have already ended and
+  splits contiguous off-peak runs at standard/intelligent-adjusted boundaries so
+  each window can be labelled independently.
+
+  Returns a list of dicts with keys: start, end, is_intelligent_adjusted.
+  """
+  if not rates:
+    return []
+
+  # Group rate slots by local date so we can determine the off-peak value per day
+  daily_rates: dict = {}
+  for rate in rates:
+    date_key = as_local(rate["start"]).date()
+    daily_rates.setdefault(date_key, []).append(rate)
+
+  windows = []
+  for date_key in sorted(daily_rates.keys()):
+    day_rates = sorted(daily_rates[date_key], key=lambda r: r["start"])
+    unique_values = {r["value_inc_vat"] for r in day_rates}
+    if len(unique_values) < 2:
+      continue  # Flat-rate day — no off-peak distinction
+    off_peak_value = min(unique_values)
+
+    w_start = None
+    w_intelligent = False
+
+    for i, rate in enumerate(day_rates):
+      is_off = rate["value_inc_vat"] == off_peak_value
+      is_int = rate.get("is_intelligent_adjusted", False)
+
+      if is_off:
+        if w_start is None:
+          w_start = rate["start"]
+          w_intelligent = is_int
+        elif is_int != w_intelligent:
+          # Transition between standard and intelligent-adjusted within off-peak — split here
+          windows.append({"start": w_start, "end": rate["start"], "is_intelligent_adjusted": w_intelligent})
+          w_start = rate["start"]
+          w_intelligent = is_int
+      else:
+        if w_start is not None:
+          windows.append({"start": w_start, "end": rate["start"], "is_intelligent_adjusted": w_intelligent})
+          w_start = None
+
+    if w_start is not None:
+      windows.append({"start": w_start, "end": day_rates[-1]["end"], "is_intelligent_adjusted": w_intelligent})
+
+  return windows
+
 def private_rates_to_public_rates(rates: list):
   if rates is None:
     return None

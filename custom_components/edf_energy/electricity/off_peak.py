@@ -17,7 +17,13 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from ..utils import get_off_peak_times, is_off_peak
+from ..utils import get_off_peak_times, get_off_peak_windows_from_rates, is_off_peak
+from ..storage.off_peak_history import (
+  OffPeakWindowRecord,
+  merge_off_peak_windows,
+  async_load_cached_off_peak_history,
+  async_save_cached_off_peak_history,
+)
 
 from .base import EDFEnergyElectricitySensor
 from ..utils.attributes import dict_to_typed_dict
@@ -39,7 +45,9 @@ class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor,
       "current_end": None,
       "next_start": None,
       "next_end": None,
+      "off_peak_windows": [],
     }
+    self._off_peak_history: list[OffPeakWindowRecord] = []
     self._last_updated = None
 
     self.entity_id = generate_entity_id("binary_sensor.{}", self.unique_id, hass=hass)
@@ -100,22 +108,40 @@ class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor,
           self._attributes["next_start"] = time.start
           self._attributes["next_end"] = time.end
 
+      # Accumulate off-peak windows from the current rates data
+      new_windows = [
+        OffPeakWindowRecord(w["start"], w["end"], w["is_intelligent_adjusted"])
+        for w in get_off_peak_windows_from_rates(rates)
+      ]
+      self._off_peak_history = merge_off_peak_windows(self._off_peak_history, new_windows, current)
+      self._attributes["off_peak_windows"] = [w.to_dict() for w in self._off_peak_history]
+      self._hass.async_create_task(self._async_save_history())
+
       self._last_updated = current
 
     self._attributes = dict_to_typed_dict(self._attributes)
     super()._handle_coordinator_update()
 
+  async def _async_save_history(self):
+    await async_save_cached_off_peak_history(
+      self._hass, self._mpan, self._serial_number, self._off_peak_history
+    )
+
   async def async_added_to_hass(self):
     """Call when entity about to be added to hass."""
-    # If not None, we got an initial value.
     await super().async_added_to_hass()
     state = await self.async_get_last_state()
 
     if state is not None:
       self._state = None if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) or state.state is None else state.state.lower() == 'on'
       self._attributes = dict_to_typed_dict(state.attributes)
-    
+
     if (self._state is None):
       self._state = False
-    
+
+    self._off_peak_history = await async_load_cached_off_peak_history(
+      self._hass, self._mpan, self._serial_number
+    )
+    self._attributes["off_peak_windows"] = [w.to_dict() for w in self._off_peak_history]
+
     _LOGGER.debug(f'Restored EDFEnergyElectricityOffPeak state: {self._state}')
