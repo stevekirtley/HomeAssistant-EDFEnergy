@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 
 from homeassistant.components.frontend import async_register_built_in_panel
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
@@ -147,14 +148,21 @@ async def async_setup_entry(hass, entry):
 
   if not hass.data[DOMAIN].get("_frontend_registered"):
     www_dir = os.path.join(os.path.dirname(__file__), "www")
+    static_paths = []
 
     card_path = os.path.join(www_dir, "edf-energy-dispatches-card.js")
     if os.path.isfile(card_path):
-      hass.http.register_static_path("/edf_energy/edf-energy-dispatches-card.js", card_path, False)
+      static_paths.append(StaticPathConfig("/edf_energy/edf-energy-dispatches-card.js", card_path, False))
 
     panel_path = os.path.join(www_dir, "edf-energy-panel.js")
-    if os.path.isfile(panel_path):
-      hass.http.register_static_path("/edf_energy/edf-energy-panel.js", panel_path, False)
+    register_panel = os.path.isfile(panel_path)
+    if register_panel:
+      static_paths.append(StaticPathConfig("/edf_energy/edf-energy-panel.js", panel_path, False))
+
+    if static_paths:
+      await hass.http.async_register_static_paths(static_paths)
+
+    if register_panel:
       async_register_built_in_panel(
         hass,
         "custom",
