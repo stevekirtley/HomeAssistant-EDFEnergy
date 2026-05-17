@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
 from homeassistant.util.dt import (utcnow)
@@ -323,16 +323,7 @@ async def async_setup_dependencies(hass, config):
       raise
 
     if isinstance(e, AuthenticationException):
-      ir.async_create_issue(
-        hass,
-        DOMAIN,
-        safe_repair_key(REPAIR_INVALID_API_KEY, account_id),
-        is_fixable=False,
-        severity=ir.IssueSeverity.ERROR,
-        translation_key="invalid_api_key",
-        translation_placeholders={ "account_id": account_id },
-      )
-      raise ConfigEntryNotReady(f"Failed to retrieve account information: {api_exception_to_string(e)}")
+      raise ConfigEntryAuthFailed(f"Failed to retrieve account information: {api_exception_to_string(e)}")
     else:
       account_info = await async_load_cached_account(hass, account_id)
       if (account_info is None):
