@@ -210,7 +210,8 @@ async def async_refresh_account(
 
       if isinstance(e, AuthenticationException):
         raise_invalid_api_key()
-      
+        raise
+
       result = AccountCoordinatorResult(
         previous_request.last_evaluated,
         previous_request.request_attempts + 1,
@@ -225,7 +226,7 @@ async def async_refresh_account(
 
   return previous_request
 
-async def async_setup_account_info_coordinator(hass, account_id: str):
+async def async_setup_account_info_coordinator(hass, account_id: str, entry):
   async def async_update_account_data():
     """Fetch data from API endpoint."""
     # Only get data every half hour or if we don't have any data
@@ -235,19 +236,23 @@ async def async_setup_account_info_coordinator(hass, account_id: str):
     if DATA_ACCOUNT not in hass.data[DOMAIN][account_id] or hass.data[DOMAIN][account_id][DATA_ACCOUNT] is None:
       raise Exception("Failed to find account information")
 
-    hass.data[DOMAIN][account_id][DATA_ACCOUNT] = await async_refresh_account(
-      current,
-      client,
-      account_id,
-      hass.data[DOMAIN][account_id][DATA_ACCOUNT],
-      lambda: raise_account_not_found(hass, account_id),
-      lambda: raise_invalid_api_key(hass, account_id),
-      lambda product_code, is_electricity: raise_product_not_found(hass, product_code, is_electricity),
-      lambda mprn_mpan, serial_number, is_electricity: raise_meter_removed(hass, account_id, mprn_mpan, serial_number, is_electricity),
-      lambda mprn_mpan, serial_number, is_electricity: raise_meter_added(hass, account_id, mprn_mpan, serial_number, is_electricity),
-      lambda key: clear_issue(hass, key)
-    )
-    
+    try:
+      hass.data[DOMAIN][account_id][DATA_ACCOUNT] = await async_refresh_account(
+        current,
+        client,
+        account_id,
+        hass.data[DOMAIN][account_id][DATA_ACCOUNT],
+        lambda: raise_account_not_found(hass, account_id),
+        lambda: raise_invalid_api_key(hass, account_id),
+        lambda product_code, is_electricity: raise_product_not_found(hass, product_code, is_electricity),
+        lambda mprn_mpan, serial_number, is_electricity: raise_meter_removed(hass, account_id, mprn_mpan, serial_number, is_electricity),
+        lambda mprn_mpan, serial_number, is_electricity: raise_meter_added(hass, account_id, mprn_mpan, serial_number, is_electricity),
+        lambda key: clear_issue(hass, key)
+      )
+    except AuthenticationException:
+      entry.async_start_reauth(hass)
+      return hass.data[DOMAIN][account_id][DATA_ACCOUNT]
+
     return hass.data[DOMAIN][account_id][DATA_ACCOUNT]
 
   hass.data[DOMAIN][account_id][DATA_ACCOUNT_COORDINATOR] = DataUpdateCoordinator(

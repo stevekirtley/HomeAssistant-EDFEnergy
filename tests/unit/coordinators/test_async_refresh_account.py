@@ -558,23 +558,22 @@ async def test_when_authentication_exception_raised_then_invalid_api_key_raised(
   # Act
   with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
     client = EDFEnergyApiClient("NOT_REAL")
-    
-    result = await async_refresh_account(
-      current,
-      client,
-      account_id,
-      previous_result,
-      raise_account_not_found,
-      raise_invalid_api_key,
-      raise_product_not_found,
-      raise_meter_removed,
-      raise_meter_added,
-      clear_issue
-    )
+
+    with pytest.raises(AuthenticationException):
+      await async_refresh_account(
+        current,
+        client,
+        account_id,
+        previous_result,
+        raise_account_not_found,
+        raise_invalid_api_key,
+        raise_product_not_found,
+        raise_meter_removed,
+        raise_meter_added,
+        clear_issue
+      )
 
   # Assert
-  assert_unsuccessful_result(result, previous_result)
-
   assert mocked_get_account_called == True
   assert times_mocked_get_product_called == 0
   assert raise_account_not_found_called == False

@@ -188,7 +188,7 @@ async def async_setup_entry(hass, entry):
   hass.data[DOMAIN].setdefault(account_id, {})
 
   if config[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
-    await async_setup_dependencies(hass, config)
+    await async_setup_dependencies(hass, entry, config)
     await hass.config_entries.async_forward_entry_setups(entry, ACCOUNT_PLATFORMS)
 
     async def async_close_connection(_) -> None:
@@ -278,7 +278,7 @@ async def async_setup_entry(hass, entry):
 
   return True
 
-async def async_setup_dependencies(hass, config):
+async def async_setup_dependencies(hass, entry, config):
   """Setup the coordinator and api client which will be shared by various entities"""
   account_id = config[CONFIG_ACCOUNT_ID]
 
@@ -305,7 +305,11 @@ async def async_setup_dependencies(hass, config):
 
   # Close any existing clients, as our new client may have changed
   await _async_close_client(hass, account_id)
-  client = EDFEnergyApiClient(config[CONFIG_MAIN_REFRESH_TOKEN], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates)
+
+  async def _async_persist_refresh_token(new_token: str):
+    hass.config_entries.async_update_entry(entry, data={**entry.data, CONFIG_MAIN_REFRESH_TOKEN: new_token})
+
+  client = EDFEnergyApiClient(config[CONFIG_MAIN_REFRESH_TOKEN], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates, on_token_refresh=_async_persist_refresh_token)
   hass.data[DOMAIN][account_id][DATA_CLIENT] = client
 
   # Delete any issues that may have been previously raised
@@ -412,7 +416,7 @@ async def async_setup_dependencies(hass, config):
                                                         tariff_override,
                                                         minimum_dispatch_duration_in_minutes)
 
-  await async_setup_account_info_coordinator(hass, account_id)
+  await async_setup_account_info_coordinator(hass, account_id, entry)
 
 
 async def options_update_listener(hass, entry):
