@@ -426,7 +426,7 @@ class EDFEnergyApiClient:
   _refresh_token_lock = RLock()
   _session_lock = RLock()
 
-  def __init__(self, refresh_token: str, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True):
+  def __init__(self, refresh_token: str, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True, on_token_refresh=None):
     if not refresh_token:
       raise Exception('refresh_token must be set')
 
@@ -437,6 +437,7 @@ class EDFEnergyApiClient:
     self._graphql_expiration = None
     self._graphql_refresh_token = refresh_token
     self._graphql_refresh_expiration = None
+    self._on_token_refresh = on_token_refresh
 
     self._product_tracker_cache = dict()
 
@@ -509,9 +510,13 @@ class EDFEnergyApiClient:
           "refreshExpiresIn" in token_response_body["data"]["obtainKrakenToken"]):
         
         self._graphql_token = token_response_body["data"]["obtainKrakenToken"]["token"]
-        self._graphql_refresh_token = token_response_body["data"]["obtainKrakenToken"]["refreshToken"]
+        new_refresh_token = token_response_body["data"]["obtainKrakenToken"]["refreshToken"]
         self._graphql_refresh_expiration = datetime.fromtimestamp(token_response_body["data"]["obtainKrakenToken"]["refreshExpiresIn"], tz=timezone.utc)
         self._graphql_expiration = now() + timedelta(hours=1)
+        if new_refresh_token != self._graphql_refresh_token:
+          self._graphql_refresh_token = new_refresh_token
+          if self._on_token_refresh is not None:
+            await self._on_token_refresh(new_refresh_token)
       elif (self._graphql_expiration is None or self._graphql_expiration > now()):
         raise AuthenticationException("Failed to retrieve auth token and current token is expired")
       else:
