@@ -41,7 +41,7 @@ def raise_product_not_found(hass, product_code: str, is_electricity: bool):
     DOMAIN,
     f"unknown_product_{product_code}",
     is_fixable=False,
-    severity=ir.IssueSeverity.ERROR,
+    severity=ir.IssueSeverity.WARNING,
     translation_key="unknown_product",
     translation_placeholders={ "type": "Electricity" if is_electricity else "Gas", "product_code": product_code },
   )
