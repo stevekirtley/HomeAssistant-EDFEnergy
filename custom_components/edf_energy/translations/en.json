@@ -201,7 +201,7 @@
     },
     "unknown_product": {
       "title": "Unknown product - {type} - {product_code}",
-      "description": "The product \"{product_code}\" associated with your {type} meter has not been found. Click on \"Learn More\" with instructions on what to do next."
+      "description": "The product \"{product_code}\" associated with your {type} meter was not found in the public EDF Energy product catalogue. Your rate data may still be loading correctly — check your electricity rate sensors to confirm. This can happen with private or promotional tariffs that are not publicly listed."
     },
     "invalid_api_key": {
       "title": "Invalid API key for account \"{account_id}\"",
@@ -254,6 +254,23 @@
     "tariff_rates_empty": {
       "title": "{meter_type} {tariff_code} rates are empty for {account_id} ({mprn_mpan}/{serial_number})",
       "description": "One of your meters ({mprn_mpan}/{serial_number}) is associated with tariff \"{tariff_code}\" for product \"{product_code}\", but no longer seems to be returning new rates. Please click \"Learn More\" with details on how to rectify this."
+    },
+    "tariff_rates_empty_fixable": {
+      "title": "No published rates found for {tariff_code}",
+      "description": "Your electricity meter ({mprn_mpan}/{serial_number}) is on tariff \"{tariff_code}\" but EDF Energy do not publish rates for this tariff via their API. Click \"Fix\" to enter your rates manually — they will be used until EDF publish them publicly.",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Enter your tariff rates",
+            "description": "Enter the rates for tariff **{tariff_code}** as shown on your EDF Energy account or bill. Values should be inclusive of VAT.",
+            "data": {
+              "peak_rate_inc_vat": "Peak unit rate (p/kWh)",
+              "off_peak_rate_inc_vat": "Off-peak unit rate (p/kWh)",
+              "standing_charge_inc_vat": "Standing charge (p/day)"
+            }
+          }
+        }
+      }
     },
     "target_rate_not_supported": {
       "title": "Target rate configuration not supported",
