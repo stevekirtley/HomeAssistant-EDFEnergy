@@ -292,11 +292,12 @@ def adjust_intelligent_rates(rates,
                              planned_dispatches: list[IntelligentDispatchItem],
                              started_dispatches: list[SimpleIntelligentDispatchItem],
                              mode: str,
-                             minimum_dispatch_duration_in_minutes: int = 0):
+                             minimum_dispatch_duration_in_minutes: int = 0,
+                             off_peak_rate_value: float | None = None):
   if len(rates) < 1:
     return rates
 
-  off_peak_rate =  min(rates, key = lambda x: x["value_inc_vat"])
+  off_peak_rate = {"value_inc_vat": off_peak_rate_value} if off_peak_rate_value is not None else min(rates, key=lambda x: x["value_inc_vat"])
   adjusted_rates = []
 
   applicable_dispatches = get_applicable_dispatch_periods(planned_dispatches, started_dispatches, mode, minimum_dispatch_duration_in_minutes)

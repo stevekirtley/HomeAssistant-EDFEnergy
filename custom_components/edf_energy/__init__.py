@@ -58,6 +58,7 @@ from .const import (
   CONFIG_MAIN_INTELLIGENT_RATE_MODE,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES,
   CONFIG_MAIN_INTELLIGENT_SETTINGS,
+  CONFIG_MAIN_MANUAL_TARIFF_RATES,
   CONFIG_MAIN_OLD_API_KEY,
   CONFIG_MAIN_PRICE_CAP_SETTINGS,
   CONFIG_VERSION,
@@ -414,7 +415,8 @@ async def async_setup_dependencies(hass, entry, config):
                                                         is_export_meter,
                                                         intelligent_rate_mode,
                                                         tariff_override,
-                                                        minimum_dispatch_duration_in_minutes)
+                                                        minimum_dispatch_duration_in_minutes,
+                                                        config.get(CONFIG_MAIN_MANUAL_TARIFF_RATES))
 
   await async_setup_account_info_coordinator(hass, account_id, entry)
 

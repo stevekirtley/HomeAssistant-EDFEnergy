@@ -82,6 +82,7 @@ from .const import (
   CONFIG_MAIN_INTELLIGENT_RATE_MODE,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES,
   CONFIG_MAIN_INTELLIGENT_SETTINGS,
+  CONFIG_MAIN_MANUAL_TARIFF_RATES,
   CONFIG_MAIN_PRICE_CAP_SETTINGS,
   CONFIG_TARIFF_COMPARISON_MPAN_MPRN,
   DATA_ACCOUNT_COORDINATOR,
@@ -256,7 +257,7 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
           _LOGGER.info(f'Adding electricity meter; mpan: {mpan}; serial number: {serial_number}')
 
           electricity_rate_coordinator = hass.data[DOMAIN][account_id][DATA_ELECTRICITY_RATES_COORDINATOR_KEY.format(mpan, serial_number)]
-          electricity_standing_charges_coordinator = await async_setup_electricity_standing_charges_coordinator(hass, account_id, mpan, serial_number)
+          electricity_standing_charges_coordinator = await async_setup_electricity_standing_charges_coordinator(hass, account_id, mpan, serial_number, config.get(CONFIG_MAIN_MANUAL_TARIFF_RATES))
 
           entities.append(EDFEnergyElectricityCurrentRate(hass, electricity_rate_coordinator, meter, point, electricity_price_cap, account_id))
           entities.append(EDFEnergyElectricityPreviousRate(hass, electricity_rate_coordinator, meter, point))

@@ -8,6 +8,7 @@ from homeassistant.helpers.update_coordinator import (
 
 from ..const import (
   COORDINATOR_REFRESH_IN_SECONDS,
+  CONFIG_MANUAL_TARIFF_STANDING_CHARGE,
   DATA_ELECTRICITY_STANDING_CHARGE_KEY,
   DOMAIN,
   DATA_CLIENT,
@@ -33,7 +34,8 @@ async def async_refresh_electricity_standing_charges_data(
     account_info,
     target_mpan: str,
     target_serial_number: str,
-    existing_standing_charges_result: ElectricityStandingChargeCoordinatorResult | None
+    existing_standing_charges_result: ElectricityStandingChargeCoordinatorResult | None,
+    manual_rates_config: dict | None = None,
   ):
   period_from = as_utc(current.replace(hour=0, minute=0, second=0, microsecond=0))
   period_to = period_from + timedelta(days=1)
@@ -42,6 +44,8 @@ async def async_refresh_electricity_standing_charges_data(
     tariff = get_electricity_meter_tariff(current, account_info, target_mpan, target_serial_number)
     if tariff is None:
       return None
+
+    manual_tariff_rates = manual_rates_config.get(tariff.code) if manual_rates_config is not None else None
     
     new_standing_charge = None
     raised_exception = None
@@ -69,6 +73,15 @@ async def async_refresh_electricity_standing_charges_data(
           raised_exception = e
           _LOGGER.debug(f'Failed to retrieve electricity standing charges for {target_mpan}/{target_serial_number} ({tariff.code})')
       
+      if new_standing_charge is None and manual_tariff_rates is not None:
+        _LOGGER.debug(f'No standing charge from API for {target_mpan}/{target_serial_number} ({tariff.code}) — using manual config')
+        new_standing_charge = {
+          "start": None,
+          "end": None,
+          "value_inc_vat": manual_tariff_rates[CONFIG_MANUAL_TARIFF_STANDING_CHARGE],
+          "tariff_code": tariff.code,
+        }
+
       if new_standing_charge is not None:
         return ElectricityStandingChargeCoordinatorResult(current, 1, new_standing_charge, last_retrieved)
       
@@ -87,7 +100,7 @@ async def async_refresh_electricity_standing_charges_data(
   
   return existing_standing_charges_result
 
-async def async_setup_electricity_standing_charges_coordinator(hass, account_id: str, target_mpan: str, target_serial_number: str):
+async def async_setup_electricity_standing_charges_coordinator(hass, account_id: str, target_mpan: str, target_serial_number: str, manual_rates_config: dict | None = None):
   key = DATA_ELECTRICITY_STANDING_CHARGE_KEY.format(target_mpan, target_serial_number)
   
   # Reset data rates as we might have new information
@@ -108,6 +121,7 @@ async def async_setup_electricity_standing_charges_coordinator(hass, account_id:
       target_mpan,
       target_serial_number,
       standing_charges,
+      manual_rates_config,
     )
 
     return hass.data[DOMAIN][account_id][key]
