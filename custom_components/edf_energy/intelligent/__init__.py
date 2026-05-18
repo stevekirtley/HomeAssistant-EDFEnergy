@@ -294,7 +294,7 @@ def adjust_intelligent_rates(rates,
                              mode: str,
                              minimum_dispatch_duration_in_minutes: int = 0,
                              off_peak_rate_value: float | None = None):
-  if len(rates) < 1:
+  if rates is None or len(rates) < 1:
     return rates
 
   off_peak_rate = {"value_inc_vat": off_peak_rate_value} if off_peak_rate_value is not None else min(rates, key=lambda x: x["value_inc_vat"])
