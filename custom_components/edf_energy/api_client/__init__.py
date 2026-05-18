@@ -751,7 +751,7 @@ class EDFEnergyApiClient:
         async with client.get(url, auth=auth, headers=headers) as response:
           data = await self.__async_read_response__(response, url)
           if data is None:
-            return None
+            return []
           else:
             results = results + rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._electricity_price_cap, self._favour_direct_debit_rates)
             has_more_rates = "next" in data and data["next"] is not None
@@ -778,9 +778,9 @@ class EDFEnergyApiClient:
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if data is None:
-          return None
+          return []
         else:
-          # Normalise the rates to be in 30 minute increments and remove any rates that fall outside of our day period 
+          # Normalise the rates to be in 30 minute increments and remove any rates that fall outside of our day period
           day_rates = rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._electricity_price_cap, self._favour_direct_debit_rates)
           for rate in day_rates:
             if self.__is_night_rate(rate, is_smart_meter) == False:
@@ -790,7 +790,7 @@ class EDFEnergyApiClient:
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if data is None:
-          return None
+          return []
 
         # Normalise the rates to be in 30 minute increments and remove any rates that fall outside of our night period 
         night_rates = rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._electricity_price_cap, self._favour_direct_debit_rates)
