@@ -10,6 +10,8 @@ from homeassistant.helpers.update_coordinator import (
 
 from ..const import (
   CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES,
+  CONFIG_MANUAL_TARIFF_PEAK_RATE,
+  CONFIG_MANUAL_TARIFF_OFF_PEAK_RATE,
   COORDINATOR_REFRESH_IN_SECONDS,
   DATA_ACCOUNT,
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
@@ -104,8 +106,8 @@ async def async_fetch_consumption_and_rates(
   fire_event: Callable[[str, "dict[str, Any]"], None],
   dispatches_results: dict[str, IntelligentDispatchesCoordinatorResult] = None,
   tariff_override: Tariff = None,
-  intelligent_rate_mode: str = CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES
-
+  intelligent_rate_mode: str = CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES,
+  manual_rates_config: dict | None = None
 ):
   """Fetch the previous consumption and rates"""
 
@@ -160,13 +162,31 @@ async def async_fetch_consumption_and_rates(
               client.async_get_electricity_standing_charge(tariff.product, tariff.code, period_from, period_to)
             )
 
+          manual_tariff_rates = manual_rates_config.get(tariff.code) if manual_rates_config is not None else None
+          if (rate_data is None or len(rate_data) == 0) and manual_tariff_rates is not None:
+            _LOGGER.debug(f'No rates from API for {identifier}/{serial_number} ({tariff.code}) — generating from manual config')
+            slot = period_from
+            rate_data = []
+            while slot < period_to:
+              rate_data.append({
+                "value_inc_vat": manual_tariff_rates[CONFIG_MANUAL_TARIFF_PEAK_RATE],
+                "start": slot,
+                "end": slot + timedelta(minutes=30),
+                "tariff_code": tariff.code,
+                "is_capped": False,
+              })
+              slot += timedelta(minutes=30)
+
+          off_peak_rate_value = manual_tariff_rates[CONFIG_MANUAL_TARIFF_OFF_PEAK_RATE] if manual_tariff_rates is not None else None
+
           if dispatches_results is not None:
             for key, item in dispatches_results.items():
               if item is not None and item.dispatches is not None:
                 rate_data = adjust_intelligent_rates(rate_data,
                                                     item.dispatches.planned,
                                                     item.dispatches.started,
-                                                    intelligent_rate_mode)
+                                                    intelligent_rate_mode,
+                                                    off_peak_rate_value=off_peak_rate_value)
 
                 _LOGGER.debug(f"Rates adjusted: {rate_data}; device id: {key} dispatches: {item.dispatches.to_dict()}")
       else:
@@ -268,7 +288,8 @@ async def async_create_previous_consumption_and_rates_coordinator(
     is_electricity: bool,
     is_smart_meter: bool,
     intelligent_rate_mode: str,
-    tariff_override: Tariff = None):
+    tariff_override: Tariff = None,
+    manual_rates_config: dict | None = None):
   """Create reading coordinator"""
   previous_consumption_data_key = f'{identifier}_{serial_number}_previous_consumption_and_rates'
 
@@ -292,7 +313,8 @@ async def async_create_previous_consumption_and_rates_coordinator(
       hass.bus.async_fire,
       dispatches,
       tariff_override,
-      intelligent_rate_mode
+      intelligent_rate_mode,
+      manual_rates_config
     )
 
     if (result is not None):
