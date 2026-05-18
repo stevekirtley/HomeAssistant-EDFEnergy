@@ -114,7 +114,7 @@ async def get_unique_electricity_rates(hass, client: EDFEnergyApiClient, tariff:
     period_from = current_date.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
     period_to = period_from + timedelta(days=1)
     rates = await client.async_get_electricity_rates(tariff.product, tariff.code, True, period_from, period_to)
-    if rates is None:
+    if not rates:
       _LOGGER.warning(f"Failed to retrieve rates for tariff '{tariff.product}/{tariff.code}' to determine unique rates. Defaulting to single unique rate.")
       return 1
     
