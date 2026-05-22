@@ -1,0 +1,1765 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/faq/">
+      
+      
+        <link rel="prev" href="../architecture_decision_records/0002_intelligent_is_dispatching_behaviour_changes/">
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>FAQ - Home Assistant EDF Energy</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#faq" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Home Assistant EDF Energy" class="md-header__button md-logo" aria-label="Home Assistant EDF Energy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Home Assistant EDF Energy
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              FAQ
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="light-blue" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Home Assistant EDF Energy" class="md-nav__button md-logo" aria-label="Home Assistant EDF Energy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Home Assistant EDF Energy
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Setup
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Setup
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/account/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/cost_tracker/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cost Tracker Sensor(s)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/tariff_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tariff Comparison
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/energy_dashboard/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Energy Dashboard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Entities
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Entities
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../entities/electricity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Electricity
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../entities/gas/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gas
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../entities/intelligent/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Intelligent
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../entities/diagnostics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Diagnostics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Migrations
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Migrations
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrations/target_timeframes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Migrating Target Rate Sensors To Target Timeframes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../services/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Services
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../events/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Events
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Repairs
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Repairs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../repairs/account_not_found/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Account not found
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../repairs/unknown_product/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Unknown product
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../repairs/cost_override_obsolete/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Cost override deprecated
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../repairs/unknown_intelligent_provider/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Unknown Smart Charging provider
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../repairs/no_active_tariff/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - No active tariff
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../repairs/meter_removed/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Meter removed
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../repairs/tariff_rates_empty/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Tariff Rates Empty
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blueprints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blueprints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Architecture Decision Records
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            Architecture Decision Records
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_decision_records/0001_target_rates_removal/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    0001 - Deprecation and removal of Target Rate Sensors in EDF Energy Integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_decision_records/0002_intelligent_is_dispatching_behaviour_changes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    0002 - Smart Charging Is Dispatching behavior changes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-often-is-data-refreshed" class="md-nav__link">
+    <span class="md-ellipsis">
+      How often is data refreshed?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-are-started-dispatches-and-how-are-they-calculated" class="md-nav__link">
+    <span class="md-ellipsis">
+      What are started dispatches and how are they calculated?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#im-on-a-smart-charging-tariff-but-the-off-peak-sensor-is-only-coming-on-during-standard-off-peak-times-is-there-something-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      I'm on a Smart Charging tariff but the off peak sensor is only coming on during standard off peak times. Is there something wrong?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-integration-provides-features-i-dont-need-can-i-turn-the-feature-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      The integration provides features I don't need, can I turn the feature off?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-have-data-missing-is-this-an-issue-with-the-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      I have data missing, is this an issue with the integration?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ive-added-my-previous-consumption-sensors-to-the-energy-dashboard-but-they-are-reported-in-a-single-chunk-and-are-a-day-or-more-out-is-this-a-bug" class="md-nav__link">
+    <span class="md-ellipsis">
+      I've added my previous consumption sensors to the Energy dashboard, but they are reported in a single chunk and are a day or more out. Is this a bug?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-are-the-names-of-the-entities-so-long-and-can-you-change-them-to-be-shorter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why are the names of the entities so long, and can you change them to be shorter?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-am-getting-warnings-about-entities-taking-too-long-to-update-is-this-normal" class="md-nav__link">
+    <span class="md-ellipsis">
+      I am getting warnings about entities taking too long to update. Is this normal?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-am-getting-errors-relating-to-too-many-requests-is-there-something-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      I am getting errors relating to "Too many requests". Is there something wrong?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-want-to-use-a-utility-meter-with-the-consumption-sensors-but-they-dont-seem-to-be-adding-up-correctly-is-there-something-im-doing-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      I want to use a utility meter with the consumption sensors, but they don't seem to be adding up correctly. Is there something I'm doing wrong?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      There are entities that are disabled. Why are they disabled and how do I enable them?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-have-entities-that-are-missing-is-the-integration-broken" class="md-nav__link">
+    <span class="md-ellipsis">
+      I have entities that are missing. Is the integration broken?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-have-meters-that-are-missing-is-the-integration-broken" class="md-nav__link">
+    <span class="md-ellipsis">
+      I have meters that are missing. Is the integration broken?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#my-gas-consumptioncosts-seem-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      My gas consumption/costs seem out
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-rates-are-different-to-whats-on-my-bill-or-the-edf-energy-dashboard-is-there-something-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      The rates are different to what's on my bill or the EDF Energy dashboard. Is there something wrong?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-are-costs-sensors-calculated" class="md-nav__link">
+    <span class="md-ellipsis">
+      How are costs sensors calculated?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#im-on-a-smart-charging-tariff-but-the-cost-sensors-are-out-is-this-normal" class="md-nav__link">
+    <span class="md-ellipsis">
+      I'm on a Smart Charging tariff, but the cost sensors are out. Is this normal?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#im-having-issues-with-a-sensor-is-there-any-way-i-can-see-the-attributes-for-a-certain-point-in-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      I'm having issues with a sensor. Is there any way I can see the attributes for a certain point in time?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#do-you-support-older-versions-of-the-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Do you support older versions of the integration?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-know-when-theres-an-update-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      How do I know when there's an update available?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#theres-a-beta-release-of-the-integration-that-i-would-like-to-take-part-in-how-do-i-do-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      There's a beta release of the integration that I would like to take part in, how do I do this?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-increase-the-logs-for-the-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      How do I increase the logs for the integration?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ive-been-asked-for-my-meter-information-in-a-bug-request-how-do-i-obtain-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      I've been asked for my meter information in a bug request, how do I obtain this?
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-often-is-data-refreshed" class="md-nav__link">
+    <span class="md-ellipsis">
+      How often is data refreshed?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-are-started-dispatches-and-how-are-they-calculated" class="md-nav__link">
+    <span class="md-ellipsis">
+      What are started dispatches and how are they calculated?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#im-on-a-smart-charging-tariff-but-the-off-peak-sensor-is-only-coming-on-during-standard-off-peak-times-is-there-something-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      I'm on a Smart Charging tariff but the off peak sensor is only coming on during standard off peak times. Is there something wrong?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-integration-provides-features-i-dont-need-can-i-turn-the-feature-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      The integration provides features I don't need, can I turn the feature off?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-have-data-missing-is-this-an-issue-with-the-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      I have data missing, is this an issue with the integration?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ive-added-my-previous-consumption-sensors-to-the-energy-dashboard-but-they-are-reported-in-a-single-chunk-and-are-a-day-or-more-out-is-this-a-bug" class="md-nav__link">
+    <span class="md-ellipsis">
+      I've added my previous consumption sensors to the Energy dashboard, but they are reported in a single chunk and are a day or more out. Is this a bug?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-are-the-names-of-the-entities-so-long-and-can-you-change-them-to-be-shorter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why are the names of the entities so long, and can you change them to be shorter?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-am-getting-warnings-about-entities-taking-too-long-to-update-is-this-normal" class="md-nav__link">
+    <span class="md-ellipsis">
+      I am getting warnings about entities taking too long to update. Is this normal?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-am-getting-errors-relating-to-too-many-requests-is-there-something-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      I am getting errors relating to "Too many requests". Is there something wrong?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-want-to-use-a-utility-meter-with-the-consumption-sensors-but-they-dont-seem-to-be-adding-up-correctly-is-there-something-im-doing-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      I want to use a utility meter with the consumption sensors, but they don't seem to be adding up correctly. Is there something I'm doing wrong?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      There are entities that are disabled. Why are they disabled and how do I enable them?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-have-entities-that-are-missing-is-the-integration-broken" class="md-nav__link">
+    <span class="md-ellipsis">
+      I have entities that are missing. Is the integration broken?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-have-meters-that-are-missing-is-the-integration-broken" class="md-nav__link">
+    <span class="md-ellipsis">
+      I have meters that are missing. Is the integration broken?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#my-gas-consumptioncosts-seem-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      My gas consumption/costs seem out
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-rates-are-different-to-whats-on-my-bill-or-the-edf-energy-dashboard-is-there-something-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      The rates are different to what's on my bill or the EDF Energy dashboard. Is there something wrong?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-are-costs-sensors-calculated" class="md-nav__link">
+    <span class="md-ellipsis">
+      How are costs sensors calculated?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#im-on-a-smart-charging-tariff-but-the-cost-sensors-are-out-is-this-normal" class="md-nav__link">
+    <span class="md-ellipsis">
+      I'm on a Smart Charging tariff, but the cost sensors are out. Is this normal?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#im-having-issues-with-a-sensor-is-there-any-way-i-can-see-the-attributes-for-a-certain-point-in-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      I'm having issues with a sensor. Is there any way I can see the attributes for a certain point in time?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#do-you-support-older-versions-of-the-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Do you support older versions of the integration?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-know-when-theres-an-update-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      How do I know when there's an update available?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#theres-a-beta-release-of-the-integration-that-i-would-like-to-take-part-in-how-do-i-do-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      There's a beta release of the integration that I would like to take part in, how do I do this?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-increase-the-logs-for-the-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      How do I increase the logs for the integration?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ive-been-asked-for-my-meter-information-in-a-bug-request-how-do-i-obtain-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      I've been asked for my meter information in a bug request, how do I obtain this?
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">#</a></h1>
+<h2 id="how-often-is-data-refreshed">How often is data refreshed?<a class="headerlink" href="#how-often-is-data-refreshed" title="Permanent link">#</a></h2>
+<p>The integration polls and retrieves data at different intervals depending on the target data. Below is a rough table describing how often the integration targets refreshing various bits of data. This has been done to try and not overload the API while also providing useful data in a timely fashion.</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Refresh rate (in minutes)</th>
+<th>Justification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Account</td>
+<td>360 (6 hours)</td>
+<td>This is mainly used to get the active meters and associated tariffs, which shouldn't change often so no need to poll often.</td>
+</tr>
+<tr>
+<td>Smart Charging tariff based sensors</td>
+<td>3</td>
+<td>Trying to balance refreshing settings and new dispatch information without overloading the API</td>
+</tr>
+<tr>
+<td>Smart Charging device information</td>
+<td>360 (6 hours)</td>
+<td>Shouldn't change often, but want to be alerted when it does as sensors will stop working</td>
+</tr>
+<tr>
+<td>Rate information</td>
+<td>15</td>
+<td>This is what drives most people's automations, but doesn't change that frequently. We can afford a bit of lag for API stability. This will stop updating once we have the data for the requested time period.</td>
+</tr>
+<tr>
+<td>Current consumption data</td>
+<td>Configurable (minimum 1)</td>
+<td>This is most useful for a smart home to be as up-to-date as possible, but is also rate limited to 100 requests total per hour. 1 minute is enough for most people, but might need to be increased for those with multiple meters (e.g. gas and electricity)</td>
+</tr>
+<tr>
+<td>Previous consumption data</td>
+<td>30</td>
+<td>This is usually refreshed once a day at various times throughout the day. We want to be up-to-date as soon as possible, without swamping the API.</td>
+</tr>
+<tr>
+<td>Standing charges</td>
+<td>60</td>
+<td>This should only change if the user's tariff changes, so no need to request data too often. Keep in sync with account refreshes. This will stop updating once we have the data for the requested time period.</td>
+</tr>
+</tbody>
+</table>
+<p>If data cannot be refreshed for any reason (e.g. no internet or APIs are down), then the integration will attempt to retrieve data as soon as possible, slowly waiting longer between each attempt, to a maximum of 30 minutes between each attempt. Below is a rough example assuming the first (failed) scheduled refresh was at <code>10:35</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Attempt</th>
+<th>Target time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>10:35</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>10:36</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>10:38</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>10:41</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>10:45</code></td>
+</tr>
+</tbody>
+</table>
+<p>Once a successful request is made, the refreshes will revert back to the redefined default intervals. You can find out information on when data was last retrieved via the available <a href="../entities/diagnostics/">diagnostic entities</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The retrieving of data does not effect the rate the entities states/attributes are evaluated.</p>
+</div>
+<h2 id="what-are-started-dispatches-and-how-are-they-calculated">What are started dispatches and how are they calculated?<a class="headerlink" href="#what-are-started-dispatches-and-how-are-they-calculated" title="Permanent link">#</a></h2>
+<p>Started dispatches are a concept derived by the integration.</p>
+<p>EDF Energy provide rate information for Smart Charging tariffs. Unfortunately, this rate information is only the standard rate information (e.g. standard peak and off peak rates). This means that periods that are charged at off peak rates outside of the normal off peak period has to be adjusted to the off peak rate manually. Luckily, EDF Energy provides information on planned and completed dispatches. However, there are a few issues with this data</p>
+<ol>
+<li>Planned dispatches can be removed at the last minute. This can cause issues as they can be removed just before they start but counted as "active" if the data isn't refreshed before they start. If you have setup <a href="../setup/account/#intelligent-rates-mode">the integration</a> to accept <a href="../setup/account/#planned-and-started-dispatches-will-turn-into-off-peak-rates">planned or started dispatches</a>, then this can result in sensors turning on and then turning off once the data is refreshed and the planned dispatch is removed</li>
+<li>The completed dispatches do not specify a source of the dispatch. This means that boost charges (ones that do not result in off peak rates) will be mixed in with smart charges (ones that do result in off peak rates). This means that it can't be used to retroactively change rates to off peak for things like previous consumption cost sensors.</li>
+</ol>
+<p>Therefore, there is the concept of started dispatches. Once data is refreshed, any planned dispatches that are active become a started dispatch, thirty minute increments at a time. This is because the whole thirty minute period for a smart charge dispatch is charged at off peak, even if only a minute charge has occurred. It is done thirty minute increments at a time because EDF Energy might stop a dispatch early. This will only occur if the <a href="../entities/intelligent/#current-state">Smart Charging state</a> is in <code>SMART_CONTROL_IN_PROGRESS</code>. For example if you have a planned dispatch of <code>2025-04-01T10:00:00</code>-<code>2025-04-01T11:00:00</code>, at <code>2025-04-01T10:01:00</code> if the planned dispatch is still available the period of <code>2025-04-01T10:00:00</code>-<code>2025-04-01T10:30:00</code> will be added.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This does not apply to the following providers, as they don't provide planned dispatch information.</p>
+<ul>
+<li>OHME</li>
+</ul>
+</div>
+<h2 id="im-on-a-smart-charging-tariff-but-the-off-peak-sensor-is-only-coming-on-during-standard-off-peak-times-is-there-something-wrong">I'm on a Smart Charging tariff but the off peak sensor is only coming on during standard off peak times. Is there something wrong?<a class="headerlink" href="#im-on-a-smart-charging-tariff-but-the-off-peak-sensor-is-only-coming-on-during-standard-off-peak-times-is-there-something-wrong" title="Permanent link">#</a></h2>
+<p>For Smart Charging tariffs, this sensor will turn on when you're within the standard off peak rates or within an active ad hoc dispatching period.</p>
+<p>Depending on your <a href="../setup/account/#intelligent-rates-mode">account configuration</a>, what is determined as an active dispatching period will change. If you have configured to accept <a href="../setup/account/#planned-and-started-dispatches-will-turn-into-off-peak-rates">planned or started dispatches</a>, then the sensor will turn on when you're are within an active planned or started dispatch period. If you have configured to accept <a href="../setup/account/#only-started-dispatches-will-turn-into-off-peak-rates">only started dispatches</a>, then the sensor will turn on when you're are within an active started dispatch period, but not planned dispatch.</p>
+<p>This above does not apply and will not come on outside of the standard off peak hours for the following Smart Charging providers</p>
+<ul>
+<li>OHME</li>
+</ul>
+<p>Assuming you're with a valid Smart Charging provider, another reason might be you've turned on <a href="../setup/account/#manually-refresh-intelligent-dispatches">manual dispatch refetches</a>, which turns off automatic refreshing. If you're not calling the service (either manually or via the provided <a href="../services/#edf_energyrefresh_intelligent_dispatches">blueprint</a>), then the dispatches won't be available to adjust the off peak sensor.</p>
+<p>If you are with an accepted provider and are getting dispatch information, then you can use this <a href="../services/#edf_energyget_point_in_time_intelligent_dispatch_history">available service</a> to see what state the dispatches are at a given point in time when you believe the off peak sensor should be on. If you are seeing dispatches available based on your settings and still having issues, please raise an issue.</p>
+<h2 id="the-integration-provides-features-i-dont-need-can-i-turn-the-feature-off">The integration provides features I don't need, can I turn the feature off?<a class="headerlink" href="#the-integration-provides-features-i-dont-need-can-i-turn-the-feature-off" title="Permanent link">#</a></h2>
+<p>There is no config option to turn features on/off. This is because the required data is not cut and dry per feature as some data is shared among "features" (e.g. rate data is required to determine if consumption data is peak or off peak).</p>
+<p>However, the integration only requests the data specified above that is needed for the provided entities to function. If you disable the entities that you don't need, then the integration won't request the corresponding data. </p>
+<p>Disabling entities is easy. All you need to do is</p>
+<ol>
+<li>Go to the <a href="https://my.home-assistant.io/redirect/integration/?domain=edf_energy">EDF Energy</a> integration.</li>
+<li>Click on <code>entities</code></li>
+<li>Go into multi-select mode and select the entities you want to disable</li>
+<li>Select <code>Disable selected</code></li>
+</ol>
+<p>Some entities are disabled by default by the integration, which are highlighted as such in the documentation.</p>
+<h2 id="i-have-data-missing-is-this-an-issue-with-the-integration">I have data missing, is this an issue with the integration?<a class="headerlink" href="#i-have-data-missing-is-this-an-issue-with-the-integration" title="Permanent link">#</a></h2>
+<p>Data can not appear for a variety of reasons. Before raising any issues, check if the data is available on the EDF Energy dashboard for the requested period (e.g. for previous consumption, you'll be wanting data for the day before). If it's not available on the dashboard, then unfortunately there is nothing that can be done and you may need to contact EDF Energy.</p>
+<p>Data might also not appear if you lose internet connection or the EDF Energy APIs report errors, which can occur from time to time. This will be indicated in your Home Assistant logs as warnings around using cached data. It can also be diagnosed via the various available <a href="../entities/diagnostics/">diagnostic entities</a>. If none of this is applicable, then please raise an issue so we can try and solve the problem.</p>
+<p>If you are missing consumption data, the previous consumption sensors only display that latest available full day. If you have a couple of hours for a day, then the sensors will not display this until the full day is available.</p>
+<h2 id="ive-added-my-previous-consumption-sensors-to-the-energy-dashboard-but-they-are-reported-in-a-single-chunk-and-are-a-day-or-more-out-is-this-a-bug">I've added my previous consumption sensors to the Energy dashboard, but they are reported in a single chunk and are a day or more out. Is this a bug?<a class="headerlink" href="#ive-added-my-previous-consumption-sensors-to-the-energy-dashboard-but-they-are-reported-in-a-single-chunk-and-are-a-day-or-more-out-is-this-a-bug" title="Permanent link">#</a></h2>
+<p>While you can add the <code>previous consumption</code> sensors to the dashboard, they will be associated with the wrong day. This is because the Energy dashboard uses the timestamp of when the sensor updates to determine which day the data should belong to.</p>
+<p>Instead, you can use different external statistics that are exported by the <code>previous consumption</code> sensors, which are broken down into hourly chunks. </p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>It can take <strong>up to 24 hours</strong> for the external statistics to appear.</p>
+</div>
+<p>Please follow the <a href="../setup/energy_dashboard/#previous-day-consumption">guide</a> for instructions on how to add these separate sensors to the energy dashboard.</p>
+<p>You should not have this issue for current consumption sensors, as they are updated in realtime.</p>
+<h2 id="why-are-the-names-of-the-entities-so-long-and-can-you-change-them-to-be-shorter">Why are the names of the entities so long, and can you change them to be shorter?<a class="headerlink" href="#why-are-the-names-of-the-entities-so-long-and-can-you-change-them-to-be-shorter" title="Permanent link">#</a></h2>
+<p>Naming things are hard. The entity ids are long for the following reasons</p>
+<ul>
+<li>
+<p>The domain is present as I didn't want to potentially clash with other integrations that provide similar sensors for meters, as a lot of people in the community use things like the glow device to get their readings. Hindsight, I probably wouldn't include this, but we're here now.</p>
+</li>
+<li>
+<p>The serial number and mpan/mprn is present because the data that comes back from EDF Energy is in an array of arrays. I am only on an import tariff, so couldn't guarantee that any of these were unique and didn't want to assume anything. Turns out one of these is duplicated between import/export meters so if I had picked one of these I would have been wrong and had a clash.</p>
+</li>
+<li>
+<p>The account id is present in other sensors in order to support multiple accounts (which the serial number/mpan/mprn also play apart in).</p>
+</li>
+</ul>
+<p>The names of the entities are equally long for consistency with the entity id and so that you can tell one entity apart from another in the above scenarios.</p>
+<p>However you are free to update the names and/or ids to something more concise for you as per the <a href="https://www.home-assistant.io/docs/configuration/customizing-devices/#changing-the-entity-id">Home Assistant docs</a>.</p>
+<h2 id="i-am-getting-warnings-about-entities-taking-too-long-to-update-is-this-normal">I am getting warnings about entities taking too long to update. Is this normal?<a class="headerlink" href="#i-am-getting-warnings-about-entities-taking-too-long-to-update-is-this-normal" title="Permanent link">#</a></h2>
+<p>If you receiving warnings along the lines of</p>
+<blockquote>
+<p>Update of sensor.edf_energy_xxx is taking over x seconds</p>
+<p>Updating edf_energy sensor took longer than the scheduled update interval</p>
+</blockquote>
+<p>then yes, this is expected. This is a default warning built into Home Assistant, however with this integration it's perfectly valid for you to receive this when the sensors attempt to update the data. This is for a number of reasons</p>
+<ol>
+<li>Your internet connection is slow</li>
+<li>EDF Energy APIs are slow to respond, or having issues.</li>
+</ol>
+<p>If you wish to suppress this warning, you can follow <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/429#issuecomment-1783739547">this advice</a>.</p>
+<h2 id="i-am-getting-errors-relating-to-too-many-requests-is-there-something-wrong">I am getting errors relating to "Too many requests". Is there something wrong?<a class="headerlink" href="#i-am-getting-errors-relating-to-too-many-requests-is-there-something-wrong" title="Permanent link">#</a></h2>
+<p>The EDF Energy APIs have a rate limit of 100 calls per hour, which is shared among all calls including through the app or other integrations. The defaults are usually enough for one electricity and one gas meter's data to be retrieved. However, if you are using other integrations or have more meters being tracked you may want to increase this rate via your <a href="../setup/account/">account</a>.</p>
+<p>If you are receiving this error for a different reason, please raise an <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues">issue</a>, as EDF Energy might have introduced a new rate limit.</p>
+<h2 id="i-want-to-use-a-utility-meter-with-the-consumption-sensors-but-they-dont-seem-to-be-adding-up-correctly-is-there-something-im-doing-wrong">I want to use a utility meter with the consumption sensors, but they don't seem to be adding up correctly. Is there something I'm doing wrong?<a class="headerlink" href="#i-want-to-use-a-utility-meter-with-the-consumption-sensors-but-they-dont-seem-to-be-adding-up-correctly-is-there-something-im-doing-wrong" title="Permanent link">#</a></h2>
+<p>While the underlying data updates less frequently (see above), the consumption sensors themselves update every minute to check for changes. This includes attribute updates to state when the sensor was last evaluated or when the underlying data was last retrieved. Unfortunately the utility meter looks for <em>any</em> updates to the input sensor, which includes attribute changes. Therefore if you wish to use a utility meter, you'll need to create a template sensor that wraps the consumption sensor you're wishing to target and just exposes the state, and use this template sensor as your input. This will ignore any attribute updates and stabilise the utility meter updates.</p>
+<h2 id="there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them">There are entities that are disabled. Why are they disabled and how do I enable them?<a class="headerlink" href="#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them" title="Permanent link">#</a></h2>
+<p>Some entities are disabled by default. This is usually because the entities are not applicable for all tariffs or are for niche scenarios. By having these entities disabled, it also doesn't overwhelm new users when they install the integration otherwise most users will be presented with over 40 different entities.</p>
+<p>Enabling entities is easy. All you need to do is</p>
+<ol>
+<li>Go to the <a href="https://my.home-assistant.io/redirect/integration/?domain=edf_energy">EDF Energy</a> integration.</li>
+<li>Click on <code>entities</code></li>
+<li>Find and click on the entity you want to enable. This is usually indicated by a "no entry" sign in the <code>status</code>.</li>
+<li>Click on the settings/cog button</li>
+<li>Click on the <code>enable</code> button or toggle the <code>Enabled</code> toggle to on</li>
+<li>Click on <code>update</code></li>
+</ol>
+<h2 id="i-have-entities-that-are-missing-is-the-integration-broken">I have entities that are missing. Is the integration broken?<a class="headerlink" href="#i-have-entities-that-are-missing-is-the-integration-broken" title="Permanent link">#</a></h2>
+<p>The integration only looks at the first property associated with your account that doesn't have a moved out date attached to it. If you are still missing entities, follow the instructions to <a href="#how-do-i-increase-the-logs-for-the-integration">increase the logs</a>.</p>
+<p>You should then see entries associated with this component stating either entities were added, skipped or no entities were available at all.</p>
+<p>The identifiers of the entities should then be checked against your EDF Energy dashboard to verify the correct entities are being picked up. If this is producing unexpected results, then you should raise an issue.</p>
+<h2 id="i-have-meters-that-are-missing-is-the-integration-broken">I have meters that are missing. Is the integration broken?<a class="headerlink" href="#i-have-meters-that-are-missing-is-the-integration-broken" title="Permanent link">#</a></h2>
+<p>The integration will only surface entities associated with meters in your first active property. Each meter must also have an active tariff associated with it. </p>
+<p>If you <a href="#ive-been-asked-for-my-meter-information-in-a-bug-request-how-do-i-obtain-this">follow the instructions</a> to download diagnostics, you can see all agreements associated with each of your meters. You will need an agreement with a start date in the past and an end date either set to <code>null</code> or in the future for the meter to be picked up by the integration.</p>
+<h2 id="my-gas-consumptioncosts-seem-out">My gas consumption/costs seem out<a class="headerlink" href="#my-gas-consumptioncosts-seem-out" title="Permanent link">#</a></h2>
+<p>Depending on the native reading from your meter or the sensor you're looking at, the consumption may have to be converted from kWh into cubic meters.</p>
+<ul>
+<li>The current consumption (m3) is always calculated, as the API provides this data in kWh.</li>
+<li>The previous consumption sensor (m3) <em>may</em> be calculated if your meter natively speaks in kWh. This is indicated by the <code>is_estimated</code> attribute on the sensor</li>
+</ul>
+<p>Because all rates are in kWh, if any conversions are required into kWh then the cost could also be out by this conversion.</p>
+<p>The conversion cubic meters (m3) to kWh is achieved by following this <a href="https://www.theenergyshop.com/guides/how-to-convert-gas-units-to-kwh">formula</a>. The part that can differ from person to person is the calorific value, which defaults in the integration to 40. This will most likely be incorrect, but unfortunately is not provided by the EDF Energy APIs. Therefore you'll need to set it as part of your <a href="../setup/account/#calorific-value">account</a>. This changes throughout the year and can be found on your latest bill.</p>
+<h2 id="the-rates-are-different-to-whats-on-my-bill-or-the-edf-energy-dashboard-is-there-something-wrong">The rates are different to what's on my bill or the EDF Energy dashboard. Is there something wrong?<a class="headerlink" href="#the-rates-are-different-to-whats-on-my-bill-or-the-edf-energy-dashboard-is-there-something-wrong" title="Permanent link">#</a></h2>
+<p>The first thing to do is make sure the correct tariff has been picked up. This can be done by confirming the tariff code on the <a href="../entities/electricity/#current-rate">electricity</a> or <a href="../entities/gas/#current-rate">gas</a> current rate sensors. This is picked up automatically via the API, so if this is wrong, then it means that either your account doesn't have your tariff configured yet or the wrong one is being picked up. This can be confirmed via your <a href="#ive-been-asked-for-my-meter-information-in-a-bug-request-how-do-i-obtain-this">meter information</a>.</p>
+<p>If the correct tariff is present, it might be that you're on a tariff that has different rates depending on if you pay by direct debit or not. This can be configured via your <a href="../setup/account/#favour-direct-debit-rates">account configuration</a>.</p>
+<h2 id="how-are-costs-sensors-calculated">How are costs sensors calculated?<a class="headerlink" href="#how-are-costs-sensors-calculated" title="Permanent link">#</a></h2>
+<p>Cost sensors are calculated by multiplying the consumption by the rate for each half hour block, which are then all added together.</p>
+<p>Each half hour block has it's consumption rounded to the nearest 0.01kwh before multiplying by the rate, which is rounded to the nearest penny. The rounding method used is rounding half to even, where numbers ending in 5 are rounded up or down, towards the nearest even hundredth decimal place. As a result, 0.015 would be rounded up to 0.02, while 0.025 is rounded down to 0.02. This is based on <a href="https://api.edfgb-kraken.energy/v1/docs/">EDF Energy API documentation</a></p>
+<h2 id="im-on-a-smart-charging-tariff-but-the-cost-sensors-are-out-is-this-normal">I'm on a Smart Charging tariff, but the cost sensors are out. Is this normal?<a class="headerlink" href="#im-on-a-smart-charging-tariff-but-the-cost-sensors-are-out-is-this-normal" title="Permanent link">#</a></h2>
+<p>EDF Energy only provide basic rate information for all tariffs (e.g. off peak and peak rates and the standard times they apply). On Smart Charging tariffs, the planned dispatches outside of normal off peak hours that are still available when they start are then used to adjust rates to off peak rates manually (e.g. if you have a planned dispatch at 10:00 to 10:30, which is still present at 10:00, then the rate between 10:00 to 10:30 will be adjusted to the off peak rate from the peak rate). Completed dispatches cannot be used for this as EDF Energy do not provide information on the cause of the completed dispatch.</p>
+<p>Unfortunately, planned dispatches are not available for certain providers. In these scenarios, rate information cannot be manually adjusted and therefore cost sensors will be incorrect in these scenarios. See the <a href="../entities/intelligent/#is-dispatching">dispatching sensor</a> for information on which Smart Charging providers this applies to.</p>
+<p>If the cost sensors are out and you are not on an affected Smart Charging provider, then please raise an issue.</p>
+<h2 id="im-having-issues-with-a-sensor-is-there-any-way-i-can-see-the-attributes-for-a-certain-point-in-time">I'm having issues with a sensor. Is there any way I can see the attributes for a certain point in time?<a class="headerlink" href="#im-having-issues-with-a-sensor-is-there-any-way-i-can-see-the-attributes-for-a-certain-point-in-time" title="Permanent link">#</a></h2>
+<p>The majority of attributes for entities are stored in the database for a short amount of time (default is around 10 days). Unfortunately, the only way of obtaining historic attributes is via the database. This can be done via the <a href="https://my.home-assistant.io/redirect/supervisor_addon/?addon=a0d7b954_sqlite-web">SQLite Web Add-On</a>, where the following SQL query can be executed. You'll need to change the target entity id from <code>binary_sensor.edf_energy_xxx_intelligent_dispatching</code> to the one you want to target.</p>
+<div class="highlight"><pre><span></span><code>SELECT states_meta.entity_id, states.state, state_attributes.shared_attrs, DATETIME(last_changed_ts, &#39;unixepoch&#39;), DATETIME(last_updated_ts, &#39;unixepoch&#39;)
+FROM &quot;states&quot;
+join state_attributes on states.attributes_id = state_attributes.attributes_id
+join states_meta on states_meta.metadata_id = states.metadata_id
+where states_meta.entity_id = &#39;binary_sensor.edf_energy_xxx_intelligent_dispatching&#39;
+order by last_updated_ts desc
+</code></pre></div>
+<h2 id="do-you-support-older-versions-of-the-integration">Do you support older versions of the integration?<a class="headerlink" href="#do-you-support-older-versions-of-the-integration" title="Permanent link">#</a></h2>
+<p>Due to time constraints, I will only ever support the latest version of the integration. If you have an issue with an older version of the integration, my initial answer will always be to update to the latest version. This might be different to what HACS is reporting if you are not on the minimum supported Home Assistant version (which is highlighted in each release's changelog). </p>
+<h2 id="how-do-i-know-when-theres-an-update-available">How do I know when there's an update available?<a class="headerlink" href="#how-do-i-know-when-theres-an-update-available" title="Permanent link">#</a></h2>
+<p>If you've installed via HACS, and you are on version 2 or above, then updates will be surfaced in the normal update location within Home Assistant. If you are on a version below 2, then you can keep an eye on <code>sensor.hacs</code> to see the number of pending updates. This could be used with an automation or highlighted on your dashboard. This will include any HACS integration update, not just this one.</p>
+<p>If you've installed the integration manually, then you should keep an eye on the <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases">GitHub releases</a>. You could even subscribe to the <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases.atom">RSS feed</a>.</p>
+<h2 id="theres-a-beta-release-of-the-integration-that-i-would-like-to-take-part-in-how-do-i-do-this">There's a beta release of the integration that I would like to take part in, how do I do this?<a class="headerlink" href="#theres-a-beta-release-of-the-integration-that-i-would-like-to-take-part-in-how-do-i-do-this" title="Permanent link">#</a></h2>
+<p>If you install the integration manually, it's just a case of getting the source of the <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases">beta release</a>, replacing the old installation with the new one and restarting Home Assistant.</p>
+<p>If you install the integration via HACS, then you will need to</p>
+<ul>
+<li>Go to <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=stevekirtley&amp;repository=HomeAssistant-EDFEnergy&amp;category=integration">HACS</a>, click on the three dots and then click redownload</li>
+</ul>
+<p><img alt="Redownload screen in HACS" src="../assets/beta-hacs-redownload.png" /></p>
+<ul>
+<li>If you are on version 2 or above, then click on <code>Need a different version?</code> and select the <code>Release</code> box and then select your target <code>pre-release</code> version</li>
+</ul>
+<p><img alt="Beta toggle in HACS" src="../assets/beta-hacs-pre-release.png" /></p>
+<p>If you are on a version below 2, then toggle on <code>Show beta versions</code> and select the target beta. Once selected, click <code>Download</code>.</p>
+<p><img alt="Beta toggle in HACS" src="../assets/beta-hacs-beta-toggle.png" /></p>
+<ul>
+<li>Once downloaded, you'll need to restart Home Assistant for the new version to take effect.</li>
+</ul>
+<h2 id="how-do-i-increase-the-logs-for-the-integration">How do I increase the logs for the integration?<a class="headerlink" href="#how-do-i-increase-the-logs-for-the-integration" title="Permanent link">#</a></h2>
+<p>If you are having issues, it would be helpful to include Home Assistant logs as part of any raised issue. This can be done by following the <a href="https://www.home-assistant.io/docs/configuration/troubleshooting/#enabling-debug-logging">instructions</a> outlined by Home Assistant.</p>
+<p>You should run these logs for about a day and then include the contents in the issue. Please be sure to remove any personal identifiable information from the logs before including them.</p>
+<h2 id="ive-been-asked-for-my-meter-information-in-a-bug-request-how-do-i-obtain-this">I've been asked for my meter information in a bug request, how do I obtain this?<a class="headerlink" href="#ive-been-asked-for-my-meter-information-in-a-bug-request-how-do-i-obtain-this" title="Permanent link">#</a></h2>
+<p>If you've been asked for meter information, don't worry we won't ask for anything sensitive. To obtain this information</p>
+<ol>
+<li>Navigate to <a href="https://my.home-assistant.io/redirect/devices/">your devices</a></li>
+<li>Search for "EDF Energy"</li>
+<li>Click on one of the meters</li>
+<li>Click on "Download diagnostics"</li>
+<li>Take the contents of the downloads json file and paste into the bug report. Remember to surround the contents with ``` both at the start and end.</li>
+</ol>
+<p>Alternatively</p>
+<ol>
+<li>Navigate to the <a href="https://my.home-assistant.io/redirect/integration/?domain=edf_energy">EDF Energy integration</a></li>
+<li>Click the three dots next to your account configuration</li>
+<li>Click on "Download diagnostics"</li>
+<li>Take the contents of the downloads json file and paste into the bug report. Remember to surround the contents with ``` both at the start and end.</li>
+</ol>
+
+
+
+
+
+
+
+
+  <aside class="md-source-file">
+    
+    
+    
+      
+  
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Contributors">
+      
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5.5A3.5 3.5 0 0 1 15.5 9a3.5 3.5 0 0 1-3.5 3.5A3.5 3.5 0 0 1 8.5 9 3.5 3.5 0 0 1 12 5.5M5 8c.56 0 1.08.15 1.53.42-.15 1.43.27 2.85 1.13 3.96C7.16 13.34 6.16 14 5 14a3 3 0 0 1-3-3 3 3 0 0 1 3-3m14 0a3 3 0 0 1 3 3 3 3 0 0 1-3 3c-1.16 0-2.16-.66-2.66-1.62a5.54 5.54 0 0 0 1.13-3.96c.45-.27.97-.42 1.53-.42M5.5 18.25c0-2.07 2.91-3.75 6.5-3.75s6.5 1.68 6.5 3.75V20h-13zM0 20v-1.5c0-1.39 1.89-2.56 4.45-2.9-.59.68-.95 1.62-.95 2.65V20zm24 0h-3.5v-1.75c0-1.03-.36-1.97-.95-2.65 2.56.34 4.45 1.51 4.45 2.9z"/></svg>
+      
+    </span>
+    <nav>
+      BottlecapDave, stevekirtley
+    </nav>
+  </span>
+
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.top", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>

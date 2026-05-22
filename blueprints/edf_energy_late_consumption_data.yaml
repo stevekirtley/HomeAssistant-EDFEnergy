@@ -1,0 +1,72 @@
+blueprint:
+  name: EDF Energy - Late Consumption Data
+  description: Automatically get an alert if consumption data isn't available within the specified timeframe as long as the data has been retrieved recently.
+  domain: automation
+  author: BottlecapDave (amended for EDF Energy by Steve Kirtley)
+  input:
+    previous_accumulative_consumption_entity:
+      name: Previous accumulative consumption entity
+      description: The entity which reports the previous accumulative consumption (e.g sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_consumption)
+      selector:
+        entity:
+          filter:
+          - domain:
+            - sensor
+            integration: edf_energy
+    energy_source:
+      name: Energy source
+      description: The type of energy the rate is for
+      selector:
+        select:
+          options:
+          - Electricity
+          - Gas
+          multiple: false
+          sort: false
+          custom_value: false
+    alert_hours:
+      name: Alert hours
+      description: The number of hours between now and the timestamp entity before the automation will trigger
+      default: 1
+      selector:
+        number:
+          min: 1.0
+          max: 720.0
+          mode: slider
+          step: 1.0
+    actions:
+      name: Actions
+      description: Notifications or similar to be run. {{message}} is an example message
+      selector:
+        action: {}
+trigger_variables:
+  previous_accumulative_consumption_entity: !input previous_accumulative_consumption_entity
+  alert_hours: !input alert_hours
+  energy_source: !input energy_source
+variables:
+  hours_since: >
+    {% set charges = state_attr(previous_accumulative_consumption_entity, 'charges') %}
+    {% set latest_charge = charges[-1]["end"] if charges else None %}
+    {% if latest_charge %}
+    {{ ((now() - latest_charge).seconds / 3600) }}
+    {% else %}
+    0
+    {% endif %}
+  message: '{{ energy_source }} consumption data is running late. It was last available {{ hours_since | int }} hours ago.'
+mode: queued
+max: 4
+trigger:
+- platform: template
+  value_template: >
+    {% set charges = state_attr(previous_accumulative_consumption_entity, 'charges') %}
+    {% set latest_charge = charges[-1]["end"] if charges else None %}
+    {% if latest_charge %}
+    {% set hours_since = ((now() - latest_charge).seconds / 3600) %}
+    {% else %}
+    {% set hours_since = 0 %}
+    {% endif %}
+    {{ hours_since >= alert_hours }}
+condition: []
+action:
+- choose: []
+  default: !input actions
