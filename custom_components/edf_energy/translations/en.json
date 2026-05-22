@@ -253,7 +253,7 @@
     },
     "tariff_rates_empty": {
       "title": "{meter_type} {tariff_code} rates are empty for {account_id} ({mprn_mpan}/{serial_number})",
-      "description": "One of your meters ({mprn_mpan}/{serial_number}) is associated with tariff \"{tariff_code}\" for product \"{product_code}\", but no longer seems to be returning new rates. Please click \"Learn More\" with details on how to rectify this."
+      "description": "One of your meters ({mprn_mpan}/{serial_number}) is associated with tariff \"{tariff_code}\" for product \"{product_code}\", but no longer seems to be returning new rates. This can occur if your tariff has ended but you have not been moved to a new one, or if there is a temporary issue with the EDF Energy rate feed. Please contact EDF Energy if the issue persists."
     },
     "tariff_rates_empty_fixable": {
       "title": "No published rates found for {tariff_code}",
