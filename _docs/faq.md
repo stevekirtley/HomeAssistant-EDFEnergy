@@ -128,7 +128,7 @@ If you wish to suppress this warning, you can follow [this advice](https://githu
 
 ## I am getting errors relating to "Too many requests". Is there something wrong?
 
-The EDF Energy APIs have a rate limit of 100 calls per hour, which is shared among all calls including through the app or other integrations. The defaults are usually enough for one electricity and one gas meter's data to be retrieved. However, if you are using other integrations or have more meters being tracked you may want to increase this rate via your [account](./setup/account.md#refresh-rate-in-minutes).
+The EDF Energy APIs have a rate limit of 100 calls per hour, which is shared among all calls including through the app or other integrations. The defaults are usually enough for one electricity and one gas meter's data to be retrieved. However, if you are using other integrations or have more meters being tracked you may want to increase this rate via your [account](./setup/account.md).
 
 If you are receiving this error for a different reason, please raise an [issue](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues), as EDF Energy might have introduced a new rate limit.
 

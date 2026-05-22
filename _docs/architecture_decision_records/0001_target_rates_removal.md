@@ -15,7 +15,7 @@ To address these issues, a new integration, [Target Timeframes](https://bottleca
 ## Decision
 Deprecate and remove target rate sensors from the EDF Energy integration in favor of the Target Timeframes integration.
 
-- A migration guide has been provided: [Target Timeframes Migration Guide](./migrations/target_timeframes/).  
+- A migration guide has been provided: [Target Timeframes Migration Guide](../migrations/target_timeframes.md).  
 - A set of [blueprints](https://github.com/BottlecapDave/HomeAssistant-TargetTimeframes) for using EDF Energy data with Target Timeframes is already available.  
 - A repair notice has been introduced to inform users of the upcoming removal.  
 - The target rate sensors feature will be removed six months from the notice, around the end of **November 2025**.  
