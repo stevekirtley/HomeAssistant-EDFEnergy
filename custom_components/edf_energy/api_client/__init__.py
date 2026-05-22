@@ -751,7 +751,7 @@ class EDFEnergyApiClient:
         async with client.get(url, auth=auth, headers=headers) as response:
           data = await self.__async_read_response__(response, url)
           if data is None:
-            return None
+            return []
           else:
             results = results + rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._electricity_price_cap, self._favour_direct_debit_rates)
             has_more_rates = "next" in data and data["next"] is not None
@@ -778,9 +778,9 @@ class EDFEnergyApiClient:
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if data is None:
-          return None
+          return []
         else:
-          # Normalise the rates to be in 30 minute increments and remove any rates that fall outside of our day period 
+          # Normalise the rates to be in 30 minute increments and remove any rates that fall outside of our day period
           day_rates = rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._electricity_price_cap, self._favour_direct_debit_rates)
           for rate in day_rates:
             if self.__is_night_rate(rate, is_smart_meter) == False:
@@ -790,9 +790,9 @@ class EDFEnergyApiClient:
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if data is None:
-          return None
+          return []
 
-        # Normalise the rates to be in 30 minute increments and remove any rates that fall outside of our night period 
+        # Normalise the rates to be in 30 minute increments and remove any rates that fall outside of our night period
         night_rates = rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._electricity_price_cap, self._favour_direct_debit_rates)
         for rate in night_rates:
           if self.__is_night_rate(rate, is_smart_meter) == True:
@@ -927,7 +927,7 @@ class EDFEnergyApiClient:
       _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
       raise TimeoutException()
 
-  async def async_get_product(self, product_code):
+  async def async_get_product(self, product_code: str):
     """Get all products"""
 
     try:
@@ -1317,11 +1317,9 @@ class EDFEnergyApiClient:
   def __get_interval_end(self, item):
     return (item["end"].timestamp(), item["end"].fold)
 
-  def __is_night_rate(self, rate, is_smart_meter):
+  def __is_night_rate(self, rate, is_smart_meter: bool):
     # Normally the economy seven night rate is between 12am and 7am UK time
-    # https://octopus.energy/help-and-faqs/articles/what-is-an-economy-7-meter-and-tariff/
     # However, if a smart meter is being used then the times are between 12:30am and 7:30am UTC time
-    # https://octopus.energy/help-and-faqs/articles/what-happens-to-my-economy-seven-e7-tariff-when-i-have-a-smart-meter-installed/
     if is_smart_meter:
         is_night_rate = self.__is_between_times(rate, "00:30:00", "07:30:00", True)
     else:
