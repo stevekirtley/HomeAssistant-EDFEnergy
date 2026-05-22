@@ -13,12 +13,7 @@ nav:
   - Entities:
     - Electricity: ./entities/electricity.md
     - Gas: ./entities/gas.md
-    - Octoplus: ./entities/octoplus.md
     - Intelligent: ./entities/intelligent.md
-    - Wheel Of Fortune: ./entities/wheel_of_fortune.md
-    - Greenness Forecast: ./entities/greenness_forecast.md
-    - Home Pro: ./entities/home_pro.md
-    - Heat Pump: ./entities/heat_pump.md
     - Diagnostics: ./entities/diagnostics.md
   - Migrations:
     - ./migrations/target_timeframes.md
@@ -26,22 +21,17 @@ nav:
   - events.md
   - Repairs:
     - ./repairs/account_not_found.md
-    - ./repairs/octopus_mini_not_valid.md
     - ./repairs/unknown_product.md
     - ./repairs/cost_override_obsolete.md
     - ./repairs/unknown_intelligent_provider.md
     - ./repairs/no_active_tariff.md
     - ./repairs/meter_removed.md
     - ./repairs/tariff_rates_empty.md
-  - Community: community.md
   - blueprints.md
   - Architecture Decision Records:
     - ./architecture_decision_records/0001_target_rates_removal.md
     - ./architecture_decision_records/0002_intelligent_is_dispatching_behaviour_changes.md
-    - ./architecture_decision_records/0003_move_to_calendar_entities_for_octoplus_events.md
   - faq.md
-  - sponsorship.md
-  - Other Integrations: https://bottlecapdave.github.io/HomeAssistant-Integrations
 
 # extra:
 #   version:
