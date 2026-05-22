@@ -1,5 +1,6 @@
 site_name: Home Assistant EDF Energy
-repo_url: https://github.com/bottlecapdave/homeassistant-octopusenergy
+site_url: https://stevekirtley.github.io/HomeAssistant-EDFEnergy/
+repo_url: https://github.com/stevekirtley/HomeAssistant-EDFEnergy
 docs_dir: _docs
 
 nav:

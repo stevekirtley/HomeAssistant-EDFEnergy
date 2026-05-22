@@ -16,7 +16,7 @@ env:
 
 jobs:
   build_docs:
-    if: ${{ (github.repository_owner == 'BottlecapDave' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')) == false }}
+    if: ${{ (github.repository_owner == 'stevekirtley' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')) == false }}
     name: Build docs
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +38,7 @@ jobs:
       - run: mkdocs build --strict
 
   deploy_docs:
-    if: ${{ github.repository_owner == 'BottlecapDave' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main') }}
+    if: ${{ github.repository_owner == 'stevekirtley' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main') }}
     name: Deploy docs
     runs-on: ubuntu-latest
     permissions:

@@ -144,7 +144,7 @@ async def async_refresh_electricity_rates_data(
       if new_rates is not None:
         _LOGGER.debug(f'Electricity rates retrieved for {target_mpan}/{target_serial_number} ({tariff.code});')
 
-        if len(new_rates) == 0 and raise_rates_empty is not None:
+        if len(new_rates) == 0 and raise_rates_empty is not None and not is_export_meter:
           raise_rates_empty(tariff)
         elif clear_rates_empty is not None:
           clear_rates_empty(tariff)
