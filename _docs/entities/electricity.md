@@ -281,7 +281,7 @@ Due to limitation of HA entities, the data will be updated as a single record, w
     This retrieves the data reported directly by the meter which is used to calculate your bill.
 
 !!! info
-    If you are on an intelligent tariff, this will not include charges that are done outside of normal off peak hours in certain scenarios. See the [FAQ](../faq.md#im-on-an-intelligent-tariff-but-the-cost-sensors-are-out-is-this-normal) for more information around this.
+    If you are on an intelligent tariff, this will not include charges that are done outside of normal off peak hours in certain scenarios. See the [FAQ](../faq.md#im-on-a-smart-charging-tariff-but-the-cost-sensors-are-out-is-this-normal) for more information around this.
 
 !!! warning
 
