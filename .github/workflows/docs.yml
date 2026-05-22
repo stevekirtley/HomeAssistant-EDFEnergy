@@ -25,6 +25,9 @@ jobs:
           fetch-depth: 0
           sparse-checkout: |
             _docs
+            mkdocs.yml
+            requirements.txt
+            .tool-versions
       - name: Install Python build dependencies
         run: sudo apt-get install -y libbz2-dev libreadline-dev liblzma-dev
       - name: asdf_install
@@ -51,6 +54,9 @@ jobs:
           fetch-depth: 0
           sparse-checkout: |
             _docs
+            mkdocs.yml
+            requirements.txt
+            .tool-versions
       - name: Install Python build dependencies
         run: sudo apt-get install -y libbz2-dev libreadline-dev liblzma-dev
       - name: asdf_install
