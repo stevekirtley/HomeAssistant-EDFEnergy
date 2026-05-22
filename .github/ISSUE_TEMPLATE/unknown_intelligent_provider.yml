@@ -2,7 +2,7 @@ name: Unknown intelligent provider
 description: You have been notified of an unknown intelligent provider within HA and want to help resolve the issue.
 labels: ["enhancement"]
 assignees:
-  - BottlecapDave
+  - stevekirtley
 body:
   - type: input
     id: provider

@@ -2,7 +2,7 @@ name: Feature Request
 description: Request a new feature to help improve the integration
 labels: ["enhancement"]
 assignees:
-  - BottlecapDave
+  - stevekirtley
 body:
   - type: textarea
     id: description
@@ -31,6 +31,6 @@ body:
       label: Confirmation
       description: 
       options:
-        - label: By submitting this feature request, you agree that you have read the [documentation](https://bottlecapdave.github.io/HomeAssistant-EDFEnergy) and confirmed it does not already exist
+        - label: By submitting this feature request, you agree that you have read the [documentation](https://stevekirtley.github.io/HomeAssistant-EDFEnergy) and confirmed it does not already exist
           required: true
         - label: I am willing/able to help contribute to the solution of this feature

@@ -2,7 +2,7 @@ name: Bug/Issue Report
 description: Create a bug/issue detailing something that is broken or not working correctly
 labels: ["bug"]
 assignees:
-  - BottlecapDave
+  - stevekirtley
 body:
   - type: markdown
     attributes:
@@ -66,7 +66,7 @@ body:
     id: ha-logs
     attributes:
       label: Home Assistant Logs
-      description: Paste any related Home Assistant logs here. Please follow the instructions as outlined in the [FAQ](https://bottlecapdave.github.io/HomeAssistant-EDFEnergy/faq#how-do-i-increase-the-logs-for-the-integration)
+      description: Paste any related Home Assistant logs here. Please follow the instructions as outlined in the [FAQ](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/faq#how-do-i-increase-the-logs-for-the-integration)
     validations:
       required: true
   - type: checkboxes
@@ -75,7 +75,7 @@ body:
       label: Confirmation
       description: 
       options:
-        - label: I confirm that I cannot find my solution within the [documentation](https://bottlecapdave.github.io/HomeAssistant-EDFEnergy)
+        - label: I confirm that I cannot find my solution within the [documentation](https://stevekirtley.github.io/HomeAssistant-EDFEnergy)
           required: true
-        - label: I confirm that I cannot find my solution within the [FAQ](https://bottlecapdave.github.io/HomeAssistant-EDFEnergy/faq)
+        - label: I confirm that I cannot find my solution within the [FAQ](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/faq)
           required: true
