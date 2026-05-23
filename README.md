@@ -76,7 +76,7 @@ The integration authenticates with the EDF Energy Kraken API using your email an
 
 ## FAQ
 
-See the `_docs/` folder, or the upstream [OctopusEnergy FAQ](https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/faq/) — most answers apply equally here since the underlying Kraken API is the same.
+See the [EDF Energy integration docs](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/).
 
 ## Sponsorship 
 
