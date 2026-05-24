@@ -117,7 +117,7 @@
       this._activeTab = null;
       this._activeView = 'halfhourly';
       this._activeUnit = 'kwh';
-      this._periodOffset = 0;
+      this._periodOffset = 1; // default to yesterday — today's data lags by a day
       this._chart = null;
       this._metersKey = null;
       this._renderedKey = null;
@@ -259,7 +259,7 @@
       const btnPrev = this.shadowRoot.getElementById('btn-prev');
       const btnNext = this.shadowRoot.getElementById('btn-next');
       const labelEl = this.shadowRoot.getElementById('period-label');
-      const maxOffset = this._activeView === 'halfhourly' ? 1 : 99;
+      const maxOffset = this._activeView === 'halfhourly' ? 60 : 99;
       if (btnPrev) btnPrev.disabled = this._periodOffset >= maxOffset;
       if (btnNext) btnNext.disabled = this._periodOffset <= 0;
       if (labelEl)  labelEl.textContent = this._navLabel();
@@ -270,6 +270,9 @@
       if (this._activeView === 'halfhourly') {
         if (o === 0) return 'Today';
         if (o === 1) return 'Yesterday';
+        const d = new Date();
+        d.setDate(d.getDate() - o);
+        return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
       }
       const { start, end } = this._periodRange();
       const fmt = this._activeView === 'monthly'
@@ -291,7 +294,7 @@
       this.shadowRoot.querySelectorAll('#view-btns button').forEach(btn => {
         btn.addEventListener('click', () => {
           this._activeView = btn.dataset.view;
-          this._periodOffset = 0;
+          this._periodOffset = btn.dataset.view === 'halfhourly' ? 1 : 0;
           this._syncControls();
           this._scheduleUpdate(0);
         });
@@ -325,8 +328,9 @@
 
     _scheduleUpdate(delay = 300) {
       clearTimeout(this._updateTimer);
-      // For stats views, skip routine hass-triggered refreshes if the chart is already current
-      if (delay === 300 && this._activeView !== 'halfhourly' && this._dataKey() === this._renderedKey) return;
+      // Only today/yesterday halfhourly is live; everything else is cached by _dataKey
+      const isLive = this._activeView === 'halfhourly' && this._periodOffset <= 1;
+      if (delay === 300 && !isLive && this._dataKey() === this._renderedKey) return;
       this._updateTimer = setTimeout(() => this._doUpdate(), delay);
     }
 
@@ -335,8 +339,10 @@
       this._showMsg('Loading…');
       try {
         let result;
-        if (this._activeView === 'halfhourly') {
+        if (this._activeView === 'halfhourly' && this._periodOffset <= 1) {
           result = this._getHalfHourlyData();
+        } else if (this._activeView === 'halfhourly') {
+          result = await this._getHourlyData();
         } else if (this._activeTab === 'net') {
           result = await this._getNetCostData();
         } else {
@@ -397,6 +403,60 @@
         isHalfHourly: true,
         summary,
       };
+    }
+
+    // ── Hourly data (historical days via stats API) ───────────────────────────
+
+    async _getHourlyData() {
+      const tabInfo = this._tabs.find(t => t.id === this._activeTab);
+      if (!tabInfo?.entity) return null;
+
+      const target = new Date();
+      target.setDate(target.getDate() - this._periodOffset);
+
+      const dayStart = new Date(target);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(target);
+      dayEnd.setHours(23, 59, 59, 999);
+      const refStart = new Date(dayStart);
+      refStart.setHours(refStart.getHours() - 1);
+
+      const costStatId = this._toStatId(tabInfo.entity);
+      const kwhStatId  = this._kwhStatId(tabInfo.entity);
+      const scPerDay   = this._standingChargePerDay(tabInfo.entity);
+      const showCost   = this._activeUnit === 'cost';
+
+      const result  = await this._fetchStats([costStatId, kwhStatId], 'hour', refStart, dayEnd);
+      const startMs = dayStart.getTime();
+      const { window: costStats, refSum: refCostSum } = this._splitRef(result[costStatId] || [], startMs);
+      const { window: kwhStats,  refSum: refKwhSum  } = this._splitRef(result[kwhStatId]  || [], startMs);
+
+      const refStats = costStats.length ? costStats : kwhStats;
+      if (!refStats.length) return null;
+
+      const scPerHour  = scPerDay / 24;
+      const categories = refStats.map(s => {
+        const d = new Date(s.start);
+        return `${String(d.getHours()).padStart(2, '0')}:00`;
+      });
+      const costData  = costStats.map((s, i) => +(this._sumChange(costStats, i, refCostSum) + scPerHour).toFixed(4));
+      const kwhData   = kwhStats.map((s, i)  => +(this._sumChange(kwhStats,  i, refKwhSum)).toFixed(3));
+      const totalCost = costData.reduce((a, b) => a + b, 0);
+      const totalKwh  = kwhData.reduce((a, b) => a + b, 0);
+
+      const series = showCost
+        ? [{ name: '£',   data: costData.length ? costData : Array(refStats.length).fill(0) }]
+        : [{ name: 'kWh', data: kwhData.length  ? kwhData  : Array(refStats.length).fill(0) }];
+
+      const dateLabel = target.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+      const summary = showCost
+        ? [{ label: dateLabel, value: '£' + totalCost.toFixed(2) }, { label: 'kWh', value: totalKwh.toFixed(2) }]
+        : [
+            { label: dateLabel, value: totalKwh.toFixed(2) + ' kWh' },
+            ...(totalCost > 0 ? [{ label: 'Unit cost', value: '£' + totalCost.toFixed(2) }] : []),
+          ];
+
+      return { series, categories, unit: showCost ? '£' : 'kWh', summary };
     }
 
     // ── Statistics data ───────────────────────────────────────────────────────
