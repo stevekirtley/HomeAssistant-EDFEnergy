@@ -1,6 +1,15 @@
 (function () {
   'use strict';
 
+  // ── Ensure consumption card is loaded ─────────────────────────────────────────
+
+  (function () {
+    if (customElements.get('edf-energy-consumption-card')) return;
+    const s = document.createElement('script');
+    s.src = '/edf_energy/edf-energy-consumption-card.js';
+    document.head.appendChild(s);
+  })();
+
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   function localDateKey(date) {
@@ -209,6 +218,31 @@
       animation: fadeout 2.5s forwards;
     }
     @keyframes fadeout { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+
+    /* ── Panel tabs ── */
+    .panel-tabs {
+      display: flex;
+      background: var(--primary-background-color);
+      border-bottom: 2px solid var(--divider-color, #e0e0e0);
+      position: sticky; top: 56px; z-index: 9;
+    }
+    .panel-tab {
+      flex: 1; padding: 12px 8px; border: none; background: none;
+      font-size: 0.9em; font-weight: 500; cursor: pointer;
+      color: var(--secondary-text-color); font-family: inherit;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: all 0.15s;
+    }
+    .panel-tab.active {
+      color: var(--primary-color, #3d5afe);
+      border-bottom-color: var(--primary-color, #3d5afe);
+    }
+    .panel-tab:hover:not(.active) {
+      color: var(--primary-text-color);
+      background: rgba(var(--rgb-primary-text-color,0,0,0),0.04);
+    }
+    #view-consumption { padding: 16px; }
+    edf-energy-consumption-card { display: block; }
   `;
 
   // ── Panel element ─────────────────────────────────────────────────────────────
@@ -220,6 +254,8 @@
       this._hass = null;
       this._selectedDateKey = null;
       this._lastChanged = null;
+      this._activePanel = 'charging';
+      this._consumptionCard = null;
       // Track pending edits so a mid-typing re-render doesn't overwrite inputs
       this._pending = {};  // { entityId: value }
     }
@@ -238,11 +274,13 @@
 
       if (token === this._lastChanged && this.shadowRoot.children.length > 0) {
         this._hass = hass;
+        if (this._activePanel === 'consumption') this._syncConsumptionCard();
         return;
       }
       this._lastChanged = token;
       this._hass = hass;
       this._render();
+      if (this._activePanel === 'consumption') this._syncConsumptionCard();
     }
 
     set panel(panel) { this._panel = panel; }
@@ -478,6 +516,20 @@
       `;
     }
 
+    // ── Consumption card ────────────────────────────────────────────────────────
+
+    _syncConsumptionCard() {
+      if (!this._consumptionCard) {
+        this._consumptionCard = document.createElement('edf-energy-consumption-card');
+        this._consumptionCard.setConfig({ title: 'Consumption' });
+      }
+      this._consumptionCard.hass = this._hass;
+      const slot = this.shadowRoot.getElementById('consumption-slot');
+      if (slot && !slot.contains(this._consumptionCard)) {
+        slot.appendChild(this._consumptionCard);
+      }
+    }
+
     // ── Full render ─────────────────────────────────────────────────────────────
 
     _render() {
@@ -519,12 +571,22 @@
             <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
           </svg>
           <div style="flex:1;min-width:0">
-            <div class="toolbar-title">EDF Energy${de ? ' · Smart Charging' : ''}</div>
+            <div class="toolbar-title">EDF Energy</div>
             ${deviceLabel ? `<div class="toolbar-sub">${esc(deviceLabel)}</div>` : ''}
           </div>
           ${stateLabel ? `<div class="status-pill${isActive ? ' on' : ''}">${esc(stateLabel)}</div>` : ''}
         </div>
 
+        <div class="panel-tabs">
+          <button class="panel-tab${this._activePanel === 'charging' ? ' active' : ''}" data-panel="charging">Smart Charging</button>
+          <button class="panel-tab${this._activePanel === 'consumption' ? ' active' : ''}" data-panel="consumption">Consumption</button>
+        </div>
+
+        <div id="view-consumption" style="${this._activePanel === 'consumption' ? '' : 'display:none'}">
+          <div id="consumption-slot"></div>
+        </div>
+
+        <div id="view-charging" style="${this._activePanel === 'charging' ? '' : 'display:none'}">
         <div class="content">
           ${!hasAny
             ? `<div class="card"><div class="no-entity">No EDF Energy entities found. Check the integration is set up correctly.</div></div>`
@@ -610,6 +672,7 @@
             `}
           `}
         </div>
+        </div>
       `;
 
       this._attachListeners(ids, dates, idx, canOlder, canNewer);
@@ -617,6 +680,18 @@
 
     _attachListeners(ids, dates, idx, canOlder, canNewer) {
       const root = this.shadowRoot;
+
+      // ── Panel tab switching ────────────────────────────────────────────────
+      root.querySelectorAll('.panel-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this._activePanel = btn.dataset.panel;
+          root.querySelectorAll('.panel-tab').forEach(b =>
+            b.classList.toggle('active', b.dataset.panel === this._activePanel));
+          root.getElementById('view-charging').style.display   = this._activePanel === 'charging'   ? '' : 'none';
+          root.getElementById('view-consumption').style.display = this._activePanel === 'consumption' ? '' : 'none';
+          if (this._activePanel === 'consumption') this._syncConsumptionCard();
+        });
+      });
 
       // ── Date navigation ────────────────────────────────────────────────────
       root.getElementById('date-select')?.addEventListener('change', e => {

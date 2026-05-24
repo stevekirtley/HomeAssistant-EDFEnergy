@@ -1,0 +1,569 @@
+(function () {
+  'use strict';
+
+  // ── ApexCharts loader ─────────────────────────────────────────────────────────
+
+  let _apexPromise = null;
+  function ensureApexCharts() {
+    if (_apexPromise) return _apexPromise;
+    _apexPromise = new Promise((resolve, reject) => {
+      if (window.ApexCharts) { resolve(window.ApexCharts); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/apexcharts@3/dist/apexcharts.min.js';
+      s.onload = () => resolve(window.ApexCharts);
+      s.onerror = () => reject(new Error('Failed to load ApexCharts'));
+      document.head.appendChild(s);
+    });
+    return _apexPromise;
+  }
+
+  // ── Styles ────────────────────────────────────────────────────────────────────
+
+  const STYLES = `
+    :host { display: block; }
+    ha-card { overflow: hidden; }
+
+    .card-header {
+      padding: 16px 16px 0;
+      font-size: 1.15em; font-weight: 500;
+      color: var(--ha-card-header-color, var(--primary-text-color));
+    }
+
+    .meter-tabs {
+      display: flex; gap: 4px; padding: 10px 16px 0; overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .meter-tabs::-webkit-scrollbar { display: none; }
+
+    .meter-tab {
+      padding: 5px 13px; border-radius: 16px;
+      border: 1px solid var(--divider-color, #e0e0e0);
+      background: none; color: var(--secondary-text-color);
+      font-size: 0.82em; cursor: pointer; white-space: nowrap;
+      font-family: inherit; transition: all 0.15s; flex-shrink: 0;
+    }
+    .meter-tab.active {
+      background: var(--primary-color, #3d5afe); color: #fff; border-color: transparent;
+    }
+
+    .controls-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 16px;
+    }
+
+    .btn-group {
+      display: flex; border: 1px solid var(--divider-color, #e0e0e0);
+      border-radius: 6px; overflow: hidden;
+    }
+    .btn-group button {
+      background: none; border: none; padding: 4px 11px;
+      font-size: 0.8em; cursor: pointer; font-family: inherit;
+      color: var(--secondary-text-color);
+      border-right: 1px solid var(--divider-color, #e0e0e0);
+      transition: all 0.15s;
+    }
+    .btn-group button:last-child { border-right: none; }
+    .btn-group button.active {
+      background: var(--primary-color, #3d5afe); color: #fff;
+    }
+
+    .chart-wrap { padding: 0 4px 4px; min-height: 180px; }
+    .chart-container { width: 100%; }
+
+    .summary {
+      display: flex; gap: 8px; padding: 0 16px 16px; flex-wrap: wrap;
+    }
+    .summary-item {
+      flex: 1; min-width: 70px;
+      background: var(--secondary-background-color, rgba(0,0,0,0.04));
+      border-radius: 8px; padding: 8px 10px;
+    }
+    .summary-label { font-size: 0.72em; color: var(--secondary-text-color); }
+    .summary-value { font-size: 1em; font-weight: 600; color: var(--primary-text-color); margin-top: 2px; }
+
+    .state-msg {
+      padding: 28px 16px; text-align: center;
+      color: var(--secondary-text-color); font-size: 0.9em; min-height: 60px;
+    }
+  `;
+
+  // ── Card ──────────────────────────────────────────────────────────────────────
+
+  class EDFEnergyConsumptionCard extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' });
+      this._config = {};
+      this._hass = null;
+      this._meters = null;
+      this._tabs = [];
+      this._activeTab = null;
+      this._activeView = 'halfhourly';
+      this._activeUnit = 'kwh';
+      this._chart = null;
+      this._metersKey = null;
+      this._updateTimer = null;
+    }
+
+    setConfig(config) {
+      this._config = config || {};
+    }
+
+    set hass(hass) {
+      this._hass = hass;
+      const meters = this._discoverMeters(hass);
+      const key = JSON.stringify(meters);
+      if (key !== this._metersKey) {
+        this._metersKey = key;
+        this._meters = meters;
+        this._tabs = this._buildTabs(meters);
+        if (!this._tabs.find(t => t.id === this._activeTab))
+          this._activeTab = this._tabs[0]?.id || null;
+        this._buildShell();
+      }
+      this._scheduleUpdate();
+    }
+
+    // ── Discovery ─────────────────────────────────────────────────────────────
+
+    _discoverMeters(hass) {
+      const m = {};
+      if (!hass) return m;
+      for (const id of Object.keys(hass.states)) {
+        if (!id.startsWith('sensor.edf_energy_')) continue;
+        if (!id.endsWith('_previous_accumulative_cost')) continue;
+        if (id.includes('_electricity_') && !id.includes('_export_')) {
+          if (!m.import) m.import = id;
+        } else if (id.includes('_electricity_') && id.includes('_export_')) {
+          if (!m.export) m.export = id;
+        } else if (id.includes('_gas_')) {
+          if (!m.gas) m.gas = id;
+        }
+      }
+      return m;
+    }
+
+    _buildTabs(meters) {
+      const tabs = [];
+      if (meters.import) tabs.push({ id: 'import', label: 'Electricity', entity: meters.import });
+      if (meters.export) tabs.push({ id: 'export', label: 'Export',      entity: meters.export });
+      if (meters.gas)    tabs.push({ id: 'gas',    label: 'Gas',         entity: meters.gas    });
+      if (meters.import && meters.export)
+        tabs.push({ id: 'net', label: 'Net Cost', entity: null });
+      return tabs;
+    }
+
+    // ── ID helpers ────────────────────────────────────────────────────────────
+
+    _toStatId(entityId) {
+      return entityId.replace(/^sensor\.edf_energy_/, 'edf_energy:');
+    }
+
+    _kwhStatId(entityId) {
+      const base = this._toStatId(entityId);
+      return entityId.includes('_gas_')
+        ? base.replace('_previous_accumulative_cost', '_previous_accumulative_consumption_kwh')
+        : base.replace('_previous_accumulative_cost', '_previous_accumulative_consumption');
+    }
+
+    _currentAccEntity(entityId) {
+      return entityId.replace('_previous_accumulative_cost', '_current_accumulative_cost');
+    }
+
+    _standingChargePerDay(entityId) {
+      if (!entityId) return 0;
+      const scId = entityId.replace('_previous_accumulative_cost', '_current_standing_charge');
+      const v = parseFloat(this._hass?.states[scId]?.state);
+      return isNaN(v) ? 0 : v;
+    }
+
+    // ── Shell ─────────────────────────────────────────────────────────────────
+
+    _buildShell() {
+      if (this._chart) { this._chart.destroy(); this._chart = null; }
+
+      const title = this._config.title || 'Consumption';
+      const noEntities = this._tabs.length === 0;
+
+      const tabsHtml = this._tabs.map(t =>
+        `<button class="meter-tab${t.id === this._activeTab ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`
+      ).join('');
+
+      this.shadowRoot.innerHTML = `
+        <style>${STYLES}</style>
+        <ha-card>
+          <div class="card-header">${title}</div>
+          ${noEntities
+            ? `<div class="state-msg">No EDF Energy consumption entities found.</div>`
+            : `
+          <div class="meter-tabs">${tabsHtml}</div>
+          <div class="controls-row">
+            <div class="btn-group" id="view-btns">
+              <button data-view="halfhourly" class="${this._activeView === 'halfhourly' ? 'active' : ''}">Today</button>
+              <button data-view="weekly"     class="${this._activeView === 'weekly'     ? 'active' : ''}">Weekly</button>
+              <button data-view="monthly"    class="${this._activeView === 'monthly'    ? 'active' : ''}">Monthly</button>
+            </div>
+            <div class="btn-group" id="unit-btns" style="${this._activeView === 'halfhourly' || this._activeTab === 'net' ? 'display:none' : ''}">
+              <button data-unit="kwh"  class="${this._activeUnit === 'kwh'  ? 'active' : ''}">kWh</button>
+              <button data-unit="cost" class="${this._activeUnit === 'cost' ? 'active' : ''}">£</button>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div id="chart-container" class="chart-container"></div>
+            <div id="state-msg" class="state-msg">Loading…</div>
+          </div>
+          <div class="summary" id="summary"></div>
+          `}
+        </ha-card>
+      `;
+
+      if (!noEntities) this._attachListeners();
+    }
+
+    _syncControls() {
+      this.shadowRoot.querySelectorAll('.meter-tab').forEach(b =>
+        b.classList.toggle('active', b.dataset.tab === this._activeTab));
+      this.shadowRoot.querySelectorAll('#view-btns button').forEach(b =>
+        b.classList.toggle('active', b.dataset.view === this._activeView));
+      this.shadowRoot.querySelectorAll('#unit-btns button').forEach(b =>
+        b.classList.toggle('active', b.dataset.unit === this._activeUnit));
+      const unitBtns = this.shadowRoot.getElementById('unit-btns');
+      if (unitBtns)
+        unitBtns.style.display = (this._activeView === 'halfhourly' || this._activeTab === 'net') ? 'none' : '';
+    }
+
+    _attachListeners() {
+      this.shadowRoot.querySelectorAll('.meter-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this._activeTab = btn.dataset.tab;
+          if (this._activeTab === 'net') this._activeUnit = 'cost';
+          this._syncControls();
+          this._scheduleUpdate(0);
+        });
+      });
+      this.shadowRoot.querySelectorAll('#view-btns button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this._activeView = btn.dataset.view;
+          this._syncControls();
+          this._scheduleUpdate(0);
+        });
+      });
+      this.shadowRoot.querySelectorAll('#unit-btns button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this._activeUnit = btn.dataset.unit;
+          this._syncControls();
+          this._scheduleUpdate(0);
+        });
+      });
+    }
+
+    // ── Update ────────────────────────────────────────────────────────────────
+
+    _scheduleUpdate(delay = 300) {
+      clearTimeout(this._updateTimer);
+      this._updateTimer = setTimeout(() => this._doUpdate(), delay);
+    }
+
+    async _doUpdate() {
+      if (!this._hass || !this._activeTab) return;
+      this._showMsg('Loading…');
+      try {
+        let result;
+        if (this._activeView === 'halfhourly') {
+          result = this._getHalfHourlyData();
+        } else if (this._activeTab === 'net') {
+          result = await this._getNetCostData();
+        } else {
+          result = await this._getStatData();
+        }
+        await this._applyChart(result);
+      } catch (e) {
+        console.error('[EDF Consumption Card]', e);
+        this._showMsg('Error loading data.');
+      }
+    }
+
+    // ── Half-hourly data ──────────────────────────────────────────────────────
+
+    _getHalfHourlyData() {
+      const tabInfo = this._tabs.find(t => t.id === this._activeTab);
+      if (!tabInfo?.entity) return null;
+
+      const currState = this._hass.states[this._currentAccEntity(tabInfo.entity)];
+      const prevState = this._hass.states[tabInfo.entity];
+      let charges = currState?.attributes?.charges || prevState?.attributes?.charges || [];
+      charges = [...charges].sort((a, b) => new Date(a.start) - new Date(b.start));
+      if (!charges.length) return null;
+
+      const date = new Date(charges[0].start);
+      const isToday = new Date().toDateString() === date.toDateString();
+      const dateLabel = isToday
+        ? 'Today'
+        : date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+
+      const categories = charges.map(c => {
+        const d = new Date(c.start);
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      });
+      const kwhData  = charges.map(c => +(parseFloat(c.consumption) || 0).toFixed(4));
+      const totalKwh  = kwhData.reduce((a, b) => a + b, 0);
+      const totalCost = charges.reduce((a, c) => a + (parseFloat(c.cost) || 0), 0);
+
+      return {
+        series: [{ name: 'kWh', data: kwhData }],
+        categories,
+        unit: 'kWh',
+        summary: [
+          { label: dateLabel,   value: totalKwh.toFixed(2) + ' kWh' },
+          ...(totalCost > 0 ? [{ label: 'Unit cost', value: '£' + totalCost.toFixed(2) }] : []),
+        ],
+      };
+    }
+
+    // ── Statistics data ───────────────────────────────────────────────────────
+
+    async _fetchStats(statIds, period, startTime) {
+      const msg = {
+        type: 'recorder/statistics_during_period',
+        start_time: startTime.toISOString(),
+        statistic_ids: statIds,
+        period,
+        types: ['change', 'sum'],
+        units: { energy: 'kWh', currency: 'GBP' },
+      };
+      if (this._hass.callWS) return this._hass.callWS(msg);
+      return this._hass.connection.sendMessagePromise(msg);
+    }
+
+    _periodStart(view) {
+      const d = new Date();
+      if (view === 'weekly') {
+        d.setDate(d.getDate() - 27);
+      } else {
+        d.setFullYear(d.getFullYear() - 1);
+        d.setDate(1);
+      }
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    _periodChange(stats, i) {
+      const s = stats[i];
+      if (s.change != null) return Math.max(0, s.change);
+      if (i === 0) return Math.max(0, s.sum || 0);
+      return Math.max(0, (s.sum || 0) - (stats[i - 1].sum || 0));
+    }
+
+    _periodLabel(startSec, period) {
+      const d = new Date(startSec * 1000);
+      return period === 'month'
+        ? d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+        : d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+
+    _daysInMonth(startSec) {
+      const d = new Date(startSec * 1000);
+      return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    }
+
+    async _getStatData() {
+      const tabInfo = this._tabs.find(t => t.id === this._activeTab);
+      if (!tabInfo?.entity) return null;
+
+      const period    = this._activeView === 'monthly' ? 'month' : 'day';
+      const start     = this._periodStart(this._activeView);
+      const costStatId = this._toStatId(tabInfo.entity);
+      const kwhStatId  = this._kwhStatId(tabInfo.entity);
+      const scPerDay   = this._standingChargePerDay(tabInfo.entity);
+      const showCost   = this._activeUnit === 'cost';
+
+      const result    = await this._fetchStats([costStatId, kwhStatId], period, start);
+      const costStats = result[costStatId] || [];
+      const kwhStats  = result[kwhStatId]  || [];
+
+      const refStats = costStats.length ? costStats : kwhStats;
+      if (!refStats.length) return null;
+
+      const categories = refStats.map(s => this._periodLabel(s.start, period));
+
+      const costData = costStats.map((s, i) => {
+        const unitCost = this._periodChange(costStats, i);
+        const standing = period === 'month' ? scPerDay * this._daysInMonth(s.start) : scPerDay;
+        return +(unitCost + standing).toFixed(4);
+      });
+
+      const kwhData   = kwhStats.map((s, i) => +(this._periodChange(kwhStats, i)).toFixed(3));
+      const totalCost = costData.reduce((a, b) => a + b, 0);
+      const totalKwh  = kwhData.reduce((a, b) => a + b, 0);
+
+      const series = showCost
+        ? [{ name: '£',   data: costData.length ? costData : Array(refStats.length).fill(0) }]
+        : [{ name: 'kWh', data: kwhData.length  ? kwhData  : Array(refStats.length).fill(0) }];
+
+      const summary = [];
+      if (kwhData.length)  summary.push({ label: 'Total',   value: totalKwh.toFixed(1) + ' kWh' });
+      if (costData.length) summary.push({ label: 'Cost',    value: '£' + totalCost.toFixed(2) });
+      if (scPerDay > 0)    summary.push({ label: 'Standing', value: '£' + scPerDay.toFixed(2) + '/day' });
+
+      return { series, categories, unit: showCost ? '£' : 'kWh', summary };
+    }
+
+    async _getNetCostData() {
+      if (!this._meters.import || !this._meters.export) return null;
+
+      const period   = this._activeView === 'monthly' ? 'month' : 'day';
+      const start    = this._periodStart(this._activeView);
+      const importId = this._toStatId(this._meters.import);
+      const exportId = this._toStatId(this._meters.export);
+
+      const result      = await this._fetchStats([importId, exportId], period, start);
+      const importStats = result[importId] || [];
+      const exportStats = result[exportId] || [];
+      if (!importStats.length) return null;
+
+      const exportByStart = {};
+      exportStats.forEach((s, i) => { exportByStart[s.start] = this._periodChange(exportStats, i); });
+
+      const scPerDay   = this._standingChargePerDay(this._meters.import);
+      const categories = importStats.map(s => this._periodLabel(s.start, period));
+
+      const netData = importStats.map((s, i) => {
+        const imp      = this._periodChange(importStats, i);
+        const exp      = exportByStart[s.start] || 0;
+        const standing = period === 'month' ? scPerDay * this._daysInMonth(s.start) : scPerDay;
+        return +(imp + standing - exp).toFixed(4);
+      });
+
+      const total = netData.reduce((a, b) => a + b, 0);
+      return {
+        series: [{ name: 'Net £', data: netData }],
+        categories,
+        unit: '£',
+        summary: [{ label: 'Net cost', value: (total >= 0 ? '£' : '-£') + Math.abs(total).toFixed(2) }],
+      };
+    }
+
+    // ── Chart ─────────────────────────────────────────────────────────────────
+
+    async _applyChart(data) {
+      if (!data?.series?.length || data.series.every(s => !s.data.length)) {
+        this._showMsg('No data available for this period.');
+        return;
+      }
+
+      const container = this.shadowRoot.getElementById('chart-container');
+      if (!container) return;
+
+      let ApexCharts;
+      try {
+        ApexCharts = await ensureApexCharts();
+      } catch {
+        this._showMsg('Chart library failed to load. Check your network connection.');
+        return;
+      }
+
+      const msgEl = this.shadowRoot.getElementById('state-msg');
+      if (msgEl) msgEl.style.display = 'none';
+      container.style.display = '';
+
+      if (this._chart) { this._chart.destroy(); this._chart = null; }
+
+      const isDark = !!document.querySelector('home-assistant')?.shadowRoot
+        ?.querySelector('home-assistant-main')
+        ?.getAttribute('data-theme')?.includes('dark')
+        || window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      const isPound = data.unit === '£';
+
+      const opts = {
+        chart: {
+          type: 'bar',
+          height: 220,
+          background: 'transparent',
+          toolbar: { show: false },
+          animations: { enabled: false },
+          fontFamily: 'inherit',
+        },
+        theme: { mode: isDark ? 'dark' : 'light' },
+        series: data.series,
+        xaxis: {
+          categories: data.categories,
+          labels: {
+            rotate: -45,
+            style: { fontSize: '10px' },
+            hideOverlappingLabels: true,
+            maxHeight: 60,
+          },
+          axisBorder: { show: false },
+          axisTicks: { show: false },
+        },
+        yaxis: {
+          min: 0,
+          labels: {
+            formatter: v => isPound ? '£' + v.toFixed(2) : v.toFixed(2) + ' kWh',
+            style: { fontSize: '10px' },
+          },
+        },
+        dataLabels: { enabled: false },
+        tooltip: {
+          y: { formatter: v => isPound ? '£' + v.toFixed(3) : v.toFixed(3) + ' kWh' },
+        },
+        grid: {
+          borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+          strokeDashArray: 3,
+          padding: { left: 0, right: 0 },
+        },
+        colors: [this._tabColor()],
+        plotOptions: {
+          bar: { columnWidth: '70%', borderRadius: 2, borderRadiusApplication: 'end' },
+        },
+      };
+
+      container.innerHTML = '';
+      this._chart = new ApexCharts(container, opts);
+      await this._chart.render();
+
+      const summaryEl = this.shadowRoot.getElementById('summary');
+      if (summaryEl) {
+        summaryEl.innerHTML = (data.summary || []).map(i =>
+          `<div class="summary-item">
+            <div class="summary-label">${i.label}</div>
+            <div class="summary-value">${i.value}</div>
+          </div>`
+        ).join('');
+      }
+    }
+
+    _tabColor() {
+      switch (this._activeTab) {
+        case 'export': return '#2E7D32';
+        case 'gas':    return '#E65100';
+        case 'net':    return '#6A1B9A';
+        default:       return '#1565C0';
+      }
+    }
+
+    _showMsg(msg) {
+      const container = this.shadowRoot.getElementById('chart-container');
+      if (container) container.style.display = 'none';
+      const msgEl = this.shadowRoot.getElementById('state-msg');
+      if (msgEl) { msgEl.textContent = msg; msgEl.style.display = ''; }
+      const summaryEl = this.shadowRoot.getElementById('summary');
+      if (summaryEl) summaryEl.innerHTML = '';
+    }
+
+    // ── Boilerplate ───────────────────────────────────────────────────────────
+
+    getCardSize() { return 5; }
+    static getStubConfig() { return { title: 'Consumption' }; }
+  }
+
+  if (!customElements.get('edf-energy-consumption-card')) {
+    customElements.define('edf-energy-consumption-card', EDFEnergyConsumptionCard);
+    console.info(
+      '%c EDF ENERGY CONSUMPTION CARD %c Loaded ',
+      'color:#fff;background:#1a237e;font-weight:700;padding:1px 6px;border-radius:3px 0 0 3px',
+      'background:#3949ab;color:#fff;padding:1px 6px;border-radius:0 3px 3px 0'
+    );
+  }
+})();

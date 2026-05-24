@@ -155,6 +155,10 @@ async def async_setup_entry(hass, entry):
     if os.path.isfile(card_path):
       static_paths.append(StaticPathConfig("/edf_energy/edf-energy-dispatches-card.js", card_path, False))
 
+    consumption_card_path = os.path.join(www_dir, "edf-energy-consumption-card.js")
+    if os.path.isfile(consumption_card_path):
+      static_paths.append(StaticPathConfig("/edf_energy/edf-energy-consumption-card.js", consumption_card_path, False))
+
     panel_path = os.path.join(www_dir, "edf-energy-panel.js")
     register_panel = os.path.isfile(panel_path)
     if register_panel:
