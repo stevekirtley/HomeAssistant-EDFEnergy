@@ -189,13 +189,6 @@
       return entityId.replace('_previous_accumulative_cost', '_current_accumulative_cost');
     }
 
-    _standingChargePerDay(entityId) {
-      if (!entityId) return 0;
-      const scId = entityId.replace('_previous_accumulative_cost', '_current_standing_charge');
-      const v = parseFloat(this._hass?.states[scId]?.state);
-      return isNaN(v) ? 0 : v;
-    }
-
     // ── Shell ─────────────────────────────────────────────────────────────────
 
     _buildShell() {
@@ -426,7 +419,7 @@
 
       const costStatId = this._toStatId(tabInfo.entity);
       const kwhStatId  = this._kwhStatId(tabInfo.entity);
-      const scPerDay   = this._standingChargePerDay(tabInfo.entity);
+
       const showCost   = this._activeUnit === 'cost';
 
       const result  = await this._fetchStats([costStatId, kwhStatId], 'hour', refStart, dayEnd);
@@ -437,12 +430,11 @@
       const refStats = costStats.length ? costStats : kwhStats;
       if (!refStats.length) return null;
 
-      const scPerHour  = scPerDay / 24;
       const categories = refStats.map(s => {
         const d = new Date(s.start);
         return `${String(d.getHours()).padStart(2, '0')}:00`;
       });
-      const costData  = costStats.map((s, i) => +(this._sumChange(costStats, i, refCostSum) + scPerHour).toFixed(4));
+      const costData  = costStats.map((s, i) => +(this._sumChange(costStats, i, refCostSum)).toFixed(4));
       const kwhData   = kwhStats.map((s, i)  => +(this._sumChange(kwhStats,  i, refKwhSum)).toFixed(3));
       const totalCost = costData.reduce((a, b) => a + b, 0);
       const totalKwh  = kwhData.reduce((a, b) => a + b, 0);
@@ -519,11 +511,6 @@
         : d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
     }
 
-    _daysInMonth(startMs) {
-      const d = new Date(startMs);
-      return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    }
-
     async _getStatData() {
       const tabInfo = this._tabs.find(t => t.id === this._activeTab);
       if (!tabInfo?.entity) return null;
@@ -532,7 +519,7 @@
       const { start, end } = this._periodRange();
       const costStatId = this._toStatId(tabInfo.entity);
       const kwhStatId  = this._kwhStatId(tabInfo.entity);
-      const scPerDay   = this._standingChargePerDay(tabInfo.entity);
+
       const showCost   = this._activeUnit === 'cost';
 
       // Fetch one extra period before window start to get a reference sum
@@ -550,13 +537,8 @@
 
       const categories = refStats.map(s => this._periodLabel(s.start, period));
 
-      const costData = costStats.map((s, i) => {
-        const unitCost = this._sumChange(costStats, i, refCostSum);
-        const standing = period === 'month' ? scPerDay * this._daysInMonth(s.start) : scPerDay;
-        return +(unitCost + standing).toFixed(4);
-      });
-
-      const kwhData   = kwhStats.map((s, i) => +(this._sumChange(kwhStats, i, refKwhSum)).toFixed(3));
+      const costData  = costStats.map((s, i) => +(this._sumChange(costStats, i, refCostSum)).toFixed(4));
+      const kwhData   = kwhStats.map((s, i)  => +(this._sumChange(kwhStats,  i, refKwhSum)).toFixed(3));
       const totalCost = costData.reduce((a, b) => a + b, 0);
       const totalKwh  = kwhData.reduce((a, b) => a + b, 0);
 
@@ -565,9 +547,8 @@
         : [{ name: 'kWh', data: kwhData.length  ? kwhData  : Array(refStats.length).fill(0) }];
 
       const summary = [];
-      if (kwhData.length)  summary.push({ label: 'Total',   value: totalKwh.toFixed(1) + ' kWh' });
-      if (costData.length) summary.push({ label: 'Cost',    value: '£' + totalCost.toFixed(2) });
-      if (scPerDay > 0)    summary.push({ label: 'Standing', value: '£' + scPerDay.toFixed(2) + '/day' });
+      if (kwhData.length)  summary.push({ label: 'Total', value: totalKwh.toFixed(1) + ' kWh' });
+      if (costData.length) summary.push({ label: 'Cost',  value: '£' + totalCost.toFixed(2) });
 
       return { series, categories, unit: showCost ? '£' : 'kWh', summary };
     }
@@ -593,14 +574,13 @@
       const exportByStart = {};
       exportStats.forEach((s, i) => { exportByStart[s.start] = this._sumChange(exportStats, i, refExportSum); });
 
-      const scPerDay   = this._standingChargePerDay(this._meters.import);
+
       const categories = importStats.map(s => this._periodLabel(s.start, period));
 
       const netData = importStats.map((s, i) => {
-        const imp      = this._sumChange(importStats, i, refImportSum);
-        const exp      = exportByStart[s.start] || 0;
-        const standing = period === 'month' ? scPerDay * this._daysInMonth(s.start) : scPerDay;
-        return +(imp + standing - exp).toFixed(4);
+        const imp = this._sumChange(importStats, i, refImportSum);
+        const exp = exportByStart[s.start] || 0;
+        return +(imp - exp).toFixed(4);
       });
 
       const total = netData.reduce((a, b) => a + b, 0);
