@@ -422,10 +422,10 @@
 
       if (this._activeView === 'weekly') {
         end = new Date(now);
-        end.setDate(end.getDate() - o * 28);
+        end.setDate(end.getDate() - o * 7);
         end.setHours(23, 59, 59, 999);
         start = new Date(end);
-        start.setDate(start.getDate() - 27);
+        start.setDate(start.getDate() - 6);
         start.setHours(0, 0, 0, 0);
       } else {
         // monthly
