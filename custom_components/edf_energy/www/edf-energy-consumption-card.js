@@ -274,10 +274,11 @@
         d.setDate(d.getDate() - o);
         return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
       }
+      if (this._activeView === 'monthly') {
+        return String(new Date().getFullYear() - o);
+      }
       const { start, end } = this._periodRange();
-      const fmt = this._activeView === 'monthly'
-        ? { month: 'short', year: 'numeric' }
-        : { day: 'numeric', month: 'short' };
+      const fmt = { day: 'numeric', month: 'short' };
       return `${start.toLocaleDateString(undefined, fmt)} – ${end.toLocaleDateString(undefined, fmt)}`;
     }
 
@@ -335,7 +336,9 @@
 
     async _doUpdate() {
       if (!this._hass || !this._activeTab) return;
+      const expectedKey = this._dataKey();       // capture before any await
       this._showMsg('Loading…');
+      if (this._chart) { this._chart.destroy(); this._chart = null; }
       try {
         let result;
         if (this._activeView === 'halfhourly' && this._periodOffset <= 1) {
@@ -347,6 +350,7 @@
         } else {
           result = await this._getStatData();
         }
+        if (this._dataKey() !== expectedKey) return;   // state changed mid-fetch, discard
         await this._applyChart(result);
       } catch (e) {
         console.error('[EDF Consumption Card]', e);
@@ -487,14 +491,12 @@
         start.setDate(start.getDate() - 6);
         start.setHours(0, 0, 0, 0);
       } else {
-        // monthly
-        end = new Date(now);
-        end.setMonth(end.getMonth() - o * 12);
-        end.setHours(23, 59, 59, 999);
-        start = new Date(end);
-        start.setFullYear(start.getFullYear() - 1);
-        start.setDate(1);
-        start.setHours(0, 0, 0, 0);
+        // monthly — calendar year aligned
+        const targetYear = now.getFullYear() - o;
+        start = new Date(targetYear, 0, 1, 0, 0, 0, 0);
+        end = o === 0
+          ? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+          : new Date(targetYear, 11, 31, 23, 59, 59, 999);
       }
       return { start, end };
     }
@@ -538,7 +540,7 @@
       if (period === 'day') refStart.setDate(refStart.getDate() - 1);
       else refStart.setMonth(refStart.getMonth() - 1);
 
-      const result   = await this._fetchStats([costStatId, kwhStatId], period, refStart, this._periodOffset > 0 ? end : null);
+      const result   = await this._fetchStats([costStatId, kwhStatId], period, refStart, end);
       const startMs  = start.getTime();
       const { window: costStats, refSum: refCostSum } = this._splitRef(result[costStatId] || [], startMs);
       const { window: kwhStats,  refSum: refKwhSum  } = this._splitRef(result[kwhStatId]  || [], startMs);
@@ -582,7 +584,7 @@
       if (period === 'day') refStart.setDate(refStart.getDate() - 1);
       else refStart.setMonth(refStart.getMonth() - 1);
 
-      const result  = await this._fetchStats([importId, exportId], period, refStart, this._periodOffset > 0 ? end : null);
+      const result  = await this._fetchStats([importId, exportId], period, refStart, end);
       const startMs = start.getTime();
       const { window: importStats, refSum: refImportSum } = this._splitRef(result[importId] || [], startMs);
       const { window: exportStats, refSum: refExportSum } = this._splitRef(result[exportId] || [], startMs);
