@@ -411,7 +411,24 @@
       };
     }
 
-    // ── Hourly data (historical days via stats API) ───────────────────────────
+    // ── Off-peak pattern from yesterday's charges ─────────────────────────────
+
+    _offPeakMinutes() {
+      const tabInfo = this._tabs.find(t => t.id === this._activeTab);
+      if (!tabInfo?.entity) return null;
+      const charges = this._hass.states[tabInfo.entity]?.attributes?.charges || [];
+      const rates = charges.map(c => parseFloat(c.rate) || 0).filter(r => r > 0);
+      if (!rates.length) return null;
+      const minRate = Math.min(...rates);
+      if (Math.max(...rates) <= minRate * 1.01) return null; // flat tariff
+      return new Set(
+        charges
+          .filter(c => (parseFloat(c.rate) || 0) <= minRate * 1.01)
+          .map(c => { const d = new Date(c.start); return d.getHours() * 60 + d.getMinutes(); })
+      );
+    }
+
+    // ── Historical day data (half-hourly via 5-min stats, hourly fallback) ────
 
     async _getHourlyData() {
       const tabInfo = this._tabs.find(t => t.id === this._activeTab);
@@ -419,39 +436,73 @@
 
       const target = new Date();
       target.setDate(target.getDate() - this._periodOffset);
-
-      const dayStart = new Date(target);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(target);
-      dayEnd.setHours(23, 59, 59, 999);
-      const refStart = new Date(dayStart);
-      refStart.setHours(refStart.getHours() - 1);
+      const dayStart = new Date(target); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd   = new Date(target); dayEnd.setHours(23, 59, 59, 999);
+      const dayMs    = dayStart.getTime();
 
       const costStatId = this._toStatId(tabInfo.entity);
       const kwhStatId  = this._kwhStatId(tabInfo.entity);
-
       const showCost   = this._activeUnit === 'cost';
 
-      const result  = await this._fetchStats([costStatId, kwhStatId], 'hour', refStart, dayEnd);
-      const startMs = dayStart.getTime();
-      const { window: costStats, refSum: refCostSum } = this._splitRef(result[costStatId] || [], startMs);
-      const { window: kwhStats,  refSum: refKwhSum  } = this._splitRef(result[kwhStatId]  || [], startMs);
+      // ── Try 5-minute stats → filter to :00/:30 marks = half-hourly ──────────
+      let costStats, kwhStats, refCostSum, refKwhSum, halfHourly = false;
+
+      try {
+        const refStart30 = new Date(dayStart);
+        refStart30.setMinutes(-30);
+        const r5 = await this._fetchStats([costStatId, kwhStatId], '5minute', refStart30, dayEnd);
+        const isHH = ms => new Date(ms).getMinutes() % 30 === 0;
+
+        const raw5c = r5[costStatId] || [];
+        const raw5k = r5[kwhStatId]  || [];
+        const filt5c = raw5c.filter(s => s.start >= dayMs && isHH(s.start));
+        const filt5k = raw5k.filter(s => s.start >= dayMs && isHH(s.start));
+
+        if (filt5c.length >= 2 || filt5k.length >= 2) {
+          costStats  = filt5c;
+          kwhStats   = filt5k;
+          refCostSum = raw5c.filter(s => s.start < dayMs && isHH(s.start)).at(-1)?.sum ?? null;
+          refKwhSum  = raw5k.filter(s => s.start < dayMs && isHH(s.start)).at(-1)?.sum ?? null;
+          halfHourly = true;
+        }
+      } catch (_) { /* period not supported */ }
+
+      // ── Hourly fallback ──────────────────────────────────────────────────────
+      if (!halfHourly) {
+        const refStart1h = new Date(dayStart);
+        refStart1h.setHours(-1);
+        const rh = await this._fetchStats([costStatId, kwhStatId], 'hour', refStart1h, dayEnd);
+        ({ window: costStats, refSum: refCostSum } = this._splitRef(rh[costStatId] || [], dayMs));
+        ({ window: kwhStats,  refSum: refKwhSum  } = this._splitRef(rh[kwhStatId]  || [], dayMs));
+      }
 
       const refStats = costStats.length ? costStats : kwhStats;
       if (!refStats.length) return null;
 
       const categories = refStats.map(s => {
         const d = new Date(s.start);
-        return `${String(d.getHours()).padStart(2, '0')}:00`;
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
       });
       const costData  = costStats.map((s, i) => +(this._sumChange(costStats, i, refCostSum)).toFixed(4));
-      const kwhData   = kwhStats.map((s, i)  => +(this._sumChange(kwhStats,  i, refKwhSum)).toFixed(3));
+      const kwhData   = kwhStats.map( (s, i) => +(this._sumChange(kwhStats,  i, refKwhSum )).toFixed(3));
       const totalCost = costData.reduce((a, b) => a + b, 0);
       const totalKwh  = kwhData.reduce((a, b) => a + b, 0);
 
       const series = showCost
         ? [{ name: '£',   data: costData.length ? costData : Array(refStats.length).fill(0) }]
         : [{ name: 'kWh', data: kwhData.length  ? kwhData  : Array(refStats.length).fill(0) }];
+
+      // Off-peak colouring: infer window from yesterday's charges
+      let barColors = null;
+      if (halfHourly) {
+        const offPeak = this._offPeakMinutes();
+        if (offPeak) {
+          barColors = refStats.map(s => {
+            const d = new Date(s.start);
+            return offPeak.has(d.getHours() * 60 + d.getMinutes()) ? '#2E7D32' : this._tabColor();
+          });
+        }
+      }
 
       const dateLabel = target.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
       const summary = showCost
@@ -461,7 +512,7 @@
             ...(totalCost > 0 ? [{ label: 'Unit cost', value: '£' + totalCost.toFixed(2) }] : []),
           ];
 
-      return { series, categories, unit: showCost ? '£' : 'kWh', summary };
+      return { series, categories, unit: showCost ? '£' : 'kWh', isHalfHourly: halfHourly, barColors, summary };
     }
 
     // ── Statistics data ───────────────────────────────────────────────────────
@@ -653,11 +704,7 @@
             hideOverlappingLabels: true,
             maxHeight: 60,
             formatter: data.isHalfHourly
-              ? (val) => {
-                  // Show label only for even hours on the hour (00:00, 02:00 … 22:00)
-                  if (!val || !val.endsWith(':00')) return '';
-                  return parseInt(val, 10) % 2 === 0 ? val : '';
-                }
+              ? (val) => (val?.endsWith(':00') ? val : '')  // label every hour, two bars per label
               : val => val,
           },
           axisBorder: { show: false },
