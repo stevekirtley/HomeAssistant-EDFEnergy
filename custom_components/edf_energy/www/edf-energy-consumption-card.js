@@ -446,20 +446,20 @@
     }
 
     _splitRef(allStats, startMs) {
-      const window = allStats.filter(s => s.start * 1000 >= startMs);
-      const refEntry = allStats.filter(s => s.start * 1000 < startMs).at(-1);
+      const window = allStats.filter(s => s.start >= startMs);
+      const refEntry = allStats.filter(s => s.start < startMs).at(-1);
       return { window, refSum: refEntry?.sum ?? null };
     }
 
-    _periodLabel(startSec, period) {
-      const d = new Date(startSec * 1000);
+    _periodLabel(startMs, period) {
+      const d = new Date(startMs);
       return period === 'month'
         ? d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
         : d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
     }
 
-    _daysInMonth(startSec) {
-      const d = new Date(startSec * 1000);
+    _daysInMonth(startMs) {
+      const d = new Date(startMs);
       return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
     }
 
@@ -481,22 +481,8 @@
 
       const result   = await this._fetchStats([costStatId, kwhStatId], period, refStart, this._periodOffset > 0 ? end : null);
       const startMs  = start.getTime();
-
-      // DEBUG
-      const rawCost = result[costStatId] || [];
-      const rawKwh  = result[kwhStatId]  || [];
-      console.log('[EDF DEBUG] stat IDs:', costStatId, kwhStatId);
-      console.log('[EDF DEBUG] period:', period, '| refStart:', refStart.toISOString(), '| windowStart:', start.toISOString());
-      console.log('[EDF DEBUG] cost entries:', rawCost.length, '| kwh entries:', rawKwh.length);
-      if (rawCost.length) {
-        const first = rawCost[0], last = rawCost[rawCost.length - 1];
-        console.log('[EDF DEBUG] cost[0].start =', first.start, '→', new Date(first.start * 1000).toISOString(), '| cost[last].start =', last.start, '→', new Date(last.start * 1000).toISOString());
-        console.log('[EDF DEBUG] all cost keys:', Object.keys(result));
-      }
-
-      const { window: costStats, refSum: refCostSum } = this._splitRef(rawCost, startMs);
-      const { window: kwhStats,  refSum: refKwhSum  } = this._splitRef(rawKwh,  startMs);
-      console.log('[EDF DEBUG] after splitRef → costWindow:', costStats.length, '| refCostSum:', refCostSum);
+      const { window: costStats, refSum: refCostSum } = this._splitRef(result[costStatId] || [], startMs);
+      const { window: kwhStats,  refSum: refKwhSum  } = this._splitRef(result[kwhStatId]  || [], startMs);
 
       const refStats = costStats.length ? costStats : kwhStats;
       if (!refStats.length) return null;
