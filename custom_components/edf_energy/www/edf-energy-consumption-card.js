@@ -515,14 +515,16 @@
 
       // Off-peak colouring: infer window from yesterday's charges
       let barColors = null;
-      if (halfHourly) {
-        const offPeak = this._offPeakMinutes();
-        if (offPeak) {
-          barColors = refStats.map(s => {
-            const d = new Date(s.start);
-            return offPeak.has(d.getHours() * 60 + d.getMinutes()) ? '#2E7D32' : this._tabColor();
-          });
-        }
+      const offPeak = this._offPeakMinutes();
+      if (offPeak) {
+        barColors = refStats.map(s => {
+          const d = new Date(s.start);
+          const mins = d.getHours() * 60 + d.getMinutes();
+          // For hourly bars: green if either the :00 or :30 slot is off-peak
+          return (offPeak.has(mins) || (!halfHourly && offPeak.has(mins + 30)))
+            ? '#2E7D32'
+            : this._tabColor();
+        });
       }
 
       const dateLabel = target.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
