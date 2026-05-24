@@ -184,6 +184,7 @@ def raise_rates_empty(hass, account_id: str, tariff: Tariff, mprn_mpan: str, ser
     learn_more_url="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/tariff_rates_empty/",
     translation_key=translation_key,
     translation_placeholders={ "account_id": account_id, "product_code": tariff.product, "tariff_code": tariff.code, "mprn_mpan": mprn_mpan, "serial_number": serial_number, "meter_type": "electricity" if is_electricity else "gas", "is_export": str(is_export) },
+    data={ "account_id": account_id, "tariff_code": tariff.code, "is_export": str(is_export) },
   )
 
 def clear_rates_empty(hass, account_id: str, tariff: Tariff):
