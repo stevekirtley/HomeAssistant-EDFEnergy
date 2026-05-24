@@ -423,6 +423,42 @@
 
     // ── Off-peak pattern from yesterday's charges ─────────────────────────────
 
+    _dispatchMinutesForDay(targetDate) {
+      if (!this._hass) return null;
+      let entity = null;
+      for (const [id, state] of Object.entries(this._hass.states)) {
+        if (id.startsWith('binary_sensor.') && id.includes('edf_energy') && id.endsWith('_intelligent_dispatching')) {
+          entity = state;
+          break;
+        }
+      }
+      if (!entity) return null;
+
+      const completed = entity.attributes.completed_dispatches || [];
+      if (!completed.length) return null;
+
+      const dayStart = new Date(targetDate); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd   = new Date(targetDate); dayEnd.setHours(23, 59, 59, 999);
+      const BKT = 30 * 60 * 1000;
+      const mins = new Set();
+
+      for (const d of completed) {
+        const start = new Date(d.start);
+        const end   = new Date(d.end);
+        if (end <= dayStart || start > dayEnd) continue;
+        // Walk 30-min slots from the start of this dispatch through the day
+        let t = new Date(Math.max(start.getTime(), dayStart.getTime()));
+        // Snap back to the nearest :00 or :30
+        const snap = Math.floor((t.getHours() * 60 + t.getMinutes()) / 30) * 30;
+        t = new Date(dayStart); t.setMinutes(snap, 0, 0);
+        while (t < end && t <= dayEnd) {
+          mins.add(t.getHours() * 60 + t.getMinutes());
+          t = new Date(t.getTime() + BKT);
+        }
+      }
+      return mins.size ? mins : null;
+    }
+
     _offPeakMinutes() {
       const tabInfo = this._tabs.find(t => t.id === this._activeTab);
       if (!tabInfo?.entity) return null;
@@ -513,15 +549,20 @@
         ? [{ name: '£',   data: costData.length ? costData : Array(refStats.length).fill(0) }]
         : [{ name: 'kWh', data: kwhData.length  ? kwhData  : Array(refStats.length).fill(0) }];
 
-      // Off-peak colouring: infer window from yesterday's charges
+      // Off-peak colouring: union scheduled window (from yesterday's rates) with
+      // actual completed dispatches for this day (up to 60 days of history)
       let barColors = null;
-      const offPeak = this._offPeakMinutes();
-      if (offPeak) {
+      const scheduled   = this._offPeakMinutes();
+      const dispatched  = this._dispatchMinutesForDay(target);
+      const offPeakMins = (scheduled || dispatched)
+        ? new Set([...(scheduled || []), ...(dispatched || [])])
+        : null;
+      if (offPeakMins) {
         barColors = refStats.map(s => {
           const d = new Date(s.start);
           const mins = d.getHours() * 60 + d.getMinutes();
           // For hourly bars: green if either the :00 or :30 slot is off-peak
-          return (offPeak.has(mins) || (!halfHourly && offPeak.has(mins + 30)))
+          return (offPeakMins.has(mins) || (!halfHourly && offPeakMins.has(mins + 30)))
             ? '#2E7D32'
             : this._tabColor();
         });
