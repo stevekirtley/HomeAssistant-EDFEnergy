@@ -81,6 +81,23 @@
     .summary-label { font-size: 0.72em; color: var(--secondary-text-color); }
     .summary-value { font-size: 1em; font-weight: 600; color: var(--primary-text-color); margin-top: 2px; }
 
+    .nav-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 0 16px 6px;
+    }
+    .nav-btn {
+      background: none; border: 1px solid var(--divider-color, #e0e0e0);
+      border-radius: 4px; padding: 2px 10px; cursor: pointer;
+      font-size: 1.1em; line-height: 1.4; color: var(--primary-text-color);
+      font-family: inherit; transition: background 0.15s;
+    }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+    .nav-btn:hover:not(:disabled) { background: rgba(var(--rgb-primary-text-color,0,0,0),0.06); }
+    .period-label {
+      font-size: 0.82em; color: var(--secondary-text-color);
+      min-width: 140px; text-align: center;
+    }
+
     .state-msg {
       padding: 28px 16px; text-align: center;
       color: var(--secondary-text-color); font-size: 0.9em; min-height: 60px;
@@ -100,6 +117,7 @@
       this._activeTab = null;
       this._activeView = 'halfhourly';
       this._activeUnit = 'kwh';
+      this._periodOffset = 0;
       this._chart = null;
       this._metersKey = null;
       this._updateTimer = null;
@@ -208,6 +226,11 @@
               <button data-unit="cost" class="${this._activeUnit === 'cost' ? 'active' : ''}">£</button>
             </div>
           </div>
+          <div class="nav-row">
+            <button class="nav-btn" id="btn-prev">&#8249;</button>
+            <span class="period-label" id="period-label"></span>
+            <button class="nav-btn" id="btn-next" disabled>&#8250;</button>
+          </div>
           <div class="chart-wrap">
             <div id="chart-container" class="chart-container"></div>
             <div id="state-msg" class="state-msg">Loading…</div>
@@ -217,7 +240,7 @@
         </ha-card>
       `;
 
-      if (!noEntities) this._attachListeners();
+      if (!noEntities) { this._attachListeners(); this._syncControls(); }
     }
 
     _syncControls() {
@@ -230,6 +253,27 @@
       const unitBtns = this.shadowRoot.getElementById('unit-btns');
       if (unitBtns)
         unitBtns.style.display = this._activeTab === 'net' ? 'none' : '';
+
+      const btnPrev = this.shadowRoot.getElementById('btn-prev');
+      const btnNext = this.shadowRoot.getElementById('btn-next');
+      const labelEl = this.shadowRoot.getElementById('period-label');
+      const maxOffset = this._activeView === 'halfhourly' ? 1 : 99;
+      if (btnPrev) btnPrev.disabled = this._periodOffset >= maxOffset;
+      if (btnNext) btnNext.disabled = this._periodOffset <= 0;
+      if (labelEl)  labelEl.textContent = this._navLabel();
+    }
+
+    _navLabel() {
+      const o = this._periodOffset;
+      if (this._activeView === 'halfhourly') {
+        if (o === 0) return 'Today';
+        if (o === 1) return 'Yesterday';
+      }
+      const { start, end } = this._periodRange();
+      const fmt = this._activeView === 'monthly'
+        ? { month: 'short', year: 'numeric' }
+        : { day: 'numeric', month: 'short' };
+      return `${start.toLocaleDateString(undefined, fmt)} – ${end.toLocaleDateString(undefined, fmt)}`;
     }
 
     _attachListeners() {
@@ -237,6 +281,7 @@
         btn.addEventListener('click', () => {
           this._activeTab = btn.dataset.tab;
           if (this._activeTab === 'net') this._activeUnit = 'cost';
+          this._periodOffset = 0;
           this._syncControls();
           this._scheduleUpdate(0);
         });
@@ -244,9 +289,22 @@
       this.shadowRoot.querySelectorAll('#view-btns button').forEach(btn => {
         btn.addEventListener('click', () => {
           this._activeView = btn.dataset.view;
+          this._periodOffset = 0;
           this._syncControls();
           this._scheduleUpdate(0);
         });
+      });
+      this.shadowRoot.getElementById('btn-prev')?.addEventListener('click', () => {
+        if (this._activeView === 'halfhourly' && this._periodOffset >= 1) return;
+        this._periodOffset++;
+        this._syncControls();
+        this._scheduleUpdate(0);
+      });
+      this.shadowRoot.getElementById('btn-next')?.addEventListener('click', () => {
+        if (this._periodOffset <= 0) return;
+        this._periodOffset--;
+        this._syncControls();
+        this._scheduleUpdate(0);
       });
       this.shadowRoot.querySelectorAll('#unit-btns button').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -291,7 +349,10 @@
 
       const currState = this._hass.states[this._currentAccEntity(tabInfo.entity)];
       const prevState = this._hass.states[tabInfo.entity];
-      let charges = currState?.attributes?.charges || prevState?.attributes?.charges || [];
+      // offset 0 = today (current), offset 1 = yesterday (previous)
+      let charges = this._periodOffset === 0
+        ? (currState?.attributes?.charges || prevState?.attributes?.charges || [])
+        : (prevState?.attributes?.charges || []);
       charges = [...charges].sort((a, b) => new Date(a.start) - new Date(b.start));
       if (!charges.length) return null;
 
@@ -325,10 +386,11 @@
 
     // ── Statistics data ───────────────────────────────────────────────────────
 
-    async _fetchStats(statIds, period, startTime) {
+    async _fetchStats(statIds, period, startTime, endTime = null) {
       const msg = {
         type: 'recorder/statistics_during_period',
         start_time: startTime.toISOString(),
+        ...(endTime ? { end_time: endTime.toISOString() } : {}),
         statistic_ids: statIds,
         period,
         types: ['sum'],
@@ -338,16 +400,29 @@
       return this._hass.connection.sendMessagePromise(msg);
     }
 
-    _periodStart(view) {
-      const d = new Date();
-      if (view === 'weekly') {
-        d.setDate(d.getDate() - 27);
+    _periodRange() {
+      const o = this._periodOffset;
+      const now = new Date();
+      let start, end;
+
+      if (this._activeView === 'weekly') {
+        end = new Date(now);
+        end.setDate(end.getDate() - o * 28);
+        end.setHours(23, 59, 59, 999);
+        start = new Date(end);
+        start.setDate(start.getDate() - 27);
+        start.setHours(0, 0, 0, 0);
       } else {
-        d.setFullYear(d.getFullYear() - 1);
-        d.setDate(1);
+        // monthly
+        end = new Date(now);
+        end.setMonth(end.getMonth() - o * 12);
+        end.setHours(23, 59, 59, 999);
+        start = new Date(end);
+        start.setFullYear(start.getFullYear() - 1);
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
       }
-      d.setHours(0, 0, 0, 0);
-      return d;
+      return { start, end };
     }
 
     _periodChange(stats, i) {
@@ -372,13 +447,13 @@
       if (!tabInfo?.entity) return null;
 
       const period    = this._activeView === 'monthly' ? 'month' : 'day';
-      const start     = this._periodStart(this._activeView);
+      const { start, end } = this._periodRange();
       const costStatId = this._toStatId(tabInfo.entity);
       const kwhStatId  = this._kwhStatId(tabInfo.entity);
       const scPerDay   = this._standingChargePerDay(tabInfo.entity);
       const showCost   = this._activeUnit === 'cost';
 
-      const result    = await this._fetchStats([costStatId, kwhStatId], period, start);
+      const result    = await this._fetchStats([costStatId, kwhStatId], period, start, this._periodOffset > 0 ? end : null);
       const costStats = result[costStatId] || [];
       const kwhStats  = result[kwhStatId]  || [];
 
@@ -413,11 +488,11 @@
       if (!this._meters.import || !this._meters.export) return null;
 
       const period   = this._activeView === 'monthly' ? 'month' : 'day';
-      const start    = this._periodStart(this._activeView);
+      const { start, end } = this._periodRange();
       const importId = this._toStatId(this._meters.import);
       const exportId = this._toStatId(this._meters.export);
 
-      const result      = await this._fetchStats([importId, exportId], period, start);
+      const result      = await this._fetchStats([importId, exportId], period, start, this._periodOffset > 0 ? end : null);
       const importStats = result[importId] || [];
       const exportStats = result[exportId] || [];
       if (!importStats.length) return null;
