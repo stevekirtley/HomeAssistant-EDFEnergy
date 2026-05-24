@@ -349,9 +349,9 @@
 
       const currState = this._hass.states[this._currentAccEntity(tabInfo.entity)];
       const prevState = this._hass.states[tabInfo.entity];
-      // offset 0 = today (current), offset 1 = yesterday (previous)
+      // offset 0 = today (current only), offset 1 = yesterday (previous only)
       let charges = this._periodOffset === 0
-        ? (currState?.attributes?.charges || prevState?.attributes?.charges || [])
+        ? (currState?.attributes?.charges || [])
         : (prevState?.attributes?.charges || []);
       charges = [...charges].sort((a, b) => new Date(a.start) - new Date(b.start));
       if (!charges.length) return null;
@@ -425,9 +425,15 @@
       return { start, end };
     }
 
-    _periodChange(stats, i) {
-      if (i === 0) return Math.max(0, stats[0].sum || 0);
-      return Math.max(0, (stats[i].sum || 0) - (stats[i - 1].sum || 0));
+    _sumChange(stats, i, refSum) {
+      const prev = i === 0 ? refSum : (stats[i - 1].sum || 0);
+      return Math.max(0, (stats[i].sum || 0) - (prev || 0));
+    }
+
+    _splitRef(allStats, startMs) {
+      const window = allStats.filter(s => s.start * 1000 >= startMs);
+      const refEntry = allStats.filter(s => s.start * 1000 < startMs).at(-1);
+      return { window, refSum: refEntry?.sum ?? null };
     }
 
     _periodLabel(startSec, period) {
@@ -446,16 +452,22 @@
       const tabInfo = this._tabs.find(t => t.id === this._activeTab);
       if (!tabInfo?.entity) return null;
 
-      const period    = this._activeView === 'monthly' ? 'month' : 'day';
+      const period     = this._activeView === 'monthly' ? 'month' : 'day';
       const { start, end } = this._periodRange();
       const costStatId = this._toStatId(tabInfo.entity);
       const kwhStatId  = this._kwhStatId(tabInfo.entity);
       const scPerDay   = this._standingChargePerDay(tabInfo.entity);
       const showCost   = this._activeUnit === 'cost';
 
-      const result    = await this._fetchStats([costStatId, kwhStatId], period, start, this._periodOffset > 0 ? end : null);
-      const costStats = result[costStatId] || [];
-      const kwhStats  = result[kwhStatId]  || [];
+      // Fetch one extra period before window start to get a reference sum
+      const refStart = new Date(start);
+      if (period === 'day') refStart.setDate(refStart.getDate() - 1);
+      else refStart.setMonth(refStart.getMonth() - 1);
+
+      const result   = await this._fetchStats([costStatId, kwhStatId], period, refStart, this._periodOffset > 0 ? end : null);
+      const startMs  = start.getTime();
+      const { window: costStats, refSum: refCostSum } = this._splitRef(result[costStatId] || [], startMs);
+      const { window: kwhStats,  refSum: refKwhSum  } = this._splitRef(result[kwhStatId]  || [], startMs);
 
       const refStats = costStats.length ? costStats : kwhStats;
       if (!refStats.length) return null;
@@ -463,12 +475,12 @@
       const categories = refStats.map(s => this._periodLabel(s.start, period));
 
       const costData = costStats.map((s, i) => {
-        const unitCost = this._periodChange(costStats, i);
+        const unitCost = this._sumChange(costStats, i, refCostSum);
         const standing = period === 'month' ? scPerDay * this._daysInMonth(s.start) : scPerDay;
         return +(unitCost + standing).toFixed(4);
       });
 
-      const kwhData   = kwhStats.map((s, i) => +(this._periodChange(kwhStats, i)).toFixed(3));
+      const kwhData   = kwhStats.map((s, i) => +(this._sumChange(kwhStats, i, refKwhSum)).toFixed(3));
       const totalCost = costData.reduce((a, b) => a + b, 0);
       const totalKwh  = kwhData.reduce((a, b) => a + b, 0);
 
@@ -492,19 +504,24 @@
       const importId = this._toStatId(this._meters.import);
       const exportId = this._toStatId(this._meters.export);
 
-      const result      = await this._fetchStats([importId, exportId], period, start, this._periodOffset > 0 ? end : null);
-      const importStats = result[importId] || [];
-      const exportStats = result[exportId] || [];
+      const refStart = new Date(start);
+      if (period === 'day') refStart.setDate(refStart.getDate() - 1);
+      else refStart.setMonth(refStart.getMonth() - 1);
+
+      const result  = await this._fetchStats([importId, exportId], period, refStart, this._periodOffset > 0 ? end : null);
+      const startMs = start.getTime();
+      const { window: importStats, refSum: refImportSum } = this._splitRef(result[importId] || [], startMs);
+      const { window: exportStats, refSum: refExportSum } = this._splitRef(result[exportId] || [], startMs);
       if (!importStats.length) return null;
 
       const exportByStart = {};
-      exportStats.forEach((s, i) => { exportByStart[s.start] = this._periodChange(exportStats, i); });
+      exportStats.forEach((s, i) => { exportByStart[s.start] = this._sumChange(exportStats, i, refExportSum); });
 
       const scPerDay   = this._standingChargePerDay(this._meters.import);
       const categories = importStats.map(s => this._periodLabel(s.start, period));
 
       const netData = importStats.map((s, i) => {
-        const imp      = this._periodChange(importStats, i);
+        const imp      = this._sumChange(importStats, i, refImportSum);
         const exp      = exportByStart[s.start] || 0;
         const standing = period === 'month' ? scPerDay * this._daysInMonth(s.start) : scPerDay;
         return +(imp + standing - exp).toFixed(4);
