@@ -120,6 +120,7 @@
       this._periodOffset = 0;
       this._chart = null;
       this._metersKey = null;
+      this._renderedKey = null;
       this._updateTimer = null;
     }
 
@@ -199,6 +200,7 @@
 
     _buildShell() {
       if (this._chart) { this._chart.destroy(); this._chart = null; }
+      this._renderedKey = null;
 
       const title = this._config.title || 'Consumption';
       const noEntities = this._tabs.length === 0;
@@ -317,8 +319,14 @@
 
     // ── Update ────────────────────────────────────────────────────────────────
 
+    _dataKey() {
+      return `${this._activeTab}|${this._activeView}|${this._periodOffset}|${this._activeUnit}`;
+    }
+
     _scheduleUpdate(delay = 300) {
       clearTimeout(this._updateTimer);
+      // For stats views, skip routine hass-triggered refreshes if the chart is already current
+      if (delay === 300 && this._activeView !== 'halfhourly' && this._dataKey() === this._renderedKey) return;
       this._updateTimer = setTimeout(() => this._doUpdate(), delay);
     }
 
@@ -618,6 +626,7 @@
       container.innerHTML = '';
       this._chart = new ApexCharts(container, opts);
       await this._chart.render();
+      this._renderedKey = this._dataKey();
 
       const summaryEl = this.shadowRoot.getElementById('summary');
       if (summaryEl) {
