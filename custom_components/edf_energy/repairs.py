@@ -26,7 +26,7 @@ class ManualTariffRatesRepairFlow(RepairsFlow):
     self._is_export = data.get("is_export") == "True"
 
   async def async_step_init(self, user_input=None):
-    if user_input is not None:
+    if user_input is not None and CONFIG_MANUAL_TARIFF_PEAK_RATE in user_input:
       entry = next(
         (e for e in self.hass.config_entries.async_entries(DOMAIN)
          if e.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT
