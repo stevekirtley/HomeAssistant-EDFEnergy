@@ -272,6 +272,21 @@
         }
       }
     },
+    "tariff_rates_empty_fixable_export": {
+      "title": "No published rates found for export tariff {tariff_code}",
+      "description": "Your export meter ({mprn_mpan}/{serial_number}) is on tariff \"{tariff_code}\" but EDF Energy do not publish rates for this tariff via their API. Click \"Fix\" to enter your Smart Export Guarantee rate — your export sensors will then show live values.",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Enter your export rate",
+            "description": "Enter the export rate for tariff **{tariff_code}** as shown on your EDF Energy account or bill. This is the rate EDF pay you per kWh exported. Value should be inclusive of VAT.",
+            "data": {
+              "peak_rate_inc_vat": "Export rate (p/kWh)"
+            }
+          }
+        }
+      }
+    },
     "target_rate_not_supported": {
       "title": "Target rate configuration not supported",
       "description": "Configuration for target rates is now achieved via an additional integration and no longer provided as part of this integration. Please click \"Learn More\" for more information on how to migrate to the new way of creating target rate sensors."

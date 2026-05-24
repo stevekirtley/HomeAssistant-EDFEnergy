@@ -144,7 +144,7 @@ async def async_refresh_electricity_rates_data(
       if new_rates is not None:
         _LOGGER.debug(f'Electricity rates retrieved for {target_mpan}/{target_serial_number} ({tariff.code});')
 
-        if len(new_rates) == 0 and raise_rates_empty is not None and not is_export_meter:
+        if len(new_rates) == 0 and raise_rates_empty is not None:
           raise_rates_empty(tariff)
         elif clear_rates_empty is not None:
           clear_rates_empty(tariff)
@@ -346,7 +346,7 @@ async def async_setup_electricity_rates_coordinator(hass,
       lambda: async_raise_no_active_tariff(hass, account_id, target_mpan, target_serial_number),
       lambda: async_remove_no_active_tariff(hass, target_mpan, target_serial_number),
       intelligent_rate_mode,
-      lambda tariff: raise_rates_empty(hass, account_id, tariff, target_mpan, target_serial_number, True),
+      lambda tariff: raise_rates_empty(hass, account_id, tariff, target_mpan, target_serial_number, True, is_export_meter),
       lambda tariff: clear_rates_empty(hass, account_id, tariff),
       minimum_dispatch_duration_in_minutes,
       manual_rates_config,

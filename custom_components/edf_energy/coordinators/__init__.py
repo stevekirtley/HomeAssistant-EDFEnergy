@@ -166,9 +166,15 @@ def combine_rates(old_rates: list | None, new_rates: list | None, period_from: d
 
   return combined_rates
 
-def raise_rates_empty(hass, account_id: str, tariff: Tariff, mprn_mpan: str, serial_number: str, is_electricity: bool):
+def raise_rates_empty(hass, account_id: str, tariff: Tariff, mprn_mpan: str, serial_number: str, is_electricity: bool, is_export: bool = False):
   from ..intelligent import is_intelligent_product
-  is_fixable = is_electricity and is_intelligent_product(tariff.product)
+  is_fixable = is_electricity and (is_intelligent_product(tariff.product) or is_export)
+  if is_export:
+    translation_key = "tariff_rates_empty_fixable_export"
+  elif is_fixable:
+    translation_key = "tariff_rates_empty_fixable"
+  else:
+    translation_key = "tariff_rates_empty"
   ir.async_create_issue(
     hass,
     DOMAIN,
@@ -176,8 +182,8 @@ def raise_rates_empty(hass, account_id: str, tariff: Tariff, mprn_mpan: str, ser
     is_fixable=is_fixable,
     severity=ir.IssueSeverity.WARNING,
     learn_more_url="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/tariff_rates_empty/",
-    translation_key="tariff_rates_empty_fixable" if is_fixable else "tariff_rates_empty",
-    translation_placeholders={ "account_id": account_id, "product_code": tariff.product, "tariff_code": tariff.code, "mprn_mpan": mprn_mpan, "serial_number": serial_number, "meter_type": "electricity" if is_electricity else "gas" },
+    translation_key=translation_key,
+    translation_placeholders={ "account_id": account_id, "product_code": tariff.product, "tariff_code": tariff.code, "mprn_mpan": mprn_mpan, "serial_number": serial_number, "meter_type": "electricity" if is_electricity else "gas", "is_export": str(is_export) },
   )
 
 def clear_rates_empty(hass, account_id: str, tariff: Tariff):
