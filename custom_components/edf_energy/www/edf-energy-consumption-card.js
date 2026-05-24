@@ -203,7 +203,7 @@
               <button data-view="weekly"     class="${this._activeView === 'weekly'     ? 'active' : ''}">Weekly</button>
               <button data-view="monthly"    class="${this._activeView === 'monthly'    ? 'active' : ''}">Monthly</button>
             </div>
-            <div class="btn-group" id="unit-btns" style="${this._activeView === 'halfhourly' || this._activeTab === 'net' ? 'display:none' : ''}">
+            <div class="btn-group" id="unit-btns" style="${this._activeTab === 'net' ? 'display:none' : ''}">
               <button data-unit="kwh"  class="${this._activeUnit === 'kwh'  ? 'active' : ''}">kWh</button>
               <button data-unit="cost" class="${this._activeUnit === 'cost' ? 'active' : ''}">£</button>
             </div>
@@ -229,7 +229,7 @@
         b.classList.toggle('active', b.dataset.unit === this._activeUnit));
       const unitBtns = this.shadowRoot.getElementById('unit-btns');
       if (unitBtns)
-        unitBtns.style.display = (this._activeView === 'halfhourly' || this._activeTab === 'net') ? 'none' : '';
+        unitBtns.style.display = this._activeTab === 'net' ? 'none' : '';
     }
 
     _attachListeners() {
@@ -305,16 +305,19 @@
         const d = new Date(c.start);
         return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
       });
-      const kwhData  = charges.map(c => +(parseFloat(c.consumption) || 0).toFixed(4));
+      const kwhData   = charges.map(c => +(parseFloat(c.consumption) || 0).toFixed(4));
+      const costData  = charges.map(c => +(parseFloat(c.cost) || 0).toFixed(4));
       const totalKwh  = kwhData.reduce((a, b) => a + b, 0);
-      const totalCost = charges.reduce((a, c) => a + (parseFloat(c.cost) || 0), 0);
+      const totalCost = costData.reduce((a, b) => a + b, 0);
+      const showCost  = this._activeUnit === 'cost';
 
       return {
-        series: [{ name: 'kWh', data: kwhData }],
+        series: [{ name: showCost ? '£' : 'kWh', data: showCost ? costData : kwhData }],
         categories,
-        unit: 'kWh',
+        unit: showCost ? '£' : 'kWh',
+        isHalfHourly: true,
         summary: [
-          { label: dateLabel,   value: totalKwh.toFixed(2) + ' kWh' },
+          { label: dateLabel,  value: totalKwh.toFixed(2) + ' kWh' },
           ...(totalCost > 0 ? [{ label: 'Unit cost', value: '£' + totalCost.toFixed(2) }] : []),
         ],
       };
@@ -328,8 +331,8 @@
         start_time: startTime.toISOString(),
         statistic_ids: statIds,
         period,
-        types: ['change', 'sum'],
-        units: { energy: 'kWh', currency: 'GBP' },
+        types: ['sum'],
+        units: { energy: 'kWh' },
       };
       if (this._hass.callWS) return this._hass.callWS(msg);
       return this._hass.connection.sendMessagePromise(msg);
@@ -348,10 +351,8 @@
     }
 
     _periodChange(stats, i) {
-      const s = stats[i];
-      if (s.change != null) return Math.max(0, s.change);
-      if (i === 0) return Math.max(0, s.sum || 0);
-      return Math.max(0, (s.sum || 0) - (stats[i - 1].sum || 0));
+      if (i === 0) return Math.max(0, stats[0].sum || 0);
+      return Math.max(0, (stats[i].sum || 0) - (stats[i - 1].sum || 0));
     }
 
     _periodLabel(startSec, period) {
@@ -493,6 +494,9 @@
             style: { fontSize: '10px' },
             hideOverlappingLabels: true,
             maxHeight: 60,
+            formatter: data.isHalfHourly
+              ? (val, i) => (i % 4 === 0 ? val : '')
+              : val => val,
           },
           axisBorder: { show: false },
           axisTicks: { show: false },
