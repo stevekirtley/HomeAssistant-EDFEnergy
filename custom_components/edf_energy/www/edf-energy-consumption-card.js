@@ -380,15 +380,22 @@
       const totalCost = costData.reduce((a, b) => a + b, 0);
       const showCost  = this._activeUnit === 'cost';
 
+      const summary = showCost
+        ? [
+            { label: dateLabel,  value: '£' + totalCost.toFixed(2) },
+            { label: 'kWh',      value: totalKwh.toFixed(2) },
+          ]
+        : [
+            { label: dateLabel,  value: totalKwh.toFixed(2) + ' kWh' },
+            ...(totalCost > 0 ? [{ label: 'Unit cost', value: '£' + totalCost.toFixed(2) }] : []),
+          ];
+
       return {
         series: [{ name: showCost ? '£' : 'kWh', data: showCost ? costData : kwhData }],
         categories,
         unit: showCost ? '£' : 'kWh',
         isHalfHourly: true,
-        summary: [
-          { label: dateLabel,  value: totalKwh.toFixed(2) + ' kWh' },
-          ...(totalCost > 0 ? [{ label: 'Unit cost', value: '£' + totalCost.toFixed(2) }] : []),
-        ],
+        summary,
       };
     }
 
@@ -609,7 +616,11 @@
             hideOverlappingLabels: true,
             maxHeight: 60,
             formatter: data.isHalfHourly
-              ? (val, i) => (i % 4 === 0 ? val : '')
+              ? (val, opts) => {
+                  // ApexCharts passes index as number or inside an opts object
+                  const idx = typeof opts === 'number' ? opts : opts?.dataPointIndex;
+                  return (typeof idx === 'number' && idx % 4 === 0) ? val : '';
+                }
               : val => val,
           },
           axisBorder: { show: false },
@@ -624,7 +635,13 @@
         },
         dataLabels: { enabled: false },
         tooltip: {
-          y: { formatter: v => isPound ? '£' + v.toFixed(3) : v.toFixed(3) + ' kWh' },
+          shared: false,
+          intersect: false,
+          x: { show: true },
+          y: {
+            title: { formatter: () => '' },
+            formatter: v => isPound ? '£' + v.toFixed(3) : v.toFixed(3) + ' kWh',
+          },
         },
         grid: {
           borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
