@@ -643,10 +643,10 @@
             hideOverlappingLabels: true,
             maxHeight: 60,
             formatter: data.isHalfHourly
-              ? (val, opts) => {
-                  // ApexCharts passes index as number or inside an opts object
-                  const idx = typeof opts === 'number' ? opts : opts?.dataPointIndex;
-                  return (typeof idx === 'number' && idx % 4 === 0) ? val : '';
+              ? (val) => {
+                  // Show label only for even hours on the hour (00:00, 02:00 … 22:00)
+                  if (!val || !val.endsWith(':00')) return '';
+                  return parseInt(val, 10) % 2 === 0 ? val : '';
                 }
               : val => val,
           },
