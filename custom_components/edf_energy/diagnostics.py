@@ -1,13 +1,12 @@
 """Diagnostics support."""
 import copy
-from datetime import datetime, timedelta
 import logging
 from typing import Callable
 
 from .utils.attributes import dict_to_typed_dict
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.helpers import entity_registry as er
-from homeassistant.util.dt import (now)
+from homeassistant.util.dt import now
 
 from .const import (
   CONFIG_ACCOUNT_ID,
@@ -23,24 +22,6 @@ from .api_client import EDFEnergyApiClient, TimeoutException
 from .utils.debug_overrides import AccountDebugOverride, async_get_account_debug_override
 
 _LOGGER = logging.getLogger(__name__)
-
-async def async_get_device_consumption_data(client: EDFEnergyApiClient, device_id: str):
-  current: datetime = now()
-  period_from = current - timedelta(minutes=120)
-  period_to = current
-  try:
-    consumption_data = await client.async_get_smart_meter_consumption(
-      device_id,
-      period_from,
-      period_to)
-  
-    if consumption_data is not None and len(consumption_data) > 0:
-      return consumption_data[-1]
-    
-    return "Not available"
-  
-  except Exception as e:
-    return f"Failed to retrieve - {e}"
 
 async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, existing_account_info: dict, account_debug_override: AccountDebugOverride | None, get_entity_info: Callable[[dict], dict]):
   _LOGGER.info('Retrieving account details for diagnostics...')
@@ -68,10 +49,6 @@ async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, exi
         except TimeoutException:
           account_info["electricity_meter_points"][point_index]["meters"][meter_index]["latest_consumption"] = "time out"
 
-        device_id  = account_info["electricity_meter_points"][point_index]["meters"][meter_index]["device_id"]
-        if device_id is not None and device_id != "":
-          account_info["electricity_meter_points"][point_index]["meters"][meter_index]["latest_device_consumption"] = await async_get_device_consumption_data(client, device_id)
-        
         redacted_mappings[f"{account_info["electricity_meter_points"][point_index]["meters"][meter_index]["serial_number"]}"] = redacted_mapping_count
         account_info["electricity_meter_points"][point_index]["meters"][meter_index]["serial_number"] = redacted_mapping_count
         redacted_mapping_count += 1
@@ -93,10 +70,6 @@ async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, exi
           account_info["gas_meter_points"][point_index]["meters"][meter_index]["latest_consumption"] = consumptions[-1]["end"] if consumptions is not None and len(consumptions) > 0 else "Not available"
         except TimeoutException:
           account_info["gas_meter_points"][point_index]["meters"][meter_index]["latest_consumption"] = "time out"
-
-        device_id  = account_info["gas_meter_points"][point_index]["meters"][meter_index]["device_id"]
-        if device_id is not None and device_id != "":
-          account_info["gas_meter_points"][point_index]["meters"][meter_index]["latest_device_consumption"] = await async_get_device_consumption_data(client, device_id)
 
         redacted_mappings[f"{account_info["gas_meter_points"][point_index]["meters"][meter_index]["serial_number"]}"] = redacted_mapping_count
         account_info["gas_meter_points"][point_index]["meters"][meter_index]["serial_number"] = redacted_mapping_count
