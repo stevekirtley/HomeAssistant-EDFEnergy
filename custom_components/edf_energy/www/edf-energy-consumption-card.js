@@ -316,14 +316,24 @@
     // ── Update ────────────────────────────────────────────────────────────────
 
     _dataKey() {
-      return `${this._activeTab}|${this._activeView}|${this._periodOffset}|${this._activeUnit}`;
+      // For live halfhourly views include entity last_changed so we only re-render
+      // when the charges data actually updates, not on every hass tick
+      let liveStamp = '';
+      if (this._activeView === 'halfhourly' && this._periodOffset <= 1 && this._hass) {
+        const tabInfo = this._tabs.find(t => t.id === this._activeTab);
+        if (tabInfo) {
+          const entityId = this._periodOffset === 0
+            ? this._currentAccEntity(tabInfo.entity)
+            : tabInfo.entity;
+          liveStamp = ':' + (this._hass.states[entityId]?.last_changed || '');
+        }
+      }
+      return `${this._activeTab}|${this._activeView}|${this._periodOffset}|${this._activeUnit}${liveStamp}`;
     }
 
     _scheduleUpdate(delay = 300) {
       clearTimeout(this._updateTimer);
-      // Only today/yesterday halfhourly is live; everything else is cached by _dataKey
-      const isLive = this._activeView === 'halfhourly' && this._periodOffset <= 1;
-      if (delay === 300 && !isLive && this._dataKey() === this._renderedKey) return;
+      if (delay === 300 && this._dataKey() === this._renderedKey) return;
       this._updateTimer = setTimeout(() => this._doUpdate(), delay);
     }
 
@@ -449,23 +459,34 @@
 
       try {
         const refStart30 = new Date(dayStart);
-        refStart30.setMinutes(-30);
+        refStart30.setMinutes(refStart30.getMinutes() - 30);
         const r5 = await this._fetchStats([costStatId, kwhStatId], '5minute', refStart30, dayEnd);
-        const isHH = ms => new Date(ms).getMinutes() % 30 === 0;
-
         const raw5c = r5[costStatId] || [];
         const raw5k = r5[kwhStatId]  || [];
-        const filt5c = raw5c.filter(s => s.start >= dayMs && isHH(s.start));
-        const filt5k = raw5k.filter(s => s.start >= dayMs && isHH(s.start));
 
-        if (filt5c.length >= 2 || filt5k.length >= 2) {
-          costStats  = filt5c;
-          kwhStats   = filt5k;
-          refCostSum = raw5c.filter(s => s.start < dayMs && isHH(s.start)).at(-1)?.sum ?? null;
-          refKwhSum  = raw5k.filter(s => s.start < dayMs && isHH(s.start)).at(-1)?.sum ?? null;
+        // Aggregate into 30-min buckets by taking the last sum within each window.
+        // This handles sensors that update slightly after the :00/:30 mark.
+        const bucket30 = (raw, refMs) => {
+          const BKT = 30 * 60 * 1000;
+          const out = [];
+          for (let i = 0; i < 48; i++) {
+            const bStart = dayMs + i * BKT;
+            const last = raw.filter(s => s.start >= bStart && s.start < bStart + BKT).at(-1);
+            if (last) out.push({ start: bStart, sum: last.sum });
+          }
+          const refEntry = raw.filter(s => s.start < dayMs).at(-1);
+          return { entries: out, refSum: refEntry?.sum ?? null };
+        };
+
+        const bc = bucket30(raw5c);
+        const bk = bucket30(raw5k);
+
+        if (bc.entries.length >= 2 || bk.entries.length >= 2) {
+          costStats  = bc.entries; refCostSum = bc.refSum;
+          kwhStats   = bk.entries; refKwhSum  = bk.refSum;
           halfHourly = true;
         }
-      } catch (_) { /* period not supported */ }
+      } catch (_) { /* period not supported, fall through to hourly */ }
 
       // ── Hourly fallback ──────────────────────────────────────────────────────
       if (!halfHourly) {
