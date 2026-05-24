@@ -102,7 +102,7 @@ async def async_check_valid_product(client: EDFEnergyApiClient, product_code: st
   except:
     _LOGGER.debug(f"Failed to retrieve product info for '{product_code}'")
 
-def get_active_electricity_meters(current: datetime, account_info: dict) -> dict[tuple[str, str], str]:
+def get_active_electricity_meters(current: datetime, account_info: dict) -> dict[tuple[str, str], tuple]:
   unique_meters = {}
   if account_info is not None:
     if "electricity_meter_points" in account_info and account_info["electricity_meter_points"] is not None:
@@ -113,8 +113,8 @@ def get_active_electricity_meters(current: datetime, account_info: dict) -> dict
             mpan = point["mpan"]
             serial_number = meter["serial_number"]
             key = (mpan, serial_number)
-            unique_meters[key] = active_tariff
-  
+            unique_meters[key] = (active_tariff, meter.get("is_export", False))
+
   return unique_meters
 
 def get_active_gas_meters(current: datetime, account_info: dict) -> dict[tuple[str, str], str]:
@@ -195,9 +195,9 @@ async def async_refresh_account(
         check_for_removed_and_added_meters(account_id, previous_unique_electricity_meters, current_unique_electricity_meters, True, raise_meter_removed, raise_meter_added, clear_issue)
         check_for_removed_and_added_meters(account_id, previous_unique_gas_meters, current_unique_gas_meters, False, raise_meter_removed, raise_meter_added, clear_issue)
 
-        for meter_key in current_unique_electricity_meters.keys():
-          product = current_unique_electricity_meters[meter_key].product
-          await async_check_valid_product(client, product, True, raise_product_not_found)
+        for meter_key, (tariff, is_export) in current_unique_electricity_meters.items():
+          if not is_export:
+            await async_check_valid_product(client, tariff.product, True, raise_product_not_found)
 
         for meter_key in current_unique_gas_meters.keys():
           product = current_unique_gas_meters[meter_key].product
