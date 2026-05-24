@@ -382,6 +382,15 @@
       const totalCost = costData.reduce((a, b) => a + b, 0);
       const showCost  = this._activeUnit === 'cost';
 
+      // Per-bar colours: highlight off-peak slots when tariff has variable rates
+      const rates    = charges.map(c => parseFloat(c.rate) || 0).filter(r => r > 0);
+      const minRate  = rates.length ? Math.min(...rates) : 0;
+      const maxRate  = rates.length ? Math.max(...rates) : 0;
+      const isVariable = maxRate > minRate * 1.01;
+      const barColors = isVariable
+        ? charges.map(c => (parseFloat(c.rate) || 0) <= minRate * 1.01 ? '#2E7D32' : this._tabColor())
+        : null;
+
       const summary = showCost
         ? [
             { label: dateLabel,  value: '£' + totalCost.toFixed(2) },
@@ -397,6 +406,7 @@
         categories,
         unit: showCost ? '£' : 'kWh',
         isHalfHourly: true,
+        barColors,
         summary,
       };
     }
@@ -675,9 +685,15 @@
           strokeDashArray: 3,
           padding: { left: 0, right: 0 },
         },
-        colors: [this._tabColor()],
+        colors: data.barColors || [this._tabColor()],
+        legend: { show: false },
         plotOptions: {
-          bar: { columnWidth: '70%', borderRadius: 2, borderRadiusApplication: 'end' },
+          bar: {
+            columnWidth: '70%',
+            borderRadius: 2,
+            borderRadiusApplication: 'end',
+            distributed: !!data.barColors,
+          },
         },
       };
 
