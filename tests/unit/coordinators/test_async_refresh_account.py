@@ -751,6 +751,73 @@ async def test_when_next_refresh_is_in_future_then_existing_account_returned():
   assert times_clear_issue_called == 0
 
 @pytest.mark.asyncio
+async def test_when_export_meter_product_not_found_then_no_event_raised():
+  # Arrange - export meter whose product isn't in the public catalogue (e.g. EDF_EXPORT_SEG_12M)
+  export_account = {
+    "electricity_meter_points": [
+      {
+        "mpan": electricity_mpan,
+        "meters": [
+          {
+            "serial_number": electricity_serial_number,
+            "is_export": True,
+            "is_smart_meter": True,
+            "device_id": "",
+            "manufacturer": "",
+            "model": "",
+            "firmware": ""
+          }
+        ],
+        "agreements": [
+          {
+            "start": (current - timedelta(days=1)).isoformat(),
+            "end": (current + timedelta(seconds=1)).isoformat(),
+            "tariff_code": "E-1R-EDF_EXPORT_SEG_12M-A",
+            "product_code": "EDF_EXPORT_SEG_12M"
+          }
+        ]
+      }
+    ],
+    "gas_meter_points": []
+  }
+  previous_result = AccountCoordinatorResult(current - timedelta(days=1), 1, export_account)
+
+  async def mocked_async_get_account(*args, **kwargs):
+    return export_account
+
+  times_mocked_get_product_called = 0
+  async def mocked_async_get_product(*args, **kwargs):
+    nonlocal times_mocked_get_product_called
+    times_mocked_get_product_called += 1
+    return None
+
+  times_raise_product_not_found_called = 0
+  def raise_product_not_found(*args, **kwargs):
+    nonlocal times_raise_product_not_found_called
+    times_raise_product_not_found_called += 1
+    return None
+
+  # Act
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_account=mocked_async_get_account, async_get_product=mocked_async_get_product):
+    client = EDFEnergyApiClient("NOT_REAL")
+    result = await async_refresh_account(
+      current,
+      client,
+      account_id,
+      previous_result,
+      lambda: None,
+      lambda: None,
+      raise_product_not_found,
+      lambda *a, **kw: None,
+      lambda *a, **kw: None,
+      lambda *a, **kw: None
+    )
+
+  # Assert - product check skipped entirely for export meters
+  assert times_mocked_get_product_called == 0
+  assert times_raise_product_not_found_called == 0
+
+@pytest.mark.asyncio
 async def test_when_product_not_found_then_event_raised():
   # Arrange
   current_account = get_account_info(is_electricity_active=True, is_gas_active=True)
