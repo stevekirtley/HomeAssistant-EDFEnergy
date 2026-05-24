@@ -300,7 +300,6 @@
         });
       });
       this.shadowRoot.getElementById('btn-prev')?.addEventListener('click', () => {
-        if (this._activeView === 'halfhourly' && this._periodOffset >= 1) return;
         this._periodOffset++;
         this._syncControls();
         this._scheduleUpdate(0);
