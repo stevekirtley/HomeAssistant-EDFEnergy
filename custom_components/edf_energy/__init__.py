@@ -164,22 +164,25 @@ async def async_setup_entry(hass, entry):
       await hass.http.async_register_static_paths(static_paths)
 
     if register_panel:
-      async_register_built_in_panel(
-        hass,
-        "custom",
-        sidebar_title="EDF Energy",
-        sidebar_icon="mdi:ev-plug-type2",
-        frontend_url_path="edf-energy",
-        config={
-          "_panel_custom": {
-            "name": "edf-energy-panel",
-            "js_url": "/edf_energy/edf-energy-panel.js",
-            "embed_iframe": False,
-            "trust_external": False,
-          }
-        },
-        require_admin=False,
-      )
+      try:
+        async_register_built_in_panel(
+          hass,
+          "custom",
+          sidebar_title="EDF Energy",
+          sidebar_icon="mdi:ev-plug-type2",
+          frontend_url_path="edf-energy",
+          config={
+            "_panel_custom": {
+              "name": "edf-energy-panel",
+              "js_url": "/edf_energy/edf-energy-panel.js",
+              "embed_iframe": False,
+              "trust_external": False,
+            }
+          },
+          require_admin=False,
+        )
+      except ValueError:
+        _LOGGER.debug("EDF Energy frontend panel already registered, skipping")
 
     hass.data[DOMAIN]["_frontend_registered"] = True
 
