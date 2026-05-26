@@ -148,6 +148,7 @@ async def async_setup_entry(hass, entry):
   hass.data.setdefault(DOMAIN, {})
 
   if not hass.data[DOMAIN].get("_frontend_registered"):
+    hass.data[DOMAIN]["_frontend_registered"] = True
     www_dir = os.path.join(os.path.dirname(__file__), "www")
     static_paths = []
 
@@ -183,8 +184,6 @@ async def async_setup_entry(hass, entry):
         )
       except ValueError:
         _LOGGER.debug("EDF Energy frontend panel already registered, skipping")
-
-    hass.data[DOMAIN]["_frontend_registered"] = True
 
   config = dict(entry.data)
 
