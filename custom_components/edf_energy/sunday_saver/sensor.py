@@ -2,6 +2,7 @@ import logging
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity import generate_entity_id
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.sensor import (
   RestoreSensor,
@@ -41,6 +42,7 @@ class EDFEnergySundaySaverStartSensor(CoordinatorEntity, RestoreSensor):
       "is_active": None,
       "sunday_saver_windows": [],
     }
+    self.entity_id = generate_entity_id("sensor.{}", self.unique_id, hass=hass)
 
   @property
   def unique_id(self):
@@ -83,7 +85,7 @@ class EDFEnergySundaySaverStartSensor(CoordinatorEntity, RestoreSensor):
         is_active = (
           result.start <= current <= result.end
           if result.end is not None
-          else current >= result.start
+          else False
         )
         new_window = SundaySaverWindowRecord(result.start, result.end, result.free_hours)
         self._history = merge_sunday_saver_windows(self._history, [new_window], current)
@@ -180,7 +182,7 @@ class EDFEnergySundaySaverEndSensor(CoordinatorEntity, RestoreSensor):
         is_active = (
           result.start <= current <= result.end
           if result.start is not None
-          else current <= result.end
+          else False
         )
       else:
         self._state = None
