@@ -23,6 +23,7 @@ from .coordinators.account import AccountCoordinatorResult, async_setup_account_
 from .coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult, async_setup_intelligent_dispatches_coordinator
 from .coordinators.intelligent_settings import async_setup_intelligent_settings_coordinator
 from .coordinators.electricity_rates import async_setup_electricity_rates_coordinator
+from .coordinators.sunday_saver import async_setup_sunday_saver_coordinator
 from .statistics import get_statistic_ids_to_remove
 from .intelligent import get_intelligent_features, mock_intelligent_devices
 from .config.tariff_comparison import async_migrate_tariff_comparison_config
@@ -66,6 +67,8 @@ from .const import (
   DATA_INTELLIGENT_DEVICES,
   DATA_INTELLIGENT_DISPATCHES,
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
+  DATA_SUNDAY_SAVER,
+  DATA_SUNDAY_SAVER_COORDINATOR,
   DOMAIN,
 
   CONFIG_MAIN_API_KEY,
@@ -421,6 +424,7 @@ async def async_setup_dependencies(hass, entry, config):
                                                         config.get(CONFIG_MAIN_MANUAL_TARIFF_RATES))
 
   await async_setup_account_info_coordinator(hass, account_id, entry)
+  await async_setup_sunday_saver_coordinator(hass, account_id)
 
 
 async def options_update_listener(hass, entry):

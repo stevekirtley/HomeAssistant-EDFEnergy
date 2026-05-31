@@ -9,6 +9,7 @@ import homeassistant.helpers.config_validation as cv
 
 from .electricity.off_peak import EDFEnergyElectricityOffPeak
 from .intelligent.dispatching import EDFEnergyIntelligentDispatching
+from .sunday_saver.binary_sensor import EDFEnergySundaySaverFreeElectricity
 from .utils import get_active_tariff
 from .api_client.intelligent_device import IntelligentDevice
 from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult
@@ -26,6 +27,7 @@ from .const import (
   CONFIG_MAIN_INTELLIGENT_SETTINGS,
   DATA_INTELLIGENT_DEVICES,
   DATA_INTELLIGENT_DISPATCHES_COORDINATOR,
+  DATA_SUNDAY_SAVER_COORDINATOR,
   DOMAIN,
 
   DATA_ELECTRICITY_RATES_COORDINATOR_KEY,
@@ -69,6 +71,10 @@ async def async_setup_main_sensors(hass, entry, async_add_entities):
           entities.append(EDFEnergyElectricityOffPeak(hass, electricity_rate_coordinator, meter, point))
 
   entities.extend(get_intelligent_entities(hass, account_id, config))
+
+  sunday_saver_coordinator = hass.data[DOMAIN][account_id].get(DATA_SUNDAY_SAVER_COORDINATOR.format(account_id))
+  if sunday_saver_coordinator is not None:
+    entities.append(EDFEnergySundaySaverFreeElectricity(hass, sunday_saver_coordinator, account_id))
 
   if len(entities) > 0:
     async_add_entities(entities)
