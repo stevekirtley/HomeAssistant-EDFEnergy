@@ -1327,7 +1327,7 @@ class EDFEnergyApiClient:
         "WEEK_START_DATE": week_start_date,
       }
       headers = {
-        "Authorization": self._graphql_token,
+        "Authorization": f"JWT {self._graphql_token}",
         integration_context_header: request_context,
       }
       async with client.post(url, json=payload, headers=headers) as response:
