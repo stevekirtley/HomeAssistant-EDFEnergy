@@ -1314,6 +1314,50 @@ class EDFEnergyApiClient:
       _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
       raise TimeoutException()
   
+  async def async_get_sunday_saver(self, account_id: str, week_start_date: str):
+    """Get Sunday Saver free energy slot data for the given week anchor date."""
+    await self.async_refresh_token()
+
+    try:
+      request_context = "sunday-saver"
+      client = self._create_client_session()
+      url = 'https://www.edfenergy.com/support/sunday-saver/api/weekly'
+      payload = {
+        "accountNumber": account_id,
+        "WEEK_START_DATE": week_start_date,
+      }
+      headers = {
+        "Authorization": self._graphql_token,
+        integration_context_header: request_context,
+      }
+      async with client.post(url, json=payload, headers=headers) as response:
+        body = await self.__async_read_response__(response, url)
+        _LOGGER.debug(f'sunday_saver response: {body}')
+
+        if body is None:
+          return None
+
+        if "data" not in body:
+          return {}
+
+        raw_data = body["data"]
+        if isinstance(raw_data, str):
+          try:
+            return json.loads(raw_data)
+          except Exception:
+            _LOGGER.warning(f'Failed to parse Sunday Saver data payload: {raw_data}')
+            return None
+        elif isinstance(raw_data, dict):
+          return raw_data
+
+        return None
+
+    except TimeoutError:
+      _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
+      raise TimeoutException()
+
+    return None
+
   def __get_interval_end(self, item):
     return (item["end"].timestamp(), item["end"].fold)
 

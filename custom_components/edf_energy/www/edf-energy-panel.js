@@ -227,9 +227,10 @@
     set hass(hass) {
       const de = this._findDispatchEntity(hass);
       const oe = this._findOffPeakEntity(hass);
+      const se = this._findSundaySaverEntity(hass);
       const ids = this._getDeviceEntityIds(de, hass);
       const token = [
-        de?.last_changed, oe?.last_changed,
+        de?.last_changed, oe?.last_changed, se?.last_changed,
         ids.chargeTarget ? hass.states[ids.chargeTarget]?.last_changed : '',
         ids.targetTime   ? hass.states[ids.targetTime]?.last_changed   : '',
         ids.smartCharge  ? hass.states[ids.smartCharge]?.last_changed  : '',
@@ -261,6 +262,14 @@
       if (!hass) return null;
       for (const [id, s] of Object.entries(hass.states))
         if (id.startsWith('binary_sensor.') && id.includes('edf_energy') && id.endsWith('_off_peak') && !id.includes('_export_'))
+          return s;
+      return null;
+    }
+
+    _findSundaySaverEntity(hass) {
+      if (!hass) return null;
+      for (const [id, s] of Object.entries(hass.states))
+        if (id.startsWith('sensor.') && id.includes('edf_energy') && id.endsWith('_sunday_saver_start'))
           return s;
       return null;
     }
@@ -309,10 +318,16 @@
       return entity.attributes.off_peak_windows || [];
     }
 
-    _allDates(dispatches, offPeakWindows) {
+    _parseSundaySaverWindows(entity) {
+      if (!entity) return [];
+      return entity.attributes.sunday_saver_windows || [];
+    }
+
+    _allDates(dispatches, offPeakWindows, sundaySaverWindows) {
       const keys = new Set([
         ...dispatches.map(d => localDateKey(d.start)),
         ...offPeakWindows.map(w => localDateKey(w.start)),
+        ...sundaySaverWindows.map(w => localDateKey(w.start)),
       ]);
       return [...keys].sort((a, b) => b.localeCompare(a));
     }
@@ -485,11 +500,13 @@
 
       const de  = this._findDispatchEntity(this._hass);
       const oe  = this._findOffPeakEntity(this._hass);
+      const se  = this._findSundaySaverEntity(this._hass);
       const ids = this._getDeviceEntityIds(de, this._hass);
 
-      const dispatches     = this._parseDispatches(de);
-      const offPeakWindows = this._parseOffPeakWindows(oe);
-      const dates          = this._allDates(dispatches, offPeakWindows);
+      const dispatches          = this._parseDispatches(de);
+      const offPeakWindows      = this._parseOffPeakWindows(oe);
+      const sundaySaverWindows  = this._parseSundaySaverWindows(se);
+      const dates               = this._allDates(dispatches, offPeakWindows, sundaySaverWindows);
 
       if (!this._selectedDateKey || !dates.includes(this._selectedDateKey))
         this._selectedDateKey = dates[0] || null;
@@ -506,10 +523,14 @@
         .filter(w => localDateKey(w.start) === this._selectedDateKey)
         .sort((a, b) => new Date(a.start) - new Date(b.start));
 
+      const daySundaySaver = sundaySaverWindows
+        .filter(w => localDateKey(w.start) === this._selectedDateKey)
+        .sort((a, b) => new Date(a.start) - new Date(b.start));
+
       const deviceLabel = this._deviceLabel(de);
       const stateLabel  = this._stateLabel(de);
       const isActive    = de?.state === 'on';
-      const hasAny      = de || oe;
+      const hasAny      = de || oe || se;
 
       this.shadowRoot.innerHTML = `
         <style>${STYLES}</style>
@@ -536,7 +557,7 @@
               : `
               <div class="card">
                 <div class="section-title">Off-Peak &amp; Dispatch History</div>
-                <div class="section-info">A record of off-peak windows and smart charging dispatches for up to the past 60 days, accumulated as rate data is refreshed.</div>
+                <div class="section-info">A record of off-peak windows, Sunday Saver events, and smart charging dispatches for up to the past 60 days, accumulated as data is refreshed.</div>
                 <div class="nav-row">
                   <button class="nav-btn" id="btn-older" ${!canOlder ? 'disabled' : ''} title="Older">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
@@ -580,6 +601,32 @@
                     }).join('')
                 }
               </div>
+
+              ${se && this._selectedDateKey && (([y,m,d]) => new Date(+y,+m-1,+d).getDay() === 0)(this._selectedDateKey.split('-')) ? `<div class="card">
+                <div class="section-title">Sunday Saver Windows</div>
+                ${daySundaySaver.length === 0
+                  ? `<div class="empty">No Sunday Saver events recorded for this date.</div>`
+                  : daySundaySaver.map(w => {
+                      const status = dispatchStatus(w.start, w.end);
+                      const colour = DISPATCH_COLOUR[status];
+                      return `
+                        <div class="item">
+                          <div class="dot" style="background:${colour}"></div>
+                          <div class="info">
+                            <div class="time-str">
+                              ${formatTime(w.start)} – ${formatTime(w.end)}
+                              <span class="duration">(${formatDuration(w.start, w.end)})</span>
+                            </div>
+                            <div class="meta">
+                              ${w.free_hours != null ? `<span>${w.free_hours}h free</span>` : ''}
+                              <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')
+                }
+              </div>` : ''}
 
               ${de ? `<div class="card">
                 <div class="section-title">Smart Charging Dispatch Windows</div>

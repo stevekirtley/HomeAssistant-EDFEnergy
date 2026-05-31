@@ -53,6 +53,7 @@ from .diagnostics_entities.gas_standing_charge_data_last_retrieved import EDFEne
 from .api_client.intelligent_device import IntelligentDevice
 from .intelligent.current_state import EDFEnergyIntelligentCurrentState
 from .intelligent import get_intelligent_features
+from .sunday_saver.sensor import EDFEnergySundaySaverStartSensor, EDFEnergySundaySaverEndSensor
 
 from .utils.debug_overrides import async_get_meter_debug_override
 
@@ -90,6 +91,7 @@ from .const import (
   DATA_INTELLIGENT_DISPATCHES_COORDINATOR,
   DATA_INTELLIGENT_SETTINGS_COORDINATOR,
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
+  DATA_SUNDAY_SAVER_COORDINATOR,
   DEFAULT_CALORIFIC_VALUE,
   DOMAIN,
 
@@ -219,6 +221,11 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
   entities = [
     EDFEnergyAccountDataLastRetrieved(hass, hass.data[DOMAIN][account_id][DATA_ACCOUNT_COORDINATOR], account_id),
   ]
+
+  sunday_saver_coordinator = hass.data[DOMAIN][account_id].get(DATA_SUNDAY_SAVER_COORDINATOR.format(account_id))
+  if sunday_saver_coordinator is not None:
+    entities.append(EDFEnergySundaySaverStartSensor(hass, sunday_saver_coordinator, account_id))
+    entities.append(EDFEnergySundaySaverEndSensor(hass, sunday_saver_coordinator, account_id))
 
   intelligent_result: IntelligentDeviceCoordinatorResult = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DEVICES] if DATA_INTELLIGENT_DEVICES in hass.data[DOMAIN][account_id] else None
   intelligent_devices: list[IntelligentDevice] = (intelligent_result.devices or []) if intelligent_result is not None else []
