@@ -147,4 +147,8 @@ async def async_setup_sunday_saver_coordinator(hass, account_id: str):
     always_update=True,
   )
 
-  await hass.data[DOMAIN][account_id][DATA_SUNDAY_SAVER_COORDINATOR.format(account_id)].async_config_entry_first_refresh()
+  # Use async_refresh rather than async_config_entry_first_refresh so that a
+  # failure (e.g. account not enrolled in Sunday Saver, or non-JSON response)
+  # does not raise ConfigEntryNotReady and block the whole integration from loading.
+  # All three Sunday Saver entities handle None coordinator data gracefully.
+  await hass.data[DOMAIN][account_id][DATA_SUNDAY_SAVER_COORDINATOR.format(account_id)].async_refresh()
