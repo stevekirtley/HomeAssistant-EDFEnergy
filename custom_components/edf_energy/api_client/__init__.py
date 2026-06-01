@@ -471,6 +471,21 @@ class EDFEnergyApiClient:
       self._session = aiohttp.ClientSession(headers=self._default_headers, skip_auto_headers=['User-Agent'])
       return self._session
 
+  @property
+  def token_diagnostics(self):
+    """Redaction-safe view of the auth token state. Exposes only expiry
+    timestamps - never the access token or refresh token values."""
+    current = now()
+    refresh_expiration = self._graphql_refresh_expiration
+    access_expiration = self._graphql_expiration
+    return {
+      "refresh_token_expires_at": refresh_expiration.isoformat() if refresh_expiration is not None else None,
+      "refresh_token_expires_in": str(refresh_expiration - current) if refresh_expiration is not None else None,
+      "refresh_token_expired": refresh_expiration < current if refresh_expiration is not None else None,
+      "access_token_expires_at": access_expiration.isoformat() if access_expiration is not None else None,
+      "has_refresh_token": self._graphql_refresh_token is not None,
+    }
+
   async def async_refresh_token(self):
     """Refresh user token"""
     if (self._graphql_expiration is not None and (self._graphql_expiration - timedelta(minutes=5)) > now()):
@@ -511,9 +526,30 @@ class EDFEnergyApiClient:
         
         self._graphql_token = token_response_body["data"]["obtainKrakenToken"]["token"]
         new_refresh_token = token_response_body["data"]["obtainKrakenToken"]["refreshToken"]
+        previous_refresh_expiration = self._graphql_refresh_expiration
         self._graphql_refresh_expiration = datetime.fromtimestamp(token_response_body["data"]["obtainKrakenToken"]["refreshExpiresIn"], tz=timezone.utc)
         self._graphql_expiration = now() + timedelta(hours=1)
-        if new_refresh_token != self._graphql_refresh_token:
+        token_rotated = new_refresh_token != self._graphql_refresh_token
+
+        # Diagnostic logging to determine whether Kraken rotates the refresh token
+        # and slides its expiry forward, or returns a fixed-window token. No token
+        # values are logged - only whether it changed and the expiry timestamps.
+        if previous_refresh_expiration is None:
+          _LOGGER.debug(
+            "Refresh token obtained. Refresh expiry: %s. (first refresh this session)",
+            self._graphql_refresh_expiration.isoformat(),
+          )
+        else:
+          expiry_delta = self._graphql_refresh_expiration - previous_refresh_expiration
+          _LOGGER.debug(
+            "Refresh token refreshed. Rotated: %s. Refresh expiry: %s (moved %s vs previous %s).",
+            token_rotated,
+            self._graphql_refresh_expiration.isoformat(),
+            expiry_delta,
+            previous_refresh_expiration.isoformat(),
+          )
+
+        if token_rotated:
           self._graphql_refresh_token = new_refresh_token
           if self._on_token_refresh is not None:
             await self._on_token_refresh(new_refresh_token)
