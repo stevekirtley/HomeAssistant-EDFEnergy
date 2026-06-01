@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity import generate_entity_id
 from homeassistant.util.dt import now as ha_now
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.binary_sensor import BinarySensorEntity
@@ -33,6 +34,7 @@ class EDFEnergySundaySaverFreeElectricity(CoordinatorEntity, BinarySensorEntity,
     self._cancel_start = None
     self._cancel_end = None
     self._cancel_safeguard = None
+    self.entity_id = generate_entity_id("binary_sensor.{}", self.unique_id, hass=hass)
 
   # ── Entity properties ──────────────────────────────────────────────────────
 
