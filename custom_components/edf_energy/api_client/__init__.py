@@ -513,6 +513,7 @@ class EDFEnergyApiClient:
         new_refresh_token = token_response_body["data"]["obtainKrakenToken"]["refreshToken"]
         self._graphql_refresh_expiration = datetime.fromtimestamp(token_response_body["data"]["obtainKrakenToken"]["refreshExpiresIn"], tz=timezone.utc)
         self._graphql_expiration = now() + timedelta(hours=1)
+        _LOGGER.debug(f'Token refreshed; refresh token rotated: {new_refresh_token != self._graphql_refresh_token}; refresh token expiry: {self._graphql_refresh_expiration}')
         if new_refresh_token != self._graphql_refresh_token:
           self._graphql_refresh_token = new_refresh_token
           if self._on_token_refresh is not None:
