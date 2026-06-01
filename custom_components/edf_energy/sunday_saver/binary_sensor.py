@@ -85,7 +85,7 @@ class EDFEnergySundaySaverFreeElectricity(CoordinatorEntity, BinarySensorEntity,
         self._state = True
         self.async_write_ha_state()
 
-      self._cancel_start = async_track_point_in_time(self._hass, _on_start, result.start)
+      self._cancel_start = async_track_point_in_time(self.hass, _on_start, result.start)
       _LOGGER.debug(f"Scheduled Sunday Saver start trigger at {result.start} for account {self._account_id}")
 
     if result.end is not None and result.end > current:
@@ -95,7 +95,7 @@ class EDFEnergySundaySaverFreeElectricity(CoordinatorEntity, BinarySensorEntity,
         self._state = False
         self.async_write_ha_state()
 
-      self._cancel_end = async_track_point_in_time(self._hass, _on_end, result.end)
+      self._cancel_end = async_track_point_in_time(self.hass, _on_end, result.end)
       _LOGGER.debug(f"Scheduled Sunday Saver end trigger at {result.end} for account {self._account_id}")
 
   # ── Coordinator update ─────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ class EDFEnergySundaySaverFreeElectricity(CoordinatorEntity, BinarySensorEntity,
         self.async_write_ha_state()
 
     self._cancel_safeguard = async_track_time_change(
-      self._hass, _safeguard, minute=[1, 31], second=0
+      self.hass, _safeguard, minute=[1, 31], second=0
     )
 
   async def async_will_remove_from_hass(self):
