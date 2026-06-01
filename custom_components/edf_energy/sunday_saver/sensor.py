@@ -89,7 +89,7 @@ class EDFEnergySundaySaverStartSensor(CoordinatorEntity, RestoreSensor):
         )
         new_window = SundaySaverWindowRecord(result.start, result.end, result.free_hours)
         self._history = merge_sunday_saver_windows(self._history, [new_window], current)
-        self._hass.async_create_task(self._async_save_history())
+        self.hass.async_create_task(self._async_save_history())
       else:
         self._state = None
         is_active = False
@@ -106,7 +106,7 @@ class EDFEnergySundaySaverStartSensor(CoordinatorEntity, RestoreSensor):
     super()._handle_coordinator_update()
 
   async def _async_save_history(self):
-    await async_save_cached_sunday_saver_history(self._hass, self._account_id, self._history)
+    await async_save_cached_sunday_saver_history(self.hass, self._account_id, self._history)
 
   async def async_added_to_hass(self):
     await super().async_added_to_hass()
@@ -122,7 +122,7 @@ class EDFEnergySundaySaverStartSensor(CoordinatorEntity, RestoreSensor):
       self._attributes = dict_to_typed_dict(state.attributes)
       _LOGGER.debug(f'Restored EDFEnergySundaySaverStartSensor state: {self._state}')
 
-    self._history = await async_load_cached_sunday_saver_history(self._hass, self._account_id)
+    self._history = await async_load_cached_sunday_saver_history(self.hass, self._account_id)
     self._attributes["sunday_saver_windows"] = [w.to_dict() for w in self._history]
 
 
