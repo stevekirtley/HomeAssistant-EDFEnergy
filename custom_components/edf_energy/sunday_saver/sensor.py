@@ -140,6 +140,7 @@ class EDFEnergySundaySaverEndSensor(CoordinatorEntity, RestoreSensor):
       "start": None,
       "is_active": None,
     }
+    self.entity_id = generate_entity_id("sensor.{}", self.unique_id, hass=hass)
 
   @property
   def unique_id(self):
