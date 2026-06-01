@@ -114,7 +114,8 @@ class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor,
         for w in get_off_peak_windows_from_rates(rates)
       ]
       self._off_peak_history = merge_off_peak_windows(self._off_peak_history, new_windows, current)
-      self._attributes["off_peak_windows"] = [w.to_dict() for w in self._off_peak_history]
+      attr_min_time = current - timedelta(days=7)
+      self._attributes["off_peak_windows"] = [w.to_dict() for w in self._off_peak_history if w.end >= attr_min_time]
       self._hass.async_create_task(self._async_save_history())
 
       self._last_updated = current

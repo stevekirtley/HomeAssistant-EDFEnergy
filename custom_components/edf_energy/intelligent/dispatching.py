@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from homeassistant.const import (
@@ -105,9 +105,12 @@ class EDFEnergyIntelligentDispatching(MultiCoordinatorEntity, BinarySensorEntity
     current_date = utcnow()
     
     started_dispatches = result.dispatches.started if result is not None and result.dispatches is not None else []
+    completed = result.dispatches.completed if result is not None and result.dispatches is not None else []
+    attr_cutoff = current_date - timedelta(hours=48)
+    recent_completed = [d for d in completed if d.end is not None and d.end >= attr_cutoff]
     self.__init_attributes__(
       dispatches_to_dictionary_list(result.dispatches.planned, ignore_none=True) if result is not None else [],
-      dispatches_to_dictionary_list(result.dispatches.completed if result is not None and result.dispatches is not None else [], ignore_none=False) if result is not None else [],
+      dispatches_to_dictionary_list(recent_completed, ignore_none=False),
       simple_dispatches_to_dictionary_list(started_dispatches) if result is not None else [],
     )
 
