@@ -1344,13 +1344,18 @@ class EDFEnergyApiClient:
         raw_data = body["data"]
         if isinstance(raw_data, str):
           try:
-            return json.loads(raw_data)
+            parsed = json.loads(raw_data)
           except Exception:
             _LOGGER.warning(f'Failed to parse Sunday Saver data payload: {raw_data}')
             return None
+          if not isinstance(parsed, dict):
+            _LOGGER.warning(f'Sunday Saver data decoded to unexpected type {type(parsed).__name__}: {parsed}')
+            return None
+          return parsed
         elif isinstance(raw_data, dict):
           return raw_data
 
+        _LOGGER.warning(f'Sunday Saver data has unexpected type {type(raw_data).__name__}: {raw_data}')
         return None
 
     except TimeoutError:
