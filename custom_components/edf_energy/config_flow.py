@@ -263,7 +263,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
       step_id="reconfigure_account",
       data_schema=self.add_suggested_values_to_schema(
         self.__setup_account_schema__(False),
-        {CONFIG_MAIN_EMAIL: config.get(CONFIG_MAIN_EMAIL, "")}
+        { **config, CONFIG_MAIN_EMAIL: config.get(CONFIG_MAIN_EMAIL, "") }
       ),
       description_placeholders=description_placeholders,
       errors=errors
