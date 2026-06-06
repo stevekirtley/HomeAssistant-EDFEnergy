@@ -184,7 +184,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
         selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
       ),
       vol.Required(CONFIG_MAIN_CALORIFIC_VALUE, default=DEFAULT_CALORIFIC_VALUE): cv.positive_float,
-      vol.Required(CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES): bool,
+      vol.Required(CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES, default=True): bool,
       vol.Required(CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS, default=False): bool,
       vol.Required(CONFIG_MAIN_INTELLIGENT_SETTINGS): section(
         vol.Schema(
