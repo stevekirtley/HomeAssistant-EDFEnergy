@@ -257,6 +257,24 @@ def get_valid_from(rate):
 def get_start(rate):
   return (rate["start"].timestamp(), rate["start"].fold)
     
+def _payment_method_is_favoured(payment_method: str, favour_direct_debit_rates: bool):
+  """Whether a concrete payment method matches the favoured preference. A None payment
+  method is not a concrete method and is handled separately (it is always kept)."""
+  return (payment_method.lower() == "direct_debit") == (favour_direct_debit_rates == True)
+
+def _favoured_payment_method_available(items, favour_direct_debit_rates: bool):
+  """Whether the favoured payment method actually appears anywhere in the dataset. We
+  only exclude the non-favoured method when the favoured one is present - otherwise we
+  fall back to whatever the API returned, so tariffs that publish a single payment
+  method (e.g. dynamic tariffs that are DIRECT_DEBIT only) still produce rates."""
+  return any(item.get("payment_method") is not None and _payment_method_is_favoured(item["payment_method"], favour_direct_debit_rates) for item in items)
+
+def _should_skip_for_payment_method(item, favour_direct_debit_rates: bool, favoured_available: bool):
+  payment_method = item.get("payment_method")
+  if payment_method is None:
+    return False
+  return favoured_available and _payment_method_is_favoured(payment_method, favour_direct_debit_rates) == False
+
 def rates_to_thirty_minute_increments(data, period_from: datetime, period_to: datetime, tariff_code: str, price_cap: float = None, favour_direct_debit_rates = True):
   """Process the collection of rates to ensure they're in 30 minute periods"""
   starting_period_from = period_from
@@ -264,17 +282,13 @@ def rates_to_thirty_minute_increments(data, period_from: datetime, period_to: da
   if ("results" in data):
     items = data["results"]
     items.sort(key=get_valid_from)
+    favoured_available = _favoured_payment_method_available(items, favour_direct_debit_rates)
 
-    # We need to normalise our data into 30 minute increments so that all of our rates across all tariffs are the same and it's 
+    # We need to normalise our data into 30 minute increments so that all of our rates across all tariffs are the same and it's
     # easier to calculate our target rate sensors
     for item in items:
 
-      if ("payment_method" in item and
-          item["payment_method"] is not None and
-          (
-            (item["payment_method"].lower() == "direct_debit" and favour_direct_debit_rates != True) or
-            (item["payment_method"].lower() != "direct_debit" and favour_direct_debit_rates != False)
-          )):
+      if _should_skip_for_payment_method(item, favour_direct_debit_rates, favoured_available):
         continue
 
       value_inc_vat = float(item["value_inc_vat"])
@@ -320,13 +334,9 @@ def rates_to_thirty_minute_increments(data, period_from: datetime, period_to: da
   return results
 
 def get_standing_charge(data: list, tariff_code: str, favour_direct_debit_rates: bool):
+  favoured_available = _favoured_payment_method_available(data, favour_direct_debit_rates)
   for item in data:
-    if ("payment_method" in item and
-        item["payment_method"] is not None and
-        (
-          (item["payment_method"].lower() == "direct_debit" and favour_direct_debit_rates != True) or
-          (item["payment_method"].lower() != "direct_debit" and favour_direct_debit_rates != False)
-        )):
+    if _should_skip_for_payment_method(item, favour_direct_debit_rates, favoured_available):
       continue
 
     return {
