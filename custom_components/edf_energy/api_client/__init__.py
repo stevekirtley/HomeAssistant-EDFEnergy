@@ -257,6 +257,24 @@ def get_valid_from(rate):
 def get_start(rate):
   return (rate["start"].timestamp(), rate["start"].fold)
     
+def _payment_method_is_favoured(payment_method: str, favour_direct_debit_rates: bool):
+  """Whether a concrete payment method matches the favoured preference. A None payment
+  method is not a concrete method and is handled separately (it is always kept)."""
+  return (payment_method.lower() == "direct_debit") == (favour_direct_debit_rates == True)
+
+def _favoured_payment_method_available(items, favour_direct_debit_rates: bool):
+  """Whether the favoured payment method actually appears anywhere in the dataset. We
+  only exclude the non-favoured method when the favoured one is present - otherwise we
+  fall back to whatever the API returned, so tariffs that publish a single payment
+  method (e.g. dynamic tariffs that are DIRECT_DEBIT only) still produce rates."""
+  return any(item.get("payment_method") is not None and _payment_method_is_favoured(item["payment_method"], favour_direct_debit_rates) for item in items)
+
+def _should_skip_for_payment_method(item, favour_direct_debit_rates: bool, favoured_available: bool):
+  payment_method = item.get("payment_method")
+  if payment_method is None:
+    return False
+  return favoured_available and _payment_method_is_favoured(payment_method, favour_direct_debit_rates) == False
+
 def rates_to_thirty_minute_increments(data, period_from: datetime, period_to: datetime, tariff_code: str, price_cap: float = None, favour_direct_debit_rates = True):
   """Process the collection of rates to ensure they're in 30 minute periods"""
   starting_period_from = period_from
@@ -264,17 +282,13 @@ def rates_to_thirty_minute_increments(data, period_from: datetime, period_to: da
   if ("results" in data):
     items = data["results"]
     items.sort(key=get_valid_from)
+    favoured_available = _favoured_payment_method_available(items, favour_direct_debit_rates)
 
-    # We need to normalise our data into 30 minute increments so that all of our rates across all tariffs are the same and it's 
+    # We need to normalise our data into 30 minute increments so that all of our rates across all tariffs are the same and it's
     # easier to calculate our target rate sensors
     for item in items:
 
-      if ("payment_method" in item and
-          item["payment_method"] is not None and
-          (
-            (item["payment_method"].lower() == "direct_debit" and favour_direct_debit_rates != True) or
-            (item["payment_method"].lower() != "direct_debit" and favour_direct_debit_rates != False)
-          )):
+      if _should_skip_for_payment_method(item, favour_direct_debit_rates, favoured_available):
         continue
 
       value_inc_vat = float(item["value_inc_vat"])
@@ -320,13 +334,9 @@ def rates_to_thirty_minute_increments(data, period_from: datetime, period_to: da
   return results
 
 def get_standing_charge(data: list, tariff_code: str, favour_direct_debit_rates: bool):
+  favoured_available = _favoured_payment_method_available(data, favour_direct_debit_rates)
   for item in data:
-    if ("payment_method" in item and
-        item["payment_method"] is not None and
-        (
-          (item["payment_method"].lower() == "direct_debit" and favour_direct_debit_rates != True) or
-          (item["payment_method"].lower() != "direct_debit" and favour_direct_debit_rates != False)
-        )):
+    if _should_skip_for_payment_method(item, favour_direct_debit_rates, favoured_available):
       continue
 
     return {
@@ -471,6 +481,21 @@ class EDFEnergyApiClient:
       self._session = aiohttp.ClientSession(headers=self._default_headers, skip_auto_headers=['User-Agent'])
       return self._session
 
+  @property
+  def token_diagnostics(self):
+    """Redaction-safe view of the auth token state. Exposes only expiry
+    timestamps - never the access token or refresh token values."""
+    current = now()
+    refresh_expiration = self._graphql_refresh_expiration
+    access_expiration = self._graphql_expiration
+    return {
+      "refresh_token_expires_at": refresh_expiration.isoformat() if refresh_expiration is not None else None,
+      "refresh_token_expires_in": str(refresh_expiration - current) if refresh_expiration is not None else None,
+      "refresh_token_expired": refresh_expiration < current if refresh_expiration is not None else None,
+      "access_token_expires_at": access_expiration.isoformat() if access_expiration is not None else None,
+      "has_refresh_token": self._graphql_refresh_token is not None,
+    }
+
   async def async_refresh_token(self):
     """Refresh user token"""
     if (self._graphql_expiration is not None and (self._graphql_expiration - timedelta(minutes=5)) > now()):
@@ -511,10 +536,30 @@ class EDFEnergyApiClient:
         
         self._graphql_token = token_response_body["data"]["obtainKrakenToken"]["token"]
         new_refresh_token = token_response_body["data"]["obtainKrakenToken"]["refreshToken"]
+        previous_refresh_expiration = self._graphql_refresh_expiration
         self._graphql_refresh_expiration = datetime.fromtimestamp(token_response_body["data"]["obtainKrakenToken"]["refreshExpiresIn"], tz=timezone.utc)
         self._graphql_expiration = now() + timedelta(hours=1)
-        _LOGGER.debug(f'Token refreshed; refresh token rotated: {new_refresh_token != self._graphql_refresh_token}; refresh token expiry: {self._graphql_refresh_expiration}')
-        if new_refresh_token != self._graphql_refresh_token:
+        token_rotated = new_refresh_token != self._graphql_refresh_token
+
+        # Diagnostic logging to determine whether Kraken rotates the refresh token
+        # and slides its expiry forward, or returns a fixed-window token. No token
+        # values are logged - only whether it changed and the expiry timestamps.
+        if previous_refresh_expiration is None:
+          _LOGGER.debug(
+            "Refresh token obtained. Refresh expiry: %s. (first refresh this session)",
+            self._graphql_refresh_expiration.isoformat(),
+          )
+        else:
+          expiry_delta = self._graphql_refresh_expiration - previous_refresh_expiration
+          _LOGGER.debug(
+            "Refresh token refreshed. Rotated: %s. Refresh expiry: %s (moved %s vs previous %s).",
+            token_rotated,
+            self._graphql_refresh_expiration.isoformat(),
+            expiry_delta,
+            previous_refresh_expiration.isoformat(),
+          )
+
+        if token_rotated:
           self._graphql_refresh_token = new_refresh_token
           if self._on_token_refresh is not None:
             await self._on_token_refresh(new_refresh_token)
