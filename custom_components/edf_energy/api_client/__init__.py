@@ -21,21 +21,21 @@ from .intelligent_device_settings import IntelligentDeviceSettingPreferenceSched
 
 _LOGGER = logging.getLogger(__name__)
 
-api_token_email_query = '''mutation {{
-	obtainKrakenToken(input: {{ email: "{email}", password: "{password}" }}) {{
+api_token_email_query = '''mutation ObtainToken($email: String!, $password: String!) {
+	obtainKrakenToken(input: { email: $email, password: $password }) {
 		token
     refreshToken
     refreshExpiresIn
-	}}
-}}'''
+	}
+}'''
 
-api_token_refresh_query = '''mutation {{
-	obtainKrakenToken(input: {{ refreshToken: "{refresh_token}" }}) {{
+api_token_refresh_query = '''mutation RefreshToken($refreshToken: String!) {
+	obtainKrakenToken(input: { refreshToken: $refreshToken }) {
 		token
     refreshToken
     refreshExpiresIn
-	}}
-}}'''
+	}
+}'''
 
 account_query = '''query {{
   properties(accountNumber: "{account_id}") {{
@@ -351,7 +351,7 @@ def get_standing_charge(data: list, tariff_code: str, favour_direct_debit_rates:
 async def async_get_refresh_token(email: str, password: str, timeout_in_seconds: int = 20) -> str:
   """Authenticate with email/password and return a refresh token. Used only at setup time — never stores the password."""
   url = 'https://api.edfgb-kraken.energy/v1/graphql/'
-  payload = { "query": api_token_email_query.format(email=email, password=password) }
+  payload = { "query": api_token_email_query, "variables": { "email": email, "password": password } }
   timeout = aiohttp.ClientTimeout(total=None, sock_connect=timeout_in_seconds, sock_read=timeout_in_seconds)
   async with aiohttp.ClientSession() as session:
     async with session.post(url, json=payload, timeout=timeout) as response:
@@ -521,8 +521,7 @@ class EDFEnergyApiClient:
       raise AuthenticationException("No refresh token available, re-authentication required", [])
     client = self._create_client_session()
     url = f'{self._base_url}/v1/graphql/'
-    query = api_token_refresh_query.format(refresh_token=self._graphql_refresh_token)
-    payload = { "query": query }
+    payload = { "query": api_token_refresh_query, "variables": { "refreshToken": self._graphql_refresh_token } }
     headers = { integration_context_header: "refresh-token" }
     async with client.post(url, headers=headers, json=payload) as token_response:
       token_response_body = await self.__async_read_response__(token_response, url)
