@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from homeassistant.util.dt import (utcnow, as_utc, parse_datetime, now)
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -16,6 +17,21 @@ from ..api_client import ApiException, EDFEnergyApiClient
 from . import BaseCoordinatorResult
 
 _LOGGER = logging.getLogger(__name__)
+_UK_TZ = ZoneInfo("Europe/London")
+
+
+def _parse_edf_datetime(dt_str: str) -> datetime | None:
+  """Parse a Sunday Saver datetime string as UK local time.
+
+  EDF's API returns local UK time (BST/GMT) but marks it as UTC or omits
+  timezone entirely.  We strip any tz annotation and re-attach Europe/London
+  before converting to UTC so that display in HA always reflects the correct
+  local time.
+  """
+  dt = parse_datetime(dt_str)
+  if dt is None:
+    return None
+  return as_utc(dt.replace(tzinfo=None).replace(tzinfo=_UK_TZ))
 
 
 class SundaySaverCoordinatorResult(BaseCoordinatorResult):
@@ -96,8 +112,8 @@ async def async_refresh_sunday_saver(
     start_str = data.get('FREE_HOURS_START_DATETIME', '')
     end_str = data.get('FREE_HOURS_END_DATETIME', '')
 
-    start = as_utc(parse_datetime(start_str)) if start_str else None
-    end = as_utc(parse_datetime(end_str)) if end_str else None
+    start = _parse_edf_datetime(start_str) if start_str else None
+    end = (_parse_edf_datetime(end_str) + timedelta(minutes=30)) if end_str else None
 
     _LOGGER.debug(f'Sunday Saver event for account {account_id}: {free_hours}h starting {start}')
     return SundaySaverCoordinatorResult(current, 1, True, free_hours, start, end)
