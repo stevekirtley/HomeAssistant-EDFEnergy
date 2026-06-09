@@ -29,7 +29,7 @@ jobs:
             requirements.txt
             .tool-versions
       - name: Install Python build dependencies
-        run: sudo apt-get install -y libbz2-dev libreadline-dev liblzma-dev
+        run: sudo apt-get update && sudo apt-get install -y libbz2-dev libreadline-dev liblzma-dev
       - name: asdf_install
         uses: asdf-vm/actions/install@v4
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
@@ -58,7 +58,7 @@ jobs:
             requirements.txt
             .tool-versions
       - name: Install Python build dependencies
-        run: sudo apt-get install -y libbz2-dev libreadline-dev liblzma-dev
+        run: sudo apt-get update && sudo apt-get install -y libbz2-dev libreadline-dev liblzma-dev
       - name: asdf_install
         uses: asdf-vm/actions/install@v4
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV

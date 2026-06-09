@@ -97,6 +97,7 @@ async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, exi
 
   return {
     "timestamp_captured": now(),
+    "token": client.token_diagnostics,
     "account": account_info,
     "using_cached_account_data": existing_account_info is not None,
     "entities": get_entity_info(redacted_mappings),
