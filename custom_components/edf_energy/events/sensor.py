@@ -1,24 +1,23 @@
 import logging
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import generate_entity_id
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.sensor import RestoreSensor, SensorDeviceClass
+from homeassistant.util.dt import now as ha_now
 
+from ..coordinators.event_free_electricity import EventFreeElectricityCoordinatorResult
 from ..utils.attributes import dict_to_typed_dict
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class EDFEnergyEventFreeStartSensor(RestoreSensor):
-  """Sensor for the start of an event-based free electricity window.
+class EDFEnergyEventFreeStartSensor(CoordinatorEntity, RestoreSensor):
+  """Sensor for the start of the current or next event-based free electricity window."""
 
-  Populated by an external coordinator (e.g. World Cup match schedule).
-  Returns None until a coordinator provides data.
-  """
-
-  def __init__(self, hass: HomeAssistant, account_id: str):
-    super().__init__()
+  def __init__(self, hass: HomeAssistant, coordinator, account_id: str):
+    CoordinatorEntity.__init__(self, coordinator)
     self._account_id = account_id
     self._state = None
     self._attributes = {
@@ -53,11 +52,33 @@ class EDFEnergyEventFreeStartSensor(RestoreSensor):
   def native_value(self):
     return self._state
 
+  @callback
+  def _handle_coordinator_update(self) -> None:
+    result: EventFreeElectricityCoordinatorResult = (
+      self.coordinator.data
+      if self.coordinator is not None and self.coordinator.data is not None
+      else None
+    )
+    if result is not None:
+      current = ha_now()
+      self._state = result.start if result.has_event else None
+      is_active = (
+        result.start <= current <= result.end
+        if result.has_event and result.start is not None and result.end is not None
+        else False
+      )
+      self._attributes = dict_to_typed_dict({
+        "account_id": self._account_id,
+        "event_name": result.event_name,
+        "end": result.end,
+        "is_active": is_active,
+      })
+    super()._handle_coordinator_update()
+
   async def async_added_to_hass(self):
     await super().async_added_to_hass()
     state = await self.async_get_last_state()
     last_sensor_state = await self.async_get_last_sensor_data()
-
     if state is not None and last_sensor_state is not None and self._state is None:
       self._state = (
         None
@@ -68,15 +89,11 @@ class EDFEnergyEventFreeStartSensor(RestoreSensor):
       _LOGGER.debug(f"Restored EDFEnergyEventFreeStartSensor state: {self._state}")
 
 
-class EDFEnergyEventFreeEndSensor(RestoreSensor):
-  """Sensor for the end of an event-based free electricity window.
+class EDFEnergyEventFreeEndSensor(CoordinatorEntity, RestoreSensor):
+  """Sensor for the end of the current or next event-based free electricity window."""
 
-  Populated by an external coordinator (e.g. World Cup match schedule).
-  Returns None until a coordinator provides data.
-  """
-
-  def __init__(self, hass: HomeAssistant, account_id: str):
-    super().__init__()
+  def __init__(self, hass: HomeAssistant, coordinator, account_id: str):
+    CoordinatorEntity.__init__(self, coordinator)
     self._account_id = account_id
     self._state = None
     self._attributes = {
@@ -111,11 +128,33 @@ class EDFEnergyEventFreeEndSensor(RestoreSensor):
   def native_value(self):
     return self._state
 
+  @callback
+  def _handle_coordinator_update(self) -> None:
+    result: EventFreeElectricityCoordinatorResult = (
+      self.coordinator.data
+      if self.coordinator is not None and self.coordinator.data is not None
+      else None
+    )
+    if result is not None:
+      current = ha_now()
+      self._state = result.end if result.has_event else None
+      is_active = (
+        result.start <= current <= result.end
+        if result.has_event and result.start is not None and result.end is not None
+        else False
+      )
+      self._attributes = dict_to_typed_dict({
+        "account_id": self._account_id,
+        "event_name": result.event_name,
+        "start": result.start,
+        "is_active": is_active,
+      })
+    super()._handle_coordinator_update()
+
   async def async_added_to_hass(self):
     await super().async_added_to_hass()
     state = await self.async_get_last_state()
     last_sensor_state = await self.async_get_last_sensor_data()
-
     if state is not None and last_sensor_state is not None and self._state is None:
       self._state = (
         None

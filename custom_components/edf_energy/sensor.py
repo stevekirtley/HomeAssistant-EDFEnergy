@@ -93,6 +93,7 @@ from .const import (
   DATA_INTELLIGENT_SETTINGS_COORDINATOR,
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
   DATA_SUNDAY_SAVER_COORDINATOR,
+  DATA_EVENT_FREE_ELECTRICITY_COORDINATOR,
   DEFAULT_CALORIFIC_VALUE,
   DOMAIN,
 
@@ -228,8 +229,10 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
     entities.append(EDFEnergySundaySaverStartSensor(hass, sunday_saver_coordinator, account_id))
     entities.append(EDFEnergySundaySaverEndSensor(hass, sunday_saver_coordinator, account_id))
 
-  entities.append(EDFEnergyEventFreeStartSensor(hass, account_id))
-  entities.append(EDFEnergyEventFreeEndSensor(hass, account_id))
+  event_coordinator = hass.data[DOMAIN][account_id].get(DATA_EVENT_FREE_ELECTRICITY_COORDINATOR.format(account_id))
+  if event_coordinator is not None:
+    entities.append(EDFEnergyEventFreeStartSensor(hass, event_coordinator, account_id))
+    entities.append(EDFEnergyEventFreeEndSensor(hass, event_coordinator, account_id))
 
   intelligent_result: IntelligentDeviceCoordinatorResult = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DEVICES] if DATA_INTELLIGENT_DEVICES in hass.data[DOMAIN][account_id] else None
   intelligent_devices: list[IntelligentDevice] = (intelligent_result.devices or []) if intelligent_result is not None else []
