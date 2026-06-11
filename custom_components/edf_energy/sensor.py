@@ -54,6 +54,7 @@ from .api_client.intelligent_device import IntelligentDevice
 from .intelligent.current_state import EDFEnergyIntelligentCurrentState
 from .intelligent import get_intelligent_features
 from .sunday_saver.sensor import EDFEnergySundaySaverStartSensor, EDFEnergySundaySaverEndSensor
+from .events.sensor import EDFEnergyEventFreeStartSensor, EDFEnergyEventFreeEndSensor
 
 from .utils.debug_overrides import async_get_meter_debug_override
 
@@ -226,6 +227,9 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
   if sunday_saver_coordinator is not None:
     entities.append(EDFEnergySundaySaverStartSensor(hass, sunday_saver_coordinator, account_id))
     entities.append(EDFEnergySundaySaverEndSensor(hass, sunday_saver_coordinator, account_id))
+
+  entities.append(EDFEnergyEventFreeStartSensor(hass, account_id))
+  entities.append(EDFEnergyEventFreeEndSensor(hass, account_id))
 
   intelligent_result: IntelligentDeviceCoordinatorResult = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DEVICES] if DATA_INTELLIGENT_DEVICES in hass.data[DOMAIN][account_id] else None
   intelligent_devices: list[IntelligentDevice] = (intelligent_result.devices or []) if intelligent_result is not None else []
