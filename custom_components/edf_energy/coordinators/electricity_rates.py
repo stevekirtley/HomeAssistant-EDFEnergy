@@ -35,6 +35,7 @@ from . import BaseCoordinatorResult, clear_rates_empty, combine_rates, get_elect
 from ..intelligent import adjust_intelligent_rates, is_intelligent_product
 from ..utils.rate_information import get_unique_rates, has_peak_rates
 from ..utils.tariff_cache import async_save_cached_tariff_total_unique_rates
+from ..utils.tariff_check import is_freephase_dynamic_tariff
 from ..utils.repairs import safe_repair_key
 
 _LOGGER = logging.getLogger(__name__)
@@ -182,12 +183,14 @@ async def async_refresh_electricity_rates_data(
         current_unique_rates = len(get_unique_rates(current, original_rates))
         previous_unique_rates = len(get_unique_rates(current, existing_rates_result.original_rates)) if existing_rates_result is not None and existing_rates_result.original_rates is not None else None
 
-        # Check if rates have changed
-        if ((has_peak_rates(current_unique_rates) and has_peak_rates(previous_unique_rates) == False) or
-            (has_peak_rates(current_unique_rates) == False and has_peak_rates(previous_unique_rates)) or
-            (has_peak_rates(current_unique_rates) and has_peak_rates(previous_unique_rates) and current_unique_rates != previous_unique_rates)):
-          if previous_unique_rates is not None and unique_rates_changed is not None:
-            await unique_rates_changed(tariff, current_unique_rates)
+        # Check if rates have changed — skip for freephase dynamic tariffs where daily value
+        # changes are expected and entities update automatically without reloading
+        if not is_freephase_dynamic_tariff(tariff.code):
+          if ((has_peak_rates(current_unique_rates) and has_peak_rates(previous_unique_rates) == False) or
+              (has_peak_rates(current_unique_rates) == False and has_peak_rates(previous_unique_rates)) or
+              (has_peak_rates(current_unique_rates) and has_peak_rates(previous_unique_rates) and current_unique_rates != previous_unique_rates)):
+            if previous_unique_rates is not None and unique_rates_changed is not None:
+              await unique_rates_changed(tariff, current_unique_rates)
         
         return ElectricityRatesCoordinatorResult(current, 1, new_rates, original_rates, current, last_retrieved)
       

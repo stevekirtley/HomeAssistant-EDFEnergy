@@ -6,6 +6,11 @@ def is_agile_tariff(tariff_code: str):
 
   return parts is not None and "AGILE" in parts.product_code
 
+def is_freephase_dynamic_tariff(tariff_code: str):
+  parts = get_tariff_parts(tariff_code.upper())
+
+  return parts is not None and "FREEPHASE_DYNAMIC" in parts.product_code
+
 def is_tariff_present(root_key: str, region: str, tariff_code: str, product) -> bool:
   target_region = f'_{region}'
   if root_key in product and target_region in product[root_key]:
