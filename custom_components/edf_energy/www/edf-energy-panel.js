@@ -210,9 +210,9 @@
     }
     @keyframes fadeout { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
 
-    /* ── Mobile menu button ── */
+    /* ── Menu button ── */
     .menu-btn {
-      display: none;
+      display: flex;
       background: none; border: none;
       color: inherit; cursor: pointer;
       padding: 6px; margin: -6px 4px -6px -4px;
@@ -220,7 +220,6 @@
       align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    .menu-btn.narrow { display: flex; }
     .menu-btn:hover { background: rgba(255,255,255,0.15); }
   `;
 
@@ -549,7 +548,7 @@
         <style>${STYLES}</style>
 
         <div class="toolbar">
-          <button class="menu-btn${this._hass?.narrow ? ' narrow' : ''}" id="menu-btn" title="Menu">
+          <button class="menu-btn" id="menu-btn" title="Menu">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
               <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
             </svg>
@@ -683,9 +682,11 @@
     _attachListeners(ids, dates, idx, canOlder, canNewer) {
       const root = this.shadowRoot;
 
-      // ── Mobile menu (opens HA navigation sidebar) ─────────────────────────
+      // ── Menu button (opens HA navigation sidebar) ─────────────────────────
       root.getElementById('menu-btn')?.addEventListener('click', () => {
-        window.dispatchEvent(new Event('hass-toggle-menu'));
+        // Fire on window (where HA's shell listens) and bubble out of the shadow root
+        window.dispatchEvent(new CustomEvent('hass-toggle-menu'));
+        this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true }));
       });
 
       // ── Date navigation ────────────────────────────────────────────────────
