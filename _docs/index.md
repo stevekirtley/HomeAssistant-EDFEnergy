@@ -5,6 +5,7 @@
 Below are the main features of the integration
 
 * [Electricity](./entities/electricity.md) and [gas](./entities/gas.md) meter support including consumption data and rate information
+* [Free electricity session support](./entities/free_electricity.md) (Sunday Saver and event-based windows)
 * [Custom sensor support for tracking costs of other entities](#cost-tracker-sensors)
 * [Custom sensor support for comparing to other tariffs](#tariff-comparison-sensors)
 * [Smart Charging tariff settings support](#smart-charging)

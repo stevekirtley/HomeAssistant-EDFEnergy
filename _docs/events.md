@@ -252,6 +252,51 @@ This is fired when the [previous consumption's](./entities/gas.md#previous-accum
         New rates available for {{ trigger.event.data.mprn }}. Starting value is {{ trigger.event.data.rates[0]["value_inc_vat"] }}
 ```
 
+## Free Electricity
+
+### All Free Electricity Sessions
+
+`edf_energy_all_free_electricity_sessions`
+
+This is fired whenever the set of known free electricity sessions is refreshed. It powers the
+[Free Electricity Session Events](./entities/free_electricity.md#free-electricity-session-events)
+sensor and aggregates sessions from every source (e.g. Sunday Saver and event-based windows).
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `account_id` | `string` | The account these sessions belong to |
+| `events` | `array` | The collection of known free electricity sessions (each with `code`, `source`, `start`, `end` and `duration_in_minutes`) |
+
+### New Free Electricity Session
+
+`edf_energy_new_free_electricity_session`
+
+This is fired once for each newly discovered free electricity session.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `account_id` | `string` | The account the session belongs to |
+| `event_code` | `string` | A unique identifier for the session |
+| `event_source` | `string` | Where the session came from — `sunday_saver` or `football` |
+| `event_start` | `datetime` | The date/time the session starts |
+| `event_end` | `datetime` | The date/time the session ends |
+| `event_duration_in_minutes` | `integer` | The duration of the session in minutes |
+
+#### Automation Example
+
+```yaml
+- trigger:
+  - platform: event
+    event_type: edf_energy_new_free_electricity_session
+  condition: []
+  action:
+  - service: persistent_notification.create
+    data:
+      title: "Free Electricity Session"
+      message: >
+        Free electricity from {{ trigger.event.data.event_start }} to {{ trigger.event.data.event_end }}.
+```
+
 ## Tariff Comparisons
 
 ### Electricity Previous Consumption Tariff Comparison Rates
