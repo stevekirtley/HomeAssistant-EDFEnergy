@@ -5,7 +5,7 @@ from homeassistant.components.event import EventEntity, EventExtraStoredData
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.entity import generate_entity_id
 
-from ..const import EVENT_ALL_FREE_ELECTRICITY_SESSIONS
+from ..const import DATA_FREE_ELECTRICITY_SESSIONS, DOMAIN, EVENT_ALL_FREE_ELECTRICITY_SESSIONS
 from ..utils.attributes import dict_to_typed_dict
 from .base import EDFEnergyFreeElectricitySensor
 
@@ -52,6 +52,14 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
 
   async def async_added_to_hass(self):
     await super().async_added_to_hass()
+    # Seed from the coordinator result already in hass.data — the coordinator fires its
+    # first event before entity registration, so we'd otherwise miss it permanently.
+    existing = self._hass.data.get(DOMAIN, {}).get(self._account_id, {}).get(
+      DATA_FREE_ELECTRICITY_SESSIONS.format(self._account_id)
+    )
+    if existing is not None:
+      self._football_enabled = existing.football_enabled
+      self._football_enrollment_auto_detected = existing.football_enrollment_auto_detected
     self._hass.bus.async_listen(self._attr_event_types[0], self._async_handle_event)
 
   async def async_get_last_event_data(self):
