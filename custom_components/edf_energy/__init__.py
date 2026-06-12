@@ -323,10 +323,6 @@ async def async_setup_dependencies(hass, entry, config):
   client = EDFEnergyApiClient(config[CONFIG_MAIN_REFRESH_TOKEN], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates, on_token_refresh=_async_persist_refresh_token)
   hass.data[DOMAIN][account_id][DATA_CLIENT] = client
 
-  # DEBUG PROBE — remove these two lines when investigation is complete
-  from .debug_token_probe import async_setup_token_probe  # noqa: PLC0415
-  async_setup_token_probe(hass, entry, client)
-
   # Delete any issues that may have been previously raised
   ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_UNIQUE_RATES_CHANGED_KEY, account_id))
   ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_ACCOUNT_NOT_FOUND, account_id))
