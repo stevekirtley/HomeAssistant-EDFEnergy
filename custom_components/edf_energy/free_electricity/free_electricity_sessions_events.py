@@ -27,6 +27,7 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
     self._account_id = account_id
     self._hass = hass
     self._football_enabled = False
+    self._football_enrollment_auto_detected = False
     self._attr_event_types = [EVENT_ALL_FREE_ELECTRICITY_SESSIONS]
     self.entity_id = generate_entity_id("event.{}", self.unique_id, hass=hass)
 
@@ -42,6 +43,7 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
   def extra_state_attributes(self):
     return {
       "football_free_electricity_enabled": self._football_enabled,
+      "football_enrollment_auto_detected": self._football_enrollment_auto_detected,
     }
 
   def update_football_enabled(self, enabled: bool):
@@ -62,7 +64,7 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
   @callback
   def _async_handle_event(self, event) -> None:
     if event.data is not None and event.data.get("account_id") == self._account_id:
-      football_enabled = event.data.get("football_free_electricity_enabled", False)
-      self._football_enabled = football_enabled
+      self._football_enabled = event.data.get("football_free_electricity_enabled", False)
+      self._football_enrollment_auto_detected = event.data.get("football_enrollment_auto_detected", False)
       self._trigger_event(event.event_type, event.data)
       self.async_write_ha_state()

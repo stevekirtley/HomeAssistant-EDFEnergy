@@ -151,6 +151,7 @@ REPAIR_TARGET_RATE_NOT_SUPPORTED = "target_rate_not_supported"
 REPAIR_AUTH_TOKEN_EXPIRING_SOON = "auth_token_expiring_soon_{}"
 
 DATA_AUTH_TOKEN_EXPIRY = "AUTH_TOKEN_EXPIRY_{}"
+DATA_FOOTBALL_ENROLLMENT = "FOOTBALL_ENROLLMENT_{}"
 CONFIG_MAIN_REFRESH_EXPIRES_IN = "refresh_expires_in"
 
 # During BST, two records are returned before the rest of the data is available

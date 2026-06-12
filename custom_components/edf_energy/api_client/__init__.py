@@ -432,6 +432,23 @@ def process_graphql_response(data: Any, url: str, request_context: str, ignore_e
   
   return data
 
+
+def _parse_football_enrollment_status(data: dict) -> bool | None:
+  """Parse the EDF challenge/summary response to determine enrollment status.
+
+  Returns True (AlreadyRegistered), False (response present but not enrolled), or None (indeterminate).
+  """
+  if not data:
+    return None
+  sections = data.get("summary", {}).get("sections", [])
+  if not sections:
+    return None
+  for section in sections:
+    if section.get("component") == "AlreadyRegistered":
+      return True
+  return False
+
+
 class EDFEnergyApiClient:
   _refresh_token_lock = RLock()
   _session_lock = RLock()
@@ -571,6 +588,34 @@ class EDFEnergyApiClient:
       else:
         _LOGGER.error("Failed to retrieve auth token")
       
+  async def async_get_football_enrollment_status(self, account_id: str) -> bool | None:
+    """Check whether this account is enrolled in the football_2026 free electricity offer.
+
+    Returns True (enrolled), False (not enrolled), or None if the check could not be completed.
+    The EDF website API uses the same Kraken JWT but with no prefix on the Authorization header.
+    """
+    try:
+      await self.async_refresh_token()
+      url = (
+        f'https://www.edfenergy.com/support/energyhub/api/sunday-saver/v1/accounts'
+        f'/{account_id}/challenge/summary?loyaltyEventType=football_2026'
+      )
+      headers = {'Authorization': self._graphql_token}
+      client = self._create_client_session()
+      async with client.get(url, headers=headers) as response:
+        if response.status == 200:
+          data = await response.json(content_type=None)
+          _LOGGER.debug("Football enrollment response for %s: %s", account_id, data)
+          return _parse_football_enrollment_status(data)
+        if response.status == 404:
+          return False
+        _LOGGER.warning("Football enrollment check returned HTTP %s for %s", response.status, account_id)
+        return None
+    except Exception as e:
+      _LOGGER.warning("Failed to check football enrollment for %s: %s", account_id, e)
+      return None
+
+
   def map_electricity_meters(self, meter_point):
     is_export = (meter_point["meterPoint"]["direction"] == 'EXPORT') \
       if "meterPoint" in meter_point and "direction" in meter_point["meterPoint"] and meter_point["meterPoint"]["direction"] is not None \
