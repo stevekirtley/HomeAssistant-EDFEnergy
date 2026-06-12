@@ -210,6 +210,14 @@
     }
     @keyframes fadeout { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
 
+    /* ── World Cup banner ── */
+    .wc-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px 6px;
+      font-size: 0.78em; color: var(--secondary-text-color); font-style: italic;
+    }
+    .wc-flag { font-size: 1.3em; }
+
     /* ── Menu button ── */
     .menu-btn {
       display: flex;
@@ -240,9 +248,11 @@
       const de = this._findDispatchEntity(hass);
       const oe = this._findOffPeakEntity(hass);
       const se = this._findSundaySaverEntity(hass);
+      const fse = this._findFreeSessionsEntity(hass);
       const ids = this._getDeviceEntityIds(de, hass);
       const token = [
         de?.last_changed, oe?.last_changed, se?.last_changed,
+        fse?.attributes?.football_free_electricity_enabled,
         ids.chargeTarget ? hass.states[ids.chargeTarget]?.last_changed : '',
         ids.targetTime   ? hass.states[ids.targetTime]?.last_changed   : '',
         ids.smartCharge  ? hass.states[ids.smartCharge]?.last_changed  : '',
@@ -283,6 +293,28 @@
       for (const [id, s] of Object.entries(hass.states))
         if (id.startsWith('sensor.') && id.includes('edf_energy') && id.endsWith('_sunday_saver_start'))
           return s;
+      return null;
+    }
+
+    _findFreeSessionsEntity(hass) {
+      if (!hass) return null;
+      for (const [id, s] of Object.entries(hass.states))
+        if (id.startsWith('event.') && id.includes('edf_energy') && id.endsWith('_free_electricity_session_events'))
+          return s;
+      return null;
+    }
+
+    _findAccountId(hass) {
+      // Extract account_id from the Sunday Saver entity, falling back to the free sessions entity
+      if (!hass) return null;
+      for (const id of Object.keys(hass.states)) {
+        const m = id.match(/^sensor\.edf_energy_(.+)_sunday_saver_start$/);
+        if (m) return m[1];
+      }
+      for (const id of Object.keys(hass.states)) {
+        const m = id.match(/^event\.edf_energy_(.+)_free_electricity_session_events$/);
+        if (m) return m[1];
+      }
       return null;
     }
 
@@ -505,6 +537,40 @@
       `;
     }
 
+    // ── World Cup free electricity card ────────────────────────────────────────
+
+    _renderWorldCupCard() {
+      // Show only during World Cup 2026 (June 11 – July 19 inclusive)
+      const now = new Date();
+      const wcEnd = new Date('2026-07-20T00:00:00Z');
+      if (now >= wcEnd) return '';
+
+      const fse = this._findFreeSessionsEntity(this._hass);
+      const enabled = fse?.attributes?.football_free_electricity_enabled ?? false;
+
+      return `
+        <div class="card">
+          <div class="section-title">⚽ World Cup 2026 Free Electricity</div>
+          <div class="wc-banner">
+            <span class="wc-flag">🏴󠁧󠁢󠁥󠁮󠁧󠁿🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
+            EDF are offering 2 hours of free electricity for every England &amp; Scotland match.
+            Enable this only if your account is enrolled in the offer.
+          </div>
+          <div class="control-row">
+            <div class="control-label">
+              I'm enrolled in World Cup free electricity
+              <div class="control-sub">Adds match kick-off windows to the free electricity session feed</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="football-toggle" ${enabled ? 'checked' : ''}>
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+        </div>
+      `;
+    }
+
     // ── Full render ─────────────────────────────────────────────────────────────
 
     _render() {
@@ -568,6 +634,7 @@
             ? `<div class="card"><div class="no-entity">No EDF Energy entities found. Check the integration is set up correctly.</div></div>`
             : `
             ${this._renderControls(ids)}
+            ${this._renderWorldCupCard()}
 
             ${dates.length === 0
               ? `<div class="card"><div class="empty">No data yet — check back after the next rate refresh.</div></div>`
@@ -701,8 +768,15 @@
         if (canNewer) { this._selectedDateKey = dates[idx - 1]; this._render(); }
       });
 
-      // ── Toggle switches ────────────────────────────────────────────────────
-      root.querySelectorAll('.toggle input[type=checkbox]').forEach(checkbox => {
+      // ── World Cup opt-in toggle ────────────────────────────────────────────
+      root.getElementById('football-toggle')?.addEventListener('change', e => {
+        const accountId = this._findAccountId(this._hass);
+        const data = accountId ? { enabled: e.target.checked, account_id: accountId } : { enabled: e.target.checked };
+        this._hass.callService('edf_energy', 'set_football_free_electricity', data);
+      });
+
+      // ── EV control toggle switches ─────────────────────────────────────────
+      root.querySelectorAll('.toggle input[type=checkbox]:not(#football-toggle)').forEach(checkbox => {
         checkbox.addEventListener('change', e => {
           this._callSwitch(e.target.dataset.entity, e.target.checked);
         });

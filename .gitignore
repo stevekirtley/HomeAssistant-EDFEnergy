@@ -5,3 +5,4 @@ site
 .cache/
 .claude/
 test_local.py
+**/debug_token_probe.py

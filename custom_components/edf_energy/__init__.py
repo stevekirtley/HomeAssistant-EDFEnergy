@@ -25,6 +25,7 @@ from .coordinators.intelligent_settings import async_setup_intelligent_settings_
 from .coordinators.electricity_rates import async_setup_electricity_rates_coordinator
 from .coordinators.sunday_saver import async_setup_sunday_saver_coordinator
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
+from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
 from .statistics import get_statistic_ids_to_remove
 from .intelligent import get_intelligent_features, mock_intelligent_devices
 from .config.tariff_comparison import async_migrate_tariff_comparison_config
@@ -70,9 +71,11 @@ from .const import (
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
   DATA_SUNDAY_SAVER,
   DATA_SUNDAY_SAVER_COORDINATOR,
+  DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
   DOMAIN,
 
   CONFIG_MAIN_API_KEY,
+  CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
   CONFIG_MAIN_REFRESH_TOKEN,
   CONFIG_ACCOUNT_ID,
   CONFIG_MAIN_ELECTRICITY_PRICE_CAP,
@@ -86,7 +89,8 @@ from .const import (
   REPAIR_INVALID_API_KEY,
   REPAIR_TARGET_RATE_NOT_SUPPORTED,
   REPAIR_UNIQUE_RATES_CHANGED_KEY,
-  REPAIR_UNKNOWN_INTELLIGENT_PROVIDER
+  REPAIR_UNKNOWN_INTELLIGENT_PROVIDER,
+  SERVICE_SET_FOOTBALL_FREE_ELECTRICITY,
 )
 
 ACCOUNT_PLATFORMS = ["sensor", "binary_sensor", "number", "switch", "text", "time", "event", "select", "calendar"]
@@ -319,6 +323,10 @@ async def async_setup_dependencies(hass, entry, config):
   client = EDFEnergyApiClient(config[CONFIG_MAIN_REFRESH_TOKEN], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates, on_token_refresh=_async_persist_refresh_token)
   hass.data[DOMAIN][account_id][DATA_CLIENT] = client
 
+  # DEBUG PROBE — remove these two lines when investigation is complete
+  from .debug_token_probe import async_setup_token_probe  # noqa: PLC0415
+  async_setup_token_probe(hass, entry, client)
+
   # Delete any issues that may have been previously raised
   ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_UNIQUE_RATES_CHANGED_KEY, account_id))
   ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_ACCOUNT_NOT_FOUND, account_id))
@@ -427,6 +435,45 @@ async def async_setup_dependencies(hass, entry, config):
   await async_setup_account_info_coordinator(hass, account_id, entry)
   await async_setup_sunday_saver_coordinator(hass, account_id)
   await async_setup_event_free_electricity_coordinator(hass, account_id)
+  await async_setup_free_electricity_sessions_coordinator(hass, account_id, entry)
+
+  _async_register_services(hass)
+
+
+def _async_register_services(hass):
+  """Register integration services (idempotent — safe to call per account entry)."""
+  import voluptuous as vol
+  from homeassistant.helpers import config_validation as cv
+
+  if hass.services.has_service(DOMAIN, SERVICE_SET_FOOTBALL_FREE_ELECTRICITY):
+    return
+
+  async def _handle_set_football_free_electricity(call):
+    enabled = call.data.get("enabled", False)
+    account_id = call.data.get("account_id")
+    for entry in hass.config_entries.async_entries(DOMAIN):
+      if account_id is not None and entry.data.get(CONFIG_ACCOUNT_ID) != account_id:
+        continue
+      if entry.data.get("kind") != "account":
+        continue
+      hass.config_entries.async_update_entry(
+        entry, options={**entry.options, CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY: enabled}
+      )
+      coordinator = hass.data.get(DOMAIN, {}).get(entry.data.get(CONFIG_ACCOUNT_ID), {}).get(
+        DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR.format(entry.data.get(CONFIG_ACCOUNT_ID))
+      )
+      if coordinator is not None:
+        await coordinator.async_request_refresh()
+
+  hass.services.async_register(
+    DOMAIN,
+    SERVICE_SET_FOOTBALL_FREE_ELECTRICITY,
+    _handle_set_football_free_electricity,
+    schema=vol.Schema({
+      vol.Required("enabled"): bool,
+      vol.Optional("account_id"): cv.string,
+    }),
+  )
 
 
 async def options_update_listener(hass, entry):
