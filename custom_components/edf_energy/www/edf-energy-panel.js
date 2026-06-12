@@ -266,6 +266,7 @@
       const token = [
         de?.last_changed, oe?.last_changed, se?.last_changed,
         fse?.attributes?.football_free_electricity_enabled,
+        fse?.attributes?.football_enrollment_auto_detected,
         authExpiry?.state,
         ids.chargeTarget ? hass.states[ids.chargeTarget]?.last_changed : '',
         ids.targetTime   ? hass.states[ids.targetTime]?.last_changed   : '',
@@ -569,12 +570,32 @@
 
       const fse = this._findFreeSessionsEntity(this._hass);
       const enabled = fse?.attributes?.football_free_electricity_enabled ?? false;
+      const autoDetected = fse?.attributes?.football_enrollment_auto_detected ?? false;
 
+      // Auto-detected not enrolled → hide the card entirely
+      if (autoDetected && !enabled) return '';
+
+      if (autoDetected) {
+        // Enrolled, confirmed from EDF account — show read-only status
+        return `
+          <div class="card">
+            <div class="section-title">&#x26BD; World Cup 2026 Free Electricity</div>
+            <div class="control-row">
+              <div class="control-label">
+                World Cup free electricity
+                <div class="control-sub">Enrolled &#x2014; match windows added to your free electricity feed automatically</div>
+              </div>
+              <span style="font-size:1.3em" title="Enrolled (detected from your EDF account)">&#x2705;</span>
+            </div>
+          </div>`;
+      }
+
+      // Manual toggle fallback (API unavailable or returned null)
       return `
         <div class="card">
-          <div class="section-title">⚽ World Cup 2026 Free Electricity</div>
+          <div class="section-title">&#x26BD; World Cup 2026 Free Electricity</div>
           <div class="wc-banner">
-            <span class="wc-flag">🏴󠁧󠁢󠁥󠁮󠁧󠁿🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
+            <span class="wc-flag">&#x1F3F4;&#xE0067;&#xE0062;&#xE0065;&#xE006E;&#xE0067;&#xE007F;&#x1F3F4;&#xE0067;&#xE0062;&#xE0073;&#xE0063;&#xE0074;&#xE007F;</span>
             EDF are offering 2 hours of free electricity for every England &amp; Scotland match.
             Enable this only if your account is enrolled in the offer.
           </div>

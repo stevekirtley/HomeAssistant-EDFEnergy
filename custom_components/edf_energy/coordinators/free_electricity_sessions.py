@@ -8,7 +8,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from ..const import (
   CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
   COORDINATOR_REFRESH_IN_SECONDS,
+  DATA_CLIENT,
   DATA_EVENT_FREE_ELECTRICITY,
+  DATA_FOOTBALL_ENROLLMENT,
   DATA_FREE_ELECTRICITY_SESSIONS,
   DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
   DATA_SUNDAY_SAVER,
@@ -21,6 +23,7 @@ from . import BaseCoordinatorResult
 from .sunday_saver import SundaySaverCoordinatorResult
 from .event_free_electricity import EventFreeElectricityCoordinatorResult
 from ..api_client.free_electricity_sessions import FreeElectricitySession
+from ..api_client import EDFEnergyApiClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,9 +81,35 @@ def _sessions_equal(a: list[FreeElectricitySession], b: list[FreeElectricitySess
   return all(x.code == y.code and x.start == y.start and x.end == y.end for x, y in zip(a, b))
 
 
+_ENROLLMENT_CACHE_SECONDS = 3600  # Re-check enrollment once per hour
+
+
+async def _async_get_football_enrollment(hass, account_id: str) -> bool | None:
+  """Return cached enrollment status, re-fetching from the EDF API when stale.
+
+  Returns True (enrolled), False (not enrolled), or None if the API is unavailable.
+  """
+  cache_key = DATA_FOOTBALL_ENROLLMENT.format(account_id)
+  cached = hass.data[DOMAIN][account_id].get(cache_key)
+  if cached is not None:
+    status, checked_at = cached
+    if (now() - checked_at).total_seconds() < _ENROLLMENT_CACHE_SECONDS:
+      return status
+
+  client: EDFEnergyApiClient = hass.data[DOMAIN][account_id].get(DATA_CLIENT)
+  if client is None:
+    return None
+
+  status = await client.async_get_football_enrollment_status(account_id)
+  hass.data[DOMAIN][account_id][cache_key] = (status, now())
+  _LOGGER.debug("Football enrollment for %s: %s (refreshed)", account_id, status)
+  return status
+
+
 class FreeElectricitySessionsCoordinatorResult(BaseCoordinatorResult):
   events: list[FreeElectricitySession]
   football_enabled: bool
+  football_enrollment_auto_detected: bool
 
   def __init__(
     self,
@@ -88,11 +117,13 @@ class FreeElectricitySessionsCoordinatorResult(BaseCoordinatorResult):
     request_attempts: int,
     events: list[FreeElectricitySession],
     football_enabled: bool = False,
+    football_enrollment_auto_detected: bool = False,
     last_error: Exception | None = None,
   ):
     super().__init__(last_evaluated, request_attempts, REFRESH_RATE_IN_MINUTES_FREE_ELECTRICITY_SESSIONS, None, last_error)
     self.events = events
     self.football_enabled = football_enabled
+    self.football_enrollment_auto_detected = football_enrollment_auto_detected
 
 
 def refresh_free_electricity_sessions(
@@ -102,6 +133,7 @@ def refresh_free_electricity_sessions(
   existing_result: FreeElectricitySessionsCoordinatorResult | None,
   fire_event: Callable[[str, dict[str, Any]], None],
   football_enabled: bool = False,
+  football_enrollment_auto_detected: bool = False,
 ) -> FreeElectricitySessionsCoordinatorResult:
   sessions: list[FreeElectricitySession] = []
 
@@ -134,10 +166,14 @@ def refresh_free_electricity_sessions(
   # to avoid flooding the event bus on every coordinator tick.
   previous_events = existing_result.events if existing_result is not None else []
   previous_football = existing_result.football_enabled if existing_result is not None else None
-  if not _sessions_equal(events, previous_events) or football_enabled != previous_football:
+  previous_auto_detected = existing_result.football_enrollment_auto_detected if existing_result is not None else None
+  if (not _sessions_equal(events, previous_events)
+      or football_enabled != previous_football
+      or football_enrollment_auto_detected != previous_auto_detected):
     fire_event(EVENT_ALL_FREE_ELECTRICITY_SESSIONS, {
       "account_id": account_id,
       "football_free_electricity_enabled": football_enabled,
+      "football_enrollment_auto_detected": football_enrollment_auto_detected,
       "events": [
         {
           "code": ev.code,
@@ -150,18 +186,26 @@ def refresh_free_electricity_sessions(
       ],
     })
 
-  return FreeElectricitySessionsCoordinatorResult(current, 1, events, football_enabled)
+  return FreeElectricitySessionsCoordinatorResult(current, 1, events, football_enabled, football_enrollment_auto_detected)
 
 
 async def async_setup_free_electricity_sessions_coordinator(hass, account_id: str, entry):
   async def async_update_free_electricity_sessions():
     current = now()
-    # Re-read on every tick so a service toggle takes effect immediately without a reload
-    football_enabled = entry.options.get(CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY, False)
     existing_result = hass.data[DOMAIN][account_id].get(DATA_FREE_ELECTRICITY_SESSIONS.format(account_id))
 
+    # Try to auto-detect enrollment from the EDF website API; fall back to manual toggle if unavailable.
+    enrollment = await _async_get_football_enrollment(hass, account_id)
+    if enrollment is not None:
+      football_enabled = enrollment
+      football_enrollment_auto_detected = True
+    else:
+      football_enabled = entry.options.get(CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY, False)
+      football_enrollment_auto_detected = False
+
     result = refresh_free_electricity_sessions(
-      current, hass, account_id, existing_result, hass.bus.async_fire, football_enabled,
+      current, hass, account_id, existing_result, hass.bus.async_fire,
+      football_enabled, football_enrollment_auto_detected,
     )
     hass.data[DOMAIN][account_id][DATA_FREE_ELECTRICITY_SESSIONS.format(account_id)] = result
     return result
