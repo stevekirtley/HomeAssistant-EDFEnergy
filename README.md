@@ -19,7 +19,6 @@ The following features present in the upstream integration have been **removed**
 |---|---|
 | Home Mini / Home Pro | Octopus-specific hardware |
 | OctoPlus points & saving sessions | Octopus-specific loyalty scheme |
-| Free electricity sessions | Octopus-specific promotion |
 | Wheel of Fortune | Octopus-specific promotion |
 | Heat pump control | Octopus-specific (Cosy Octopus tariff) |
 | Greenness forecast | Octopus-specific API |
@@ -44,6 +43,7 @@ Everything else — electricity and gas sensors, rates, standing charges, consum
 - Cost tracker sensors (track cost of any energy-based entity)
 - Tariff comparison sensors
 - Smart Charging (EV dispatch) sensors, switches, and controls — including charge target %, ready-by time, and smart charge toggle
+- Free electricity sessions — Sunday Saver and event-based (England/Scotland World Cup) free windows, aggregated into an event sensor, a calendar, and a "free now" binary sensor. The event sensor mirrors the Octopus free electricity session format, so [Predbat](https://springfall2008.github.io/batpred/) can consume it via its `octopus_free_session` setting and plan around the zero-rate windows in advance
 - Long-term statistics for HA energy dashboard
 
 ## How to install
