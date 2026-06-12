@@ -40,6 +40,7 @@ from .cost_tracker.cost_tracker import EDFEnergyCostTrackerSensor
 from .cost_tracker.cost_tracker_week import EDFEnergyCostTrackerWeekSensor
 from .cost_tracker.cost_tracker_month import EDFEnergyCostTrackerMonthSensor
 from .diagnostics_entities.account_data_last_retrieved import EDFEnergyAccountDataLastRetrieved
+from .diagnostics_entities.auth_token_expiry import EDFEnergyAuthTokenExpiry
 from .diagnostics_entities.gas_current_consumption_data_last_retrieved import EDFEnergyGasCurrentConsumptionDataLastRetrieved
 from .diagnostics_entities.electricity_rates_data_last_retrieved import EDFEnergyElectricityCurrentRatesDataLastRetrieved
 from .diagnostics_entities.electricity_previous_consumption_and_rates_data_last_retrieved import EDFEnergyElectricityPreviousConsumptionAndRatesDataLastRetrieved
@@ -222,6 +223,7 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
 
   entities = [
     EDFEnergyAccountDataLastRetrieved(hass, hass.data[DOMAIN][account_id][DATA_ACCOUNT_COORDINATOR], account_id),
+    EDFEnergyAuthTokenExpiry(hass, account_id),
   ]
 
   sunday_saver_coordinator = hass.data[DOMAIN][account_id].get(DATA_SUNDAY_SAVER_COORDINATOR.format(account_id))

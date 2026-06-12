@@ -210,6 +210,18 @@
     }
     @keyframes fadeout { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
 
+    /* ── Auth expiry banner ── */
+    .auth-expiry-card {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      border-left: 4px solid;
+    }
+    .auth-expiry-card.warning { border-color: #FF9800; background: rgba(255,152,0,0.08); }
+    .auth-expiry-card.urgent  { border-color: #e53935; background: rgba(229,57,53,0.08); }
+    .auth-expiry-card.expired { border-color: #e53935; background: rgba(229,57,53,0.12); }
+    .auth-expiry-icon { font-size: 1.4em; flex-shrink: 0; line-height: 1.3; }
+    .auth-expiry-text { font-size: 0.88em; color: var(--primary-text-color); line-height: 1.5; }
+
     /* ── World Cup banner ── */
     .wc-banner {
       display: flex; align-items: center; gap: 10px;
@@ -250,9 +262,11 @@
       const se = this._findSundaySaverEntity(hass);
       const fse = this._findFreeSessionsEntity(hass);
       const ids = this._getDeviceEntityIds(de, hass);
+      const authExpiry = this._findAuthExpirySensor(hass);
       const token = [
         de?.last_changed, oe?.last_changed, se?.last_changed,
         fse?.attributes?.football_free_electricity_enabled,
+        authExpiry?.state,
         ids.chargeTarget ? hass.states[ids.chargeTarget]?.last_changed : '',
         ids.targetTime   ? hass.states[ids.targetTime]?.last_changed   : '',
         ids.smartCharge  ? hass.states[ids.smartCharge]?.last_changed  : '',
@@ -300,6 +314,14 @@
       if (!hass) return null;
       for (const [id, s] of Object.entries(hass.states))
         if (id.startsWith('event.') && id.includes('edf_energy') && id.endsWith('_free_electricity_session_events'))
+          return s;
+      return null;
+    }
+
+    _findAuthExpirySensor(hass) {
+      if (!hass) return null;
+      for (const [id, s] of Object.entries(hass.states))
+        if (id.startsWith('sensor.') && id.includes('edf_energy') && id.endsWith('_auth_token_expiry'))
           return s;
       return null;
     }
@@ -571,6 +593,42 @@
       `;
     }
 
+    _renderAuthExpiryBanner() {
+      const sensor = this._findAuthExpirySensor(this._hass);
+      if (!sensor || !sensor.state || sensor.state === 'unavailable' || sensor.state === 'unknown') return '';
+
+      const expiry = new Date(sensor.state);
+      const msRemaining = expiry - Date.now();
+      const daysRemaining = Math.ceil(msRemaining / 86400000);
+
+      if (daysRemaining > 7) return '';
+
+      if (daysRemaining <= 0) {
+        return `
+          <div class="card auth-expiry-card expired">
+            <div class="auth-expiry-icon">⚠️</div>
+            <div class="auth-expiry-text">
+              <strong>EDF Energy authentication has expired.</strong><br>
+              Go to Settings → Integrations → EDF Energy → Reconfigure to log in again.
+            </div>
+          </div>`;
+      }
+
+      const daysText = daysRemaining === 1 ? '1 day' : `${daysRemaining} days`;
+      const urgency  = daysRemaining <= 2 ? 'urgent' : 'warning';
+      const hint     = daysRemaining <= 2
+        ? '<br>Re-authenticate now: Settings → Integrations → EDF Energy → Reconfigure.'
+        : '';
+
+      return `
+        <div class="card auth-expiry-card ${urgency}">
+          <div class="auth-expiry-icon">${daysRemaining <= 2 ? '⚠️' : '🔑'}</div>
+          <div class="auth-expiry-text">
+            EDF Energy authentication expires in <strong>${esc(daysText)}</strong> (${esc(expiry.toLocaleDateString())}).${hint}
+          </div>
+        </div>`;
+    }
+
     // ── Full render ─────────────────────────────────────────────────────────────
 
     _render() {
@@ -633,6 +691,7 @@
           ${!hasAny
             ? `<div class="card"><div class="no-entity">No EDF Energy entities found. Check the integration is set up correctly.</div></div>`
             : `
+            ${this._renderAuthExpiryBanner()}
             ${this._renderControls(ids)}
             ${this._renderWorldCupCard()}
 

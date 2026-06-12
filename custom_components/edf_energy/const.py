@@ -148,6 +148,10 @@ REPAIR_INTELLIGENT_DEVICE_ADDED = "intelligent_device_added_{}"
 REPAIR_INTELLIGENT_DEVICE_REMOVED = "intelligent_device_removed_{}"
 REPAIR_TARIFF_RATES_EMPTY = "tariff_rates_empty_{}_{}"
 REPAIR_TARGET_RATE_NOT_SUPPORTED = "target_rate_not_supported"
+REPAIR_AUTH_TOKEN_EXPIRING_SOON = "auth_token_expiring_soon_{}"
+
+DATA_AUTH_TOKEN_EXPIRY = "AUTH_TOKEN_EXPIRY_{}"
+CONFIG_MAIN_REFRESH_EXPIRES_IN = "refresh_expires_in"
 
 # During BST, two records are returned before the rest of the data is available
 MINIMUM_CONSUMPTION_DATA_LENGTH = 3
