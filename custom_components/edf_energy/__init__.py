@@ -331,14 +331,14 @@ async def async_setup_dependencies(hass, entry, config):
     new_ts = int(expiry.timestamp())
     if existing_ts != new_ts:
       hass.config_entries.async_update_entry(entry, data={**entry.data, CONFIG_MAIN_REFRESH_EXPIRES_IN: new_ts})
-    _async_check_auth_expiry_for_repair(hass, account_id, expiry)
+    _async_check_auth_expiry_for_repair(hass, entry, account_id, expiry)
 
   # If a stored expiry exists from a previous run, apply it immediately before the first API call
   stored_ts = entry.data.get(CONFIG_MAIN_REFRESH_EXPIRES_IN)
   if stored_ts:
     stored_expiry = datetime.fromtimestamp(stored_ts, tz=timezone.utc)
     hass.data[DOMAIN][account_id][DATA_AUTH_TOKEN_EXPIRY.format(account_id)] = stored_expiry
-    _async_check_auth_expiry_for_repair(hass, account_id, stored_expiry)
+    _async_check_auth_expiry_for_repair(hass, entry, account_id, stored_expiry)
 
   client = EDFEnergyApiClient(config[CONFIG_MAIN_REFRESH_TOKEN], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates, on_token_refresh=_async_persist_refresh_token, on_refresh_expiry_update=_async_on_refresh_expiry_update)
   hass.data[DOMAIN][account_id][DATA_CLIENT] = client
@@ -456,7 +456,7 @@ async def async_setup_dependencies(hass, entry, config):
   _async_register_services(hass)
 
 
-def _async_check_auth_expiry_for_repair(hass, account_id: str, expiry: datetime):
+def _async_check_auth_expiry_for_repair(hass, entry, account_id: str, expiry: datetime):
   days_remaining = int((expiry - now()).total_seconds() // 86400)
   repair_key = safe_repair_key(REPAIR_AUTH_TOKEN_EXPIRING_SOON, account_id)
   if days_remaining <= 2:
@@ -473,6 +473,7 @@ def _async_check_auth_expiry_for_repair(hass, account_id: str, expiry: datetime)
         "expiry_date": expiry.strftime("%Y-%m-%d"),
       },
     )
+    entry.async_start_reauth(hass)
   else:
     ir.async_delete_issue(hass, DOMAIN, repair_key)
 
