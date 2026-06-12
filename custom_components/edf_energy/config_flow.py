@@ -2,7 +2,7 @@ import voluptuous as vol
 import logging
 
 from homeassistant.util.dt import (utcnow)
-from homeassistant.config_entries import (ConfigFlow)
+from homeassistant.config_entries import ConfigFlow, OptionsFlow
 import homeassistant.helpers.config_validation as cv
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
@@ -55,7 +55,9 @@ from .const import (
   DOMAIN,
   
   CONFIG_MAIN_EMAIL,
+  CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
   CONFIG_MAIN_REFRESH_TOKEN,
+  CONFIG_KIND_ACCOUNT,
 )
 from .config.tariff_comparison import async_validate_tariff_comparison_config
 
@@ -129,12 +131,18 @@ description_placeholders = {
   "edf_energy_api_access_url": "https://api.edfgb-kraken.energy/v1/graphql/",
 }
 
-class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN): 
+class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
   """Config flow."""
 
   VERSION = CONFIG_VERSION
 
   _target_entity_id = None
+
+  @staticmethod
+  def async_get_options_flow(config_entry):
+    if config_entry.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT:
+      return EDFEnergyAccountOptionsFlow(config_entry)
+    return None
 
   async def async_step_integration_discovery(
     self,
@@ -563,8 +571,31 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
       return await self.async_step_reconfigure_account(user_input)
     if (kind == CONFIG_KIND_COST_TRACKER):
       return await self.async_step_reconfigure_cost_tracker(user_input)
-    
+
     if (kind == CONFIG_KIND_TARIFF_COMPARISON):
       return await self.async_step_reconfigure_tariff_comparison(user_input)
 
     return self.async_abort(reason="reconfigure_not_supported")
+
+
+class EDFEnergyAccountOptionsFlow(OptionsFlow):
+  """Options flow for account entries — lets users toggle free electricity opt-ins post-setup."""
+
+  def __init__(self, config_entry):
+    self._entry = config_entry
+
+  async def async_step_init(self, user_input=None):
+    if user_input is not None:
+      return self.async_create_entry(title="", data=user_input)
+
+    current = self._entry.options
+
+    return self.async_show_form(
+      step_id="init",
+      data_schema=vol.Schema({
+        vol.Required(
+          CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
+          default=current.get(CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY, False),
+        ): bool,
+      }),
+    )

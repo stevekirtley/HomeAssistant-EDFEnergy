@@ -183,7 +183,7 @@
     "cost_tracker_invalid_date": {
       "message": "Date must be between {min_date} and {max_date}"
     },
-"point_in_time_intelligent_dispatch_history_data_out_of_bounds": {
+    "point_in_time_intelligent_dispatch_history_data_out_of_bounds": {
       "message": "The requested point in time is before historic data is available. The earliest available smart charging dispatch data is from {earliest_timestamp}"
     },
     "point_in_time_intelligent_dispatch_history_data_unavailable": {
@@ -201,7 +201,7 @@
     },
     "unknown_product": {
       "title": "Unknown product - {type} - {product_code}",
-      "description": "The product \"{product_code}\" associated with your {type} meter was not found in the public EDF Energy product catalogue. Your rate data may still be loading correctly — check your electricity rate sensors to confirm. This can happen with private or promotional tariffs that are not publicly listed."
+      "description": "The product \"{product_code}\" associated with your {type} meter was not found in the public EDF Energy product catalogue. Your rate data may still be loading correctly \u2014 check your electricity rate sensors to confirm. This can happen with private or promotional tariffs that are not publicly listed."
     },
     "invalid_api_key": {
       "title": "Invalid API key for account \"{account_id}\"",
@@ -257,7 +257,7 @@
     },
     "tariff_rates_empty_fixable": {
       "title": "No published rates found for {tariff_code}",
-      "description": "Your electricity meter ({mprn_mpan}/{serial_number}) is on tariff \"{tariff_code}\" but EDF Energy do not publish rates for this tariff via their API. Click \"Fix\" to enter your rates manually — they will be used until EDF publish them publicly.",
+      "description": "Your electricity meter ({mprn_mpan}/{serial_number}) is on tariff \"{tariff_code}\" but EDF Energy do not publish rates for this tariff via their API. Click \"Fix\" to enter your rates manually \u2014 they will be used until EDF publish them publicly.",
       "fix_flow": {
         "step": {
           "init": {
@@ -274,7 +274,7 @@
     },
     "tariff_rates_empty_fixable_export": {
       "title": "No published rates found for export tariff {tariff_code}",
-      "description": "Your export meter ({mprn_mpan}/{serial_number}) is on tariff \"{tariff_code}\" but EDF Energy do not publish rates for this tariff via their API. Click \"Fix\" to enter your Smart Export Guarantee rate — your export sensors will then show live values.",
+      "description": "Your export meter ({mprn_mpan}/{serial_number}) is on tariff \"{tariff_code}\" but EDF Energy do not publish rates for this tariff via their API. Click \"Fix\" to enter your Smart Export Guarantee rate \u2014 your export sensors will then show live values.",
       "fix_flow": {
         "step": {
           "init": {
@@ -382,6 +382,22 @@
               "edf_energy_gas_previous_day_rates": "Gas previous day rates"
             }
           }
+        }
+      },
+      "free_electricity_sessions": {
+        "name": "Free Electricity Session Events"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "EDF Energy Options",
+        "data": {
+          "football_free_electricity_enabled": "Include World Cup 2026 free electricity sessions (England & Scotland matches)"
+        },
+        "data_description": {
+          "football_free_electricity_enabled": "When enabled, free electricity windows are added to the session feed for every England or Scotland World Cup match (2 hours from kick-off). Only enable this if your account is enrolled in EDF's World Cup free electricity offer."
         }
       }
     }
