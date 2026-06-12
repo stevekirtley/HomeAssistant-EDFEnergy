@@ -290,6 +290,10 @@
     "target_rate_not_supported": {
       "title": "Target rate configuration not supported",
       "description": "Configuration for target rates is now achieved via an additional integration and no longer provided as part of this integration. Please click \"Learn More\" for more information on how to migrate to the new way of creating target rate sensors."
+    },
+    "auth_token_expiring_soon": {
+      "title": "EDF Energy authentication expires soon for {account_id}",
+      "description": "Your EDF Energy authentication will expire in {days} day(s) (on {expiry_date}). After expiry, the integration will stop fetching data. To fix this, go to **Settings → Integrations → EDF Energy → Reconfigure** and log in again."
     }
   },
   "entity": {

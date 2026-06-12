@@ -436,7 +436,7 @@ class EDFEnergyApiClient:
   _refresh_token_lock = RLock()
   _session_lock = RLock()
 
-  def __init__(self, refresh_token: str, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True, on_token_refresh=None):
+  def __init__(self, refresh_token: str, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True, on_token_refresh=None, on_refresh_expiry_update=None):
     if not refresh_token:
       raise Exception('refresh_token must be set')
 
@@ -448,6 +448,7 @@ class EDFEnergyApiClient:
     self._graphql_refresh_token = refresh_token
     self._graphql_refresh_expiration = None
     self._on_token_refresh = on_token_refresh
+    self._on_refresh_expiry_update = on_refresh_expiry_update
 
     self._product_tracker_cache = dict()
 
@@ -557,6 +558,9 @@ class EDFEnergyApiClient:
             expiry_delta,
             previous_refresh_expiration.isoformat(),
           )
+
+        if self._on_refresh_expiry_update is not None:
+          await self._on_refresh_expiry_update(self._graphql_refresh_expiration)
 
         if token_rotated:
           self._graphql_refresh_token = new_refresh_token
