@@ -25,6 +25,7 @@ from .coordinators.intelligent_settings import async_setup_intelligent_settings_
 from .coordinators.electricity_rates import async_setup_electricity_rates_coordinator
 from .coordinators.sunday_saver import async_setup_sunday_saver_coordinator
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
+from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
 from .statistics import get_statistic_ids_to_remove
 from .intelligent import get_intelligent_features, mock_intelligent_devices
 from .config.tariff_comparison import async_migrate_tariff_comparison_config
@@ -427,6 +428,8 @@ async def async_setup_dependencies(hass, entry, config):
   await async_setup_account_info_coordinator(hass, account_id, entry)
   await async_setup_sunday_saver_coordinator(hass, account_id)
   await async_setup_event_free_electricity_coordinator(hass, account_id)
+  # Must run after the two coordinators above - it aggregates their cached results.
+  await async_setup_free_electricity_sessions_coordinator(hass, account_id)
 
 
 async def options_update_listener(hass, entry):

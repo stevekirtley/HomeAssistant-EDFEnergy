@@ -11,6 +11,7 @@ from .gas.rates_current_day import EDFEnergyGasCurrentDayRates
 from .gas.rates_next_day import EDFEnergyGasNextDayRates
 from .gas.rates_previous_day import EDFEnergyGasPreviousDayRates
 from .gas.rates_previous_consumption import EDFEnergyGasPreviousConsumptionRates
+from .free_electricity.free_electricity_sessions_events import EDFEnergyFreeElectricitySessionEvents
 
 from .const import (
   CONFIG_ACCOUNT_ID,
@@ -39,7 +40,7 @@ async def async_setup_main_sensors(hass, entry, async_add_entities):
   account_info = account_result.account if account_result is not None else None
 
   now = utcnow()
-  entities = []
+  entities = [EDFEnergyFreeElectricitySessionEvents(hass, account_id)]
 
   if len(account_info["electricity_meter_points"]) > 0:
     for point in account_info["electricity_meter_points"]:

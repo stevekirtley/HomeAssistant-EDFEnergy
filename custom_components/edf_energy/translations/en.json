@@ -383,6 +383,15 @@
             }
           }
         }
+      },
+      "free_electricity_sessions": {
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "edf_energy_all_free_electricity_sessions": "All Free electricity sessions"
+            }
+          }
+        }
       }
     }
   }
