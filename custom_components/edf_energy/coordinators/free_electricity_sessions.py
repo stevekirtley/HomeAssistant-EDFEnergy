@@ -101,8 +101,9 @@ async def _async_get_football_enrollment(hass, account_id: str) -> bool | None:
     return None
 
   status = await client.async_get_football_enrollment_status(account_id)
-  hass.data[DOMAIN][account_id][cache_key] = (status, now())
-  _LOGGER.debug("Football enrollment for %s: %s (refreshed)", account_id, status)
+  # Only cache a definitive result — None means the API was unavailable, so retry next tick
+  if status is not None:
+    hass.data[DOMAIN][account_id][cache_key] = (status, now())
   return status
 
 

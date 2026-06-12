@@ -658,6 +658,7 @@
       const de  = this._findDispatchEntity(this._hass);
       const oe  = this._findOffPeakEntity(this._hass);
       const se  = this._findSundaySaverEntity(this._hass);
+      const fse = this._findFreeSessionsEntity(this._hass);
       const ids = this._getDeviceEntityIds(de, this._hass);
 
       const dispatches          = this._parseDispatches(de);
@@ -687,7 +688,7 @@
       const deviceLabel = this._deviceLabel(de);
       const stateLabel  = this._stateLabel(de);
       const isActive    = de?.state === 'on';
-      const hasAny      = de || oe || se;
+      const hasAny      = de || oe || se || fse;
 
       this.shadowRoot.innerHTML = `
         <style>${STYLES}</style>

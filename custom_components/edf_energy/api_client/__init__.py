@@ -600,19 +600,25 @@ class EDFEnergyApiClient:
         f'https://www.edfenergy.com/support/energyhub/api/sunday-saver/v1/accounts'
         f'/{account_id}/challenge/summary?loyaltyEventType=football_2026'
       )
-      headers = {'Authorization': self._graphql_token}
+      headers = {
+        'Authorization': self._graphql_token,
+        'Accept': 'application/json',
+      }
       client = self._create_client_session()
       async with client.get(url, headers=headers) as response:
         if response.status == 200:
           data = await response.json(content_type=None)
-          _LOGGER.debug("Football enrollment response for %s: %s", account_id, data)
           return _parse_football_enrollment_status(data)
         if response.status == 404:
           return False
-        _LOGGER.warning("Football enrollment check returned HTTP %s for %s", response.status, account_id)
+        body = await response.text()
+        _LOGGER.warning(
+          "Football enrollment check returned HTTP %s for %s. Body: %s",
+          response.status, account_id, body[:500],
+        )
         return None
     except Exception as e:
-      _LOGGER.warning("Failed to check football enrollment for %s: %s", account_id, e)
+      _LOGGER.warning("Failed to check football enrollment for %s: %s (%s)", account_id, e, type(e).__name__)
       return None
 
 
