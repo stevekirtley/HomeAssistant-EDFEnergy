@@ -26,6 +26,23 @@
     return m === 0 ? `${h}h` : `${h}h ${m}m`;
   }
 
+  function formatDateShort(date) {
+    return new Date(date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  // "Wed 17 Jun, 21:00–23:00", or with both dates when the window crosses midnight.
+  function formatWindowLabel(start, end) {
+    const s = new Date(start), e = new Date(end);
+    if (!end || isNaN(e)) return `${formatDateShort(s)}, ${formatTime(s)}`;
+    return s.toDateString() === e.toDateString()
+      ? `${formatDateShort(s)}, ${formatTime(s)}–${formatTime(e)}`
+      : `${formatDateShort(s)} ${formatTime(s)} – ${formatDateShort(e)} ${formatTime(e)}`;
+  }
+
+  function isValidDate(v) {
+    return v && v !== 'unknown' && v !== 'unavailable' && !isNaN(Date.parse(v));
+  }
+
   function formatSource(source) {
     if (!source) return '';
     return source.toLowerCase().replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -319,6 +336,14 @@
       return null;
     }
 
+    _findEventFreeStartEntity(hass) {
+      if (!hass) return null;
+      for (const [id, s] of Object.entries(hass.states))
+        if (id.startsWith('sensor.') && id.includes('edf_energy') && id.endsWith('_event_free_start'))
+          return s;
+      return null;
+    }
+
     _findAuthExpirySensor(hass) {
       if (!hass) return null;
       for (const [id, s] of Object.entries(hass.states))
@@ -587,6 +612,7 @@
               </div>
               <span style="font-size:1.3em" title="Enrolled (detected from your EDF account)">&#x2705;</span>
             </div>
+            ${this._nextEventWindowRow()}
           </div>`;
       }
 
@@ -610,8 +636,108 @@
               <div class="toggle-thumb"></div>
             </label>
           </div>
+          ${enabled ? this._nextEventWindowRow() : ''}
         </div>
       `;
+    }
+
+    // The next (or currently-active) event free-electricity window — used by the
+    // World Cup card. Reads the event free start sensor, which carries the match
+    // name plus start/end and an is_active flag.
+    _nextEventWindowRow() {
+      const efs = this._findEventFreeStartEntity(this._hass);
+      if (!efs) return '';
+      const st = efs.state;
+      const end = efs.attributes?.end;
+      const name = efs.attributes?.event_name;
+      const active = efs.attributes?.is_active === true;
+
+      let value, sub;
+      if (active && isValidDate(st)) {
+        value = '&#x1F7E2; Free now';
+        sub = end ? `Until ${esc(formatTime(end))}` : '';
+      } else if (isValidDate(st) && new Date(st) > Date.now()) {
+        value = esc(formatWindowLabel(st, end));
+        sub = name ? esc(name) : '';
+      } else {
+        value = 'None scheduled';
+        sub = '';
+      }
+      return `
+        <div class="control-row">
+          <div class="control-label">
+            Next match window
+            ${sub ? `<div class="control-sub">${sub}</div>` : ''}
+          </div>
+          <div style="text-align:right;font-weight:600;white-space:nowrap">${value}</div>
+        </div>`;
+    }
+
+    // ── Sunday Saver card ──────────────────────────────────────────────────────
+    _renderSundaySaverCard() {
+      const se = this._findSundaySaverEntity(this._hass);
+      if (!se) return '';
+
+      const a = se.attributes || {};
+      const active   = a.is_active === true;
+      const hasEvent = a.has_event === true;
+      const windows  = Array.isArray(a.sunday_saver_windows) ? a.sunday_saver_windows : [];
+      const st = se.state, end = a.end, freeHours = a.free_hours;
+      const futureStart = isValidDate(st) && new Date(st) > Date.now();
+      const enrolled = active || hasEvent || windows.length > 0;
+
+      let badge, body;
+      if (active && isValidDate(st)) {
+        badge = `<span class="status-pill on">Active now</span>`;
+        body = `
+          <div class="control-row">
+            <div class="control-label">
+              Free electricity
+              ${freeHours != null ? `<div class="control-sub">${esc(String(freeHours))}h session</div>` : ''}
+            </div>
+            <div style="text-align:right;font-weight:600;white-space:nowrap">${end ? `&#x1F7E2; Until ${esc(formatTime(end))}` : '&#x1F7E2; Active'}</div>
+          </div>`;
+      } else if (hasEvent && futureStart) {
+        badge = `<span class="status-pill on">Scheduled</span>`;
+        body = `
+          <div class="control-row">
+            <div class="control-label">
+              Next session
+              ${freeHours != null ? `<div class="control-sub">${esc(String(freeHours))}h free</div>` : ''}
+            </div>
+            <div style="text-align:right;font-weight:600;white-space:nowrap">${esc(formatWindowLabel(st, end))}</div>
+          </div>`;
+      } else if (enrolled) {
+        badge = `<span class="status-pill on">Enrolled</span>`;
+        body = `
+          <div class="control-row">
+            <div class="control-label">
+              Next session
+              <div class="control-sub">No upcoming session scheduled yet</div>
+            </div>
+            <div style="text-align:right;font-weight:600">&#x2014;</div>
+          </div>`;
+      } else {
+        badge = `<span class="status-pill">Awaiting</span>`;
+        body = `
+          <div class="wc-banner">
+            Sunday Saver gives around 16 hours of free electricity on selected Sundays.
+            Your next session will appear here once EDF schedule it on your account.
+          </div>`;
+      }
+
+      return `
+        <div class="card">
+          <div class="section-title">&#x1F5D3;&#xFE0F; Sunday Saver Free Electricity</div>
+          <div class="control-row">
+            <div class="control-label">
+              Sunday Saver free electricity
+              <div class="control-sub">Up to ~16h of free electricity on selected Sundays</div>
+            </div>
+            ${badge}
+          </div>
+          ${body}
+        </div>`;
     }
 
     _renderAuthExpiryBanner() {
@@ -716,6 +842,7 @@
             ${this._renderAuthExpiryBanner()}
             ${this._renderControls(ids)}
             ${this._renderWorldCupCard()}
+            ${this._renderSundaySaverCard()}
 
             ${dates.length === 0
               ? `<div class="card"><div class="empty">No data yet — check back after the next rate refresh.</div></div>`
