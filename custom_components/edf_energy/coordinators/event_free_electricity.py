@@ -91,9 +91,13 @@ def _parse_kickoff_utc(date_str: str, time_str: str) -> datetime | None:
     return None
 
 
-def _eligible_windows(matches: list) -> list[tuple[datetime, str]]:
-  """Return (kickoff, event_name) for every England/Scotland match, sorted by kickoff."""
-  windows: list[tuple[datetime, str]] = []
+def _eligible_windows(matches: list) -> list[tuple[datetime, str, bool]]:
+  """Return (kickoff, event_name, is_knockout) for every England/Scotland match, sorted by kickoff.
+
+  Knockout matches have no 'group' field; group stage matches do (e.g. 'Group A').
+  Only knockout matches can go to extra time.
+  """
+  windows: list[tuple[datetime, str, bool]] = []
   for m in matches:
     team1 = m.get("team1", "")
     team2 = m.get("team2", "")
@@ -102,40 +106,45 @@ def _eligible_windows(matches: list) -> list[tuple[datetime, str]]:
     kickoff = _parse_kickoff_utc(m.get("date", ""), m.get("time", ""))
     if kickoff is None:
       continue
-    windows.append((kickoff, f"{team1} v {team2}"))
+    is_knockout = not m.get("group")
+    windows.append((kickoff, f"{team1} v {team2}", is_knockout))
   windows.sort(key=lambda w: w[0])
   return windows
 
 
 def _select_candidate(
-  windows: list[tuple[datetime, str]],
+  windows: list[tuple[datetime, str, bool]],
   current: datetime,
-) -> tuple[datetime | None, str | None]:
-  """The earliest eligible match whose maximum (3h) window has not yet passed.
+) -> tuple[datetime | None, str | None, bool]:
+  """The earliest eligible match whose maximum window has not yet passed.
 
-  We keep a match in play right through its potential extra-time window so a late ET
-  confirmation can still extend it; whether it's actually 2h or 3h is decided later.
+  Knockout matches are kept alive for 3h (to allow a late ET confirmation); group
+  stage matches expire after the standard 2h since extra time is impossible.
   """
-  for kickoff, name in windows:
-    if kickoff + _EXTRA_FREE_WINDOW > current:
-      return kickoff, name
-  return None, None
+  for kickoff, name, is_knockout in windows:
+    max_window = _EXTRA_FREE_WINDOW if is_knockout else _FREE_WINDOW
+    if kickoff + max_window > current:
+      return kickoff, name, is_knockout
+  return None, None, False
 
 
 def _extra_time_check_required(
   start: datetime,
   current: datetime,
   already_extended: bool,
+  is_knockout: bool = False,
 ) -> bool:
-  """True when we should consult the relay: in the [kickoff+88m, kickoff+3h) window
-  and not already known to be extended."""
+  """True when we should consult the relay: knockout match, in the [kickoff+88m, kickoff+3h)
+  window, and not already known to be extended."""
+  if not is_knockout:
+    return False
   if already_extended:
     return False
   return start + _EXTRA_TIME_CHECK_AFTER <= current < start + _EXTRA_FREE_WINDOW
 
 
 def _resolve_window(
-  windows: list[tuple[datetime, str]],
+  windows: list[tuple[datetime, str, bool]],
   current: datetime,
   already_extended: bool,
   already_extended_start: datetime | None,
@@ -146,15 +155,19 @@ def _resolve_window(
   consulted / was unavailable), return (start, end, event_name, extended).
 
   Fallback rule: with no positive extra-time signal the window is the standard 2h.
-  The relay only ever lengthens it.
+  The relay only ever lengthens it, and only for knockout matches.
   """
-  start, name = _select_candidate(windows, current)
+  start, name, is_knockout = _select_candidate(windows, current)
   if start is None:
     return None, None, None, False
 
   # Already decided as extra time for this same match — hold the 3h window.
   if already_extended and already_extended_start == start:
     return start, start + _EXTRA_FREE_WINDOW, name, True
+
+  # Group stage matches cannot go to extra time — always 2h, no relay check needed.
+  if not is_knockout:
+    return start, start + _FREE_WINDOW, name, False
 
   # Not yet in the extra-time check window: standard 2h (upcoming or early in the match).
   if current < start + _EXTRA_TIME_CHECK_AFTER:
@@ -168,7 +181,7 @@ def _resolve_window(
       # Finished in normal time — drop this match and advance to the next one (future,
       # so a standard 2h window with no relay call needed).
       later = [w for w in windows if w[0] > start]
-      nxt_start, nxt_name = _select_candidate(later, current)
+      nxt_start, nxt_name, _ = _select_candidate(later, current)
       if nxt_start is None:
         return None, None, None, False
       return nxt_start, nxt_start + _FREE_WINDOW, nxt_name, False
@@ -256,9 +269,10 @@ async def async_refresh_event_free_electricity(
 
   # Only call the relay when an eligible match is actually in its extra-time window.
   status = None
-  candidate_start, _ = _select_candidate(windows, current)
+  candidate_start, _, candidate_is_knockout = _select_candidate(windows, current)
   if candidate_start is not None and _extra_time_check_required(
-    candidate_start, current, already_extended and already_extended_start == candidate_start
+    candidate_start, current, already_extended and already_extended_start == candidate_start,
+    candidate_is_knockout,
   ):
     status = await _async_fetch_extra_time(hass)
 
