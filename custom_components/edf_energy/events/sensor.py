@@ -72,6 +72,7 @@ class EDFEnergyEventFreeStartSensor(CoordinatorEntity, RestoreSensor):
         "event_name": result.event_name,
         "end": result.end,
         "is_active": is_active,
+        "extended_for_extra_time": getattr(result, "extended", False),
       })
     super()._handle_coordinator_update()
 
@@ -148,6 +149,7 @@ class EDFEnergyEventFreeEndSensor(CoordinatorEntity, RestoreSensor):
         "event_name": result.event_name,
         "start": result.start,
         "is_active": is_active,
+        "extended_for_extra_time": getattr(result, "extended", False),
       })
     super()._handle_coordinator_update()
 
