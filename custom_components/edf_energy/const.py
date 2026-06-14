@@ -1,5 +1,5 @@
 DOMAIN = "edf_energy"
-INTEGRATION_VERSION = "18.7.0"
+INTEGRATION_VERSION = "18.8.0"
 
 REFRESH_RATE_IN_MINUTES_ACCOUNT = 360 # 6 hours
 REFRESH_RATE_IN_MINUTES_INTELLIGENT = 3
@@ -86,6 +86,11 @@ DATA_SUNDAY_SAVER = "SUNDAY_SAVER_{}"
 DATA_SUNDAY_SAVER_COORDINATOR = "SUNDAY_SAVER_COORDINATOR_{}"
 DATA_EVENT_FREE_ELECTRICITY = "EVENT_FREE_ELECTRICITY_{}"
 DATA_EVENT_FREE_ELECTRICITY_COORDINATOR = "EVENT_FREE_ELECTRICITY_COORDINATOR_{}"
+
+# Authoritative "did this match go to extra time?" relay (reads ESPN, latches the
+# outcome). Consulted only while an eligible match is in its extra-time window; if it
+# is unreachable the free window simply stays at the standard 2 hours.
+EXTRA_TIME_RELAY_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=status"
 DATA_FREE_ELECTRICITY_SESSIONS = "FREE_ELECTRICITY_SESSIONS_{}"
 DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR = "FREE_ELECTRICITY_SESSIONS_COORDINATOR_{}"
 
