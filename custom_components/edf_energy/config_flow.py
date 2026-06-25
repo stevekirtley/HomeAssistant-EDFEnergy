@@ -54,6 +54,7 @@ from .const import (
   DEFAULT_CALORIFIC_VALUE,
   DOMAIN,
   
+  CONFIG_MAIN_API_KEY,
   CONFIG_MAIN_EMAIL,
   CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
   CONFIG_MAIN_REFRESH_TOKEN,
@@ -187,8 +188,11 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
   def __setup_account_schema__(self, include_account_id = True):
     schema = {
       vol.Required(CONFIG_ACCOUNT_ID): str,
-      vol.Required(CONFIG_MAIN_EMAIL): str,
-      vol.Required("password"): selector.TextSelector(
+      vol.Optional(CONFIG_MAIN_EMAIL): str,
+      vol.Optional("password"): selector.TextSelector(
+        selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+      ),
+      vol.Optional(CONFIG_MAIN_API_KEY): selector.TextSelector(
         selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
       ),
       vol.Required(CONFIG_MAIN_CALORIFIC_VALUE, default=DEFAULT_CALORIFIC_VALUE): cv.positive_float,
@@ -251,12 +255,15 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     )
   
   async def async_step_reconfigure_account(self, user_input):
-    """Reconfigure account — email+password to get a fresh refresh token."""
+    """Reconfigure account — credentials (or a pasted API key) to refresh the stored key."""
     config = dict()
     config.update(self._get_reconfigure_entry().data)
 
     if user_input is not None:
       config.update(user_input)
+      # Entering a password forces a fresh key; drop any stored one so it re-mints.
+      if user_input.get("password"):
+        config.pop(CONFIG_MAIN_API_KEY, None)
 
     account_ids = []
     errors = await async_validate_main_config(config, account_ids)
@@ -282,12 +289,16 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     return await self.async_step_reauth_confirm()
 
   async def async_step_reauth_confirm(self, user_input=None):
-    """Show re-auth form and update refresh token on success."""
+    """Show re-auth form; mint a fresh API key from the entered credentials on success."""
     entry = self._get_reauth_entry()
     config = dict(entry.data)
 
     if user_input is not None:
       config.update(user_input)
+      # Re-authenticating with credentials should always re-mint, so discard any
+      # stored (possibly invalidated) key and force a fresh one from the password.
+      if user_input.get("password"):
+        config.pop(CONFIG_MAIN_API_KEY, None)
       errors = await async_validate_main_config(config, [])
       if len(errors) < 1:
         return self.async_update_reload_and_abort(entry, data_updates=config)
@@ -297,8 +308,11 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     return self.async_show_form(
       step_id="reauth_confirm",
       data_schema=vol.Schema({
-        vol.Required(CONFIG_MAIN_EMAIL, default=config.get(CONFIG_MAIN_EMAIL, "")): str,
-        vol.Required("password"): selector.TextSelector(
+        vol.Optional(CONFIG_MAIN_EMAIL, default=config.get(CONFIG_MAIN_EMAIL, "")): str,
+        vol.Optional("password"): selector.TextSelector(
+          selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+        ),
+        vol.Optional(CONFIG_MAIN_API_KEY): selector.TextSelector(
           selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
         ),
       }),
