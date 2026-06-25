@@ -37,6 +37,20 @@ api_token_refresh_query = '''mutation RefreshToken($refreshToken: String!) {
 	}
 }'''
 
+api_token_apikey_query = '''mutation ObtainTokenFromAPIKey($apiKey: String!) {
+	obtainKrakenToken(input: { APIKey: $apiKey }) {
+		token
+    refreshToken
+    refreshExpiresIn
+	}
+}'''
+
+# Read the account's current live API secret key (null until one is minted).
+live_secret_key_query = '''query { viewer { liveSecretKey } }'''
+
+# Mint a new API secret key. Invalidates any previously issued key.
+regenerate_secret_key_mutation = '''mutation { regenerateSecretKey { key } }'''
+
 account_query = '''query {{
   properties(accountNumber: "{account_id}") {{
       id
@@ -365,6 +379,45 @@ async def async_get_refresh_token(email: str, password: str, timeout_in_seconds:
     [e["message"] for e in errors] if errors else []
   )
 
+async def async_get_api_key_from_credentials(email: str, password: str, timeout_in_seconds: int = 20) -> str:
+  """Authenticate with email/password and mint a durable API key.
+
+  EDF only returns a usable secret key from regenerateSecretKey (the read-only
+  viewer.liveSecretKey is masked), so we always mint. This invalidates any key
+  previously issued on the account. The password is used only for this exchange
+  and is never stored. EDF-specific bootstrap: upstream Octopus exposes the key
+  via the account portal; EDF does not (yet), so we mint it here.
+  """
+  url = 'https://api.edfgb-kraken.energy/v1/graphql/'
+  timeout = aiohttp.ClientTimeout(total=None, sock_connect=timeout_in_seconds, sock_read=timeout_in_seconds)
+  async with aiohttp.ClientSession() as session:
+    # 1. Exchange credentials for a short-lived JWT.
+    payload = { "query": api_token_email_query, "variables": { "email": email, "password": password } }
+    async with session.post(url, json=payload, timeout=timeout) as response:
+      body = await response.json()
+    token_data = body.get("data", {}).get("obtainKrakenToken") if body else None
+    if not token_data or not token_data.get("token"):
+      errors = body.get("errors") if body else None
+      raise AuthenticationException(
+        "Failed to authenticate with EDF Energy",
+        [e["message"] for e in errors] if errors else []
+      )
+    auth_headers = { "Authorization": token_data["token"] }
+
+    # 2. Mint a usable key.
+    async with session.post(url, json={ "query": regenerate_secret_key_mutation }, headers=auth_headers, timeout=timeout) as response:
+      body = await response.json()
+    minted = (body.get("data") or {}).get("regenerateSecretKey") if body else None
+    key = minted.get("key") if minted else None
+    if key:
+      return key
+
+    errors = body.get("errors") if body else None
+    raise AuthenticationException(
+      "Failed to obtain an API key from EDF Energy",
+      [e["message"] for e in errors] if errors else []
+    )
+
 class ApiException(Exception): ...
 
 class ServerException(ApiException): ...
@@ -453,10 +506,11 @@ class EDFEnergyApiClient:
   _refresh_token_lock = RLock()
   _session_lock = RLock()
 
-  def __init__(self, refresh_token: str, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True, on_token_refresh=None, on_refresh_expiry_update=None):
-    if not refresh_token:
-      raise Exception('refresh_token must be set')
+  def __init__(self, refresh_token: str = None, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True, on_token_refresh=None, on_refresh_expiry_update=None, api_key=None):
+    if not refresh_token and not api_key:
+      raise Exception('Either api_key or refresh_token must be set')
 
+    self._api_key = api_key
     self._base_url = 'https://api.edfgb-kraken.energy'
     self._backend_base_url = 'https://api.backend.edfgb-kraken.energy'
 
@@ -479,6 +533,9 @@ class EDFEnergyApiClient:
     self._session = None
 
   async def _async_get_rest_auth(self, headers: dict):
+    """Return BasicAuth when an API key is set, otherwise inject a JWT header and return None."""
+    if self._api_key is not None:
+      return aiohttp.BasicAuth(self._api_key, '')
     await self.async_refresh_token()
     headers['Authorization'] = f'JWT {self._graphql_token}'
     return None
@@ -524,7 +581,8 @@ class EDFEnergyApiClient:
       if (self._graphql_expiration is not None and (self._graphql_expiration - timedelta(minutes=5)) > now()):
         return
 
-      if (self._graphql_refresh_expiration is not None and self._graphql_refresh_expiration < now()):
+      # Only the refresh-token path can hit a hard expiry; with an API key we always re-mint.
+      if (self._api_key is None and self._graphql_refresh_expiration is not None and self._graphql_refresh_expiration < now()):
         _LOGGER.debug("Refresh token expired - re-authentication required")
         raise AuthenticationException("Refresh token has expired, re-authentication required", [])
 
@@ -535,11 +593,14 @@ class EDFEnergyApiClient:
         raise TimeoutException()
 
   async def __async_fetch_token(self):
-    if not self._graphql_refresh_token:
-      raise AuthenticationException("No refresh token available, re-authentication required", [])
+    if self._api_key is not None:
+      payload = { "query": api_token_apikey_query, "variables": { "apiKey": self._api_key } }
+    elif self._graphql_refresh_token:
+      payload = { "query": api_token_refresh_query, "variables": { "refreshToken": self._graphql_refresh_token } }
+    else:
+      raise AuthenticationException("No API key or refresh token available, re-authentication required", [])
     client = self._create_client_session()
     url = f'{self._base_url}/v1/graphql/'
-    payload = { "query": api_token_refresh_query, "variables": { "refreshToken": self._graphql_refresh_token } }
     headers = { integration_context_header: "refresh-token" }
     async with client.post(url, headers=headers, json=payload) as token_response:
       token_response_body = await self.__async_read_response__(token_response, url)
@@ -552,10 +613,17 @@ class EDFEnergyApiClient:
           "refreshExpiresIn" in token_response_body["data"]["obtainKrakenToken"]):
         
         self._graphql_token = token_response_body["data"]["obtainKrakenToken"]["token"]
+        self._graphql_expiration = now() + timedelta(hours=1)
+
+        # API-key path: the returned refresh token is disposable (the key is the durable
+        # credential), so we don't persist/rotate it, track its expiry, or fire the
+        # reauth-expiry callbacks. The key never expires, so there's nothing to surface.
+        if self._api_key is not None:
+          return
+
         new_refresh_token = token_response_body["data"]["obtainKrakenToken"]["refreshToken"]
         previous_refresh_expiration = self._graphql_refresh_expiration
         self._graphql_refresh_expiration = datetime.fromtimestamp(token_response_body["data"]["obtainKrakenToken"]["refreshExpiresIn"], tz=timezone.utc)
-        self._graphql_expiration = now() + timedelta(hours=1)
         token_rotated = new_refresh_token != self._graphql_refresh_token
 
         # Diagnostic logging to determine whether Kraken rotates the refresh token
@@ -587,7 +655,47 @@ class EDFEnergyApiClient:
         raise AuthenticationException("Failed to retrieve auth token and current token is expired")
       else:
         _LOGGER.error("Failed to retrieve auth token")
-      
+
+  async def async_get_live_secret_key(self) -> str | None:
+    """Return the account's live secret key as a MASKED display value (or None).
+
+    EDF returns this length-preserving but masked (e.g. 'sk_li...*****'); it is NOT
+    usable for authentication. Use it only as an existence check. A usable key is
+    only obtainable from async_regenerate_secret_key().
+    """
+    await self.async_refresh_token()
+    client = self._create_client_session()
+    url = f'{self._base_url}/v1/graphql/'
+    headers = { "Authorization": f"{self._graphql_token}", integration_context_header: "live-secret-key" }
+    async with client.post(url, json={ "query": live_secret_key_query }, headers=headers) as response:
+      body = await self.__async_read_response__(response, url)
+    viewer = (body.get("data") or {}).get("viewer") if body else None
+    return viewer.get("liveSecretKey") if viewer else None
+
+  async def async_regenerate_secret_key(self) -> str:
+    """Mint a new API secret key (invalidates any previously issued key) and return it."""
+    await self.async_refresh_token()
+    client = self._create_client_session()
+    url = f'{self._base_url}/v1/graphql/'
+    headers = { "Authorization": f"{self._graphql_token}", integration_context_header: "regenerate-secret-key" }
+    async with client.post(url, json={ "query": regenerate_secret_key_mutation }, headers=headers) as response:
+      body = await self.__async_read_response__(response, url)
+    minted = (body.get("data") or {}).get("regenerateSecretKey") if body else None
+    key = minted.get("key") if minted else None
+    if not key:
+      raise AuthenticationException("Failed to mint an API key from EDF Energy", [])
+    return key
+
+  async def async_ensure_api_key(self) -> str:
+    """Mint a durable, usable API key for the current session.
+
+    EDF only returns a usable key from regenerateSecretKey - the readable
+    liveSecretKey is masked - so this always mints, which invalidates any key
+    previously issued on the account (e.g. one another tool is using). Used to
+    migrate an existing refresh-token session to the durable API-key model.
+    """
+    return await self.async_regenerate_secret_key()
+
   async def async_get_football_enrollment_status(self, account_id: str) -> bool | None:
     """Check whether this account is enrolled in the football_2026 free electricity offer.
 

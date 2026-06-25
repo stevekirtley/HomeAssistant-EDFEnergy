@@ -12,6 +12,7 @@ from .const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_COST_TRACKER_MPAN,
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
+  CONFIG_MAIN_API_KEY,
   CONFIG_MAIN_REFRESH_TOKEN,
   DATA_ACCOUNT,
   DOMAIN,
@@ -148,7 +149,7 @@ async def async_get_device_diagnostics(hass, entry, device):
     
     return {
       **diagnostics,
-      "config_entry": async_redact_data(config, { CONFIG_ACCOUNT_ID, CONFIG_MAIN_REFRESH_TOKEN, CONFIG_COST_TRACKER_MPAN, CONFIG_COST_TRACKER_TARGET_ENTITY_ID }),
+      "config_entry": async_redact_data(config, { CONFIG_ACCOUNT_ID, CONFIG_MAIN_API_KEY, CONFIG_MAIN_REFRESH_TOKEN, CONFIG_COST_TRACKER_MPAN, CONFIG_COST_TRACKER_TARGET_ENTITY_ID }),
     }
 
 async def async_get_config_entry_diagnostics(hass, entry):
@@ -191,5 +192,5 @@ async def async_get_config_entry_diagnostics(hass, entry):
     
     return {
       **diagnostics,
-      "config_entry": async_redact_data(config, { CONFIG_ACCOUNT_ID, CONFIG_MAIN_REFRESH_TOKEN, CONFIG_COST_TRACKER_MPAN, CONFIG_COST_TRACKER_TARGET_ENTITY_ID }),
+      "config_entry": async_redact_data(config, { CONFIG_ACCOUNT_ID, CONFIG_MAIN_API_KEY, CONFIG_MAIN_REFRESH_TOKEN, CONFIG_COST_TRACKER_MPAN, CONFIG_COST_TRACKER_TARGET_ENTITY_ID }),
     }

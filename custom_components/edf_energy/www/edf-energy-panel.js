@@ -745,6 +745,7 @@
       if (!sensor || !sensor.state || sensor.state === 'unavailable' || sensor.state === 'unknown') return '';
 
       const expiry = new Date(sensor.state);
+      if (isNaN(expiry)) return '';
       const msRemaining = expiry - Date.now();
       const daysRemaining = Math.ceil(msRemaining / 86400000);
 

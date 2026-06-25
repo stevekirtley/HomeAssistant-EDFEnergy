@@ -77,6 +77,7 @@ from .utils.repairs import safe_repair_key
 from .const import (
   CONFIG_COST_TRACKER_MPAN,
   CONFIG_ACCOUNT_ID,
+  CONFIG_MAIN_API_KEY,
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,
@@ -223,8 +224,12 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
 
   entities = [
     EDFEnergyAccountDataLastRetrieved(hass, hass.data[DOMAIN][account_id][DATA_ACCOUNT_COORDINATOR], account_id),
-    EDFEnergyAuthTokenExpiry(hass, account_id),
   ]
+
+  # The auth-token-expiry sensor only applies to refresh-token auth. API-key auth
+  # has no expiry, so the sensor (and the panel banner that reads it) is omitted.
+  if not config.get(CONFIG_MAIN_API_KEY):
+    entities.append(EDFEnergyAuthTokenExpiry(hass, account_id))
 
   sunday_saver_coordinator = hass.data[DOMAIN][account_id].get(DATA_SUNDAY_SAVER_COORDINATOR.format(account_id))
   if sunday_saver_coordinator is not None:
