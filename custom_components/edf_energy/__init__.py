@@ -1,7 +1,11 @@
 import logging
 import os
+import hashlib
+import voluptuous as vol
 from datetime import datetime, timedelta, timezone
 
+from homeassistant.core import callback
+from homeassistant.components import websocket_api
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
@@ -107,6 +111,37 @@ _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(minutes=1)
 
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/get_api_key",
+  vol.Required("account_id"): str,
+})
+@callback
+def websocket_get_api_key(hass, connection, msg):
+  """Return the stored API key for an account, on demand, to admins only.
+
+  Read live from the config entry rather than exposed as an entity, so the key
+  never lands in the recorder, history or diagnostics. Used by the panel's
+  reveal/copy control.
+  """
+  if not connection.user.is_admin:
+    connection.send_error(msg["id"], "unauthorized", "Admin required")
+    return
+
+  # The panel derives the account id from entity slugs (e.g. "a_e351b1a8"), so
+  # compare loosely against the stored id ("A-E351B1A8") ignoring case and -/_.
+  def _norm(value):
+    return (value or "").lower().replace("-", "").replace("_", "")
+
+  wanted = _norm(msg["account_id"])
+  api_key = None
+  for entry in hass.config_entries.async_entries(DOMAIN):
+    if (entry.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT
+        and _norm(entry.data.get(CONFIG_ACCOUNT_ID)) == wanted):
+      api_key = entry.data.get(CONFIG_MAIN_API_KEY)
+      break
+  connection.send_result(msg["id"], {"api_key": api_key})
+
 async def async_remove_config_entry_device(
   hass, config_entry, device_entry
 ) -> bool:
@@ -161,6 +196,7 @@ async def async_setup_entry(hass, entry):
 
   if not hass.data[DOMAIN].get("_frontend_registered"):
     hass.data[DOMAIN]["_frontend_registered"] = True
+    websocket_api.async_register_command(hass, websocket_get_api_key)
     www_dir = os.path.join(os.path.dirname(__file__), "www")
     static_paths = []
 
@@ -170,8 +206,17 @@ async def async_setup_entry(hass, entry):
 
     panel_path = os.path.join(www_dir, "edf-energy-panel.js")
     register_panel = os.path.isfile(panel_path)
+    panel_cache_bust = ""
     if register_panel:
       static_paths.append(StaticPathConfig("/edf_energy/edf-energy-panel.js", panel_path, False))
+      # Hash the file so the js_url changes whenever the panel changes, forcing
+      # browsers and the companion app's service worker to fetch the new version
+      # instead of serving a stale cached copy.
+      try:
+        panel_bytes = await hass.async_add_executor_job(lambda: open(panel_path, "rb").read())
+        panel_cache_bust = f"?v={hashlib.md5(panel_bytes).hexdigest()[:8]}"
+      except OSError:
+        pass
 
     if static_paths:
       await hass.http.async_register_static_paths(static_paths)
@@ -187,7 +232,7 @@ async def async_setup_entry(hass, entry):
           config={
             "_panel_custom": {
               "name": "edf-energy-panel",
-              "js_url": "/edf_energy/edf-energy-panel.js",
+              "js_url": f"/edf_energy/edf-energy-panel.js{panel_cache_bust}",
               "embed_iframe": False,
               "trust_external": False,
             }

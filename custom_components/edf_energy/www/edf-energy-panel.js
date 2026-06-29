@@ -239,6 +239,13 @@
     .auth-expiry-icon { font-size: 1.4em; flex-shrink: 0; line-height: 1.3; }
     .auth-expiry-text { font-size: 0.88em; color: var(--primary-text-color); line-height: 1.5; }
 
+    /* ── API key ── */
+    .api-key-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 0 16px; flex-wrap: wrap; }
+    .api-key-value { flex: 1; min-width: 180px; font-family: monospace; font-size: 0.95em; background: rgba(127,127,127,0.12); border-radius: 6px; padding: 8px 10px; overflow-wrap: anywhere; }
+    .api-key-btn { flex-shrink: 0; cursor: pointer; border: 1px solid var(--divider-color, rgba(127,127,127,0.3)); background: transparent; color: var(--primary-text-color); border-radius: 6px; padding: 8px 12px; font-size: 0.88em; }
+    .api-key-btn:hover { background: rgba(127,127,127,0.12); }
+    .api-key-note { margin-top: 10px; padding: 0 16px 14px; font-size: 0.82em; color: var(--secondary-text-color, #8d95a0); line-height: 1.5; }
+
     /* ── World Cup banner ── */
     .wc-banner {
       display: flex; align-items: center; gap: 10px;
@@ -269,6 +276,8 @@
       this._hass = null;
       this._selectedDateKey = null;
       this._lastChanged = null;
+      this._apiKeyRevealed = false;
+      this._apiKeyValue = null;
       // Track pending edits so a mid-typing re-render doesn't overwrite inputs
       this._pending = {};  // { entityId: value }
     }
@@ -776,6 +785,44 @@
         </div>`;
     }
 
+    _renderApiKeyCard() {
+      if (!this._findAccountId(this._hass)) return '';
+      // Refresh-token accounts have a LIVE expiry sensor; API-key accounts don't
+      // (it's absent, or lingers as an unavailable orphan after migration). Only
+      // show the key card for API-key accounts.
+      const expiry = this._findAuthExpirySensor(this._hass);
+      if (expiry && expiry.state && expiry.state !== 'unavailable' && expiry.state !== 'unknown') return '';
+
+      const revealed = this._apiKeyRevealed && this._apiKeyValue;
+      const display = revealed ? esc(this._apiKeyValue) : '••••••••••••••••••••••••';
+
+      return `
+        <div class="card">
+          <div class="section-title">API key</div>
+          <div class="section-info">Use this key to connect other tools to your EDF account. Treat it like a password. Generating a new key anywhere — here or elsewhere — invalidates this one.</div>
+          <div class="api-key-row">
+            <code class="api-key-value" id="api-key-value">${display}</code>
+            <button class="api-key-btn" id="api-key-reveal">${revealed ? 'Hide' : 'Reveal'}</button>
+            <button class="api-key-btn" id="api-key-copy">Copy</button>
+          </div>
+          <div class="api-key-note">EDF intend to add an API key to Your Account in the future which you will be able to share with any applications you grant access to your account data.</div>
+        </div>`;
+    }
+
+    async _fetchApiKey() {
+      if (this._apiKeyValue) return this._apiKeyValue;
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId || !this._hass) return null;
+      try {
+        const res = await this._hass.callWS({ type: 'edf_energy/get_api_key', account_id: accountId });
+        this._apiKeyValue = res && res.api_key ? res.api_key : null;
+      } catch (err) {
+        this._toast('Could not read API key (admin only)');
+        this._apiKeyValue = null;
+      }
+      return this._apiKeyValue;
+    }
+
     // ── Full render ─────────────────────────────────────────────────────────────
 
     _render() {
@@ -843,6 +890,7 @@
             ${this._renderControls(ids)}
             ${this._renderWorldCupCard()}
             ${this._renderSundaySaverCard()}
+            ${this._renderApiKeyCard()}
 
             ${dates.length === 0
               ? `<div class="card"><div class="empty">No data yet — check back after the next rate refresh.</div></div>`
@@ -981,6 +1029,27 @@
         const accountId = this._findAccountId(this._hass);
         const data = accountId ? { enabled: e.target.checked, account_id: accountId } : { enabled: e.target.checked };
         this._hass.callService('edf_energy', 'set_football_free_electricity', data);
+      });
+
+      // ── API key reveal / copy ──────────────────────────────────────────────
+      root.getElementById('api-key-reveal')?.addEventListener('click', async () => {
+        if (this._apiKeyRevealed) {
+          this._apiKeyRevealed = false;
+          this._render();
+          return;
+        }
+        const key = await this._fetchApiKey();
+        if (key) { this._apiKeyRevealed = true; this._render(); }
+      });
+      root.getElementById('api-key-copy')?.addEventListener('click', async () => {
+        const key = await this._fetchApiKey();
+        if (!key) return;
+        try {
+          await navigator.clipboard.writeText(key);
+          this._toast('API key copied');
+        } catch (err) {
+          this._toast('Copy failed — reveal and copy manually');
+        }
       });
 
       // ── EV control toggle switches ─────────────────────────────────────────
