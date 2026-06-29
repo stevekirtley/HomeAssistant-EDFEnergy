@@ -15,7 +15,7 @@ from ..const import (
   CONFIG_MAIN_OLD_API_KEY,
   CONFIG_MAIN_PRICE_CAP_SETTINGS,
 )
-from ..api_client import EDFEnergyApiClient, RequestException, ServerException, AuthenticationException, async_get_refresh_token
+from ..api_client import EDFEnergyApiClient, RequestException, ServerException, AuthenticationException, async_get_api_key_from_credentials
 
 async def async_migrate_main_config(version: int, data: {}):
   new_data = {**data}
@@ -60,43 +60,52 @@ async def async_migrate_main_config(version: int, data: {}):
   return new_data
 
 async def async_validate_main_config(data: dict, account_ids: list = []):
-  """Validate account config. On success, writes refresh_token into data and removes password."""
+  """Validate account config. Accepts either an API key directly, or email+password
+  which is exchanged for a durable API key. On success, writes api_key into data,
+  removes the password, and drops any legacy refresh token."""
   errors = {}
 
   if data[CONFIG_ACCOUNT_ID] in account_ids:
     errors[CONFIG_ACCOUNT_ID] = "duplicate_account"
     return errors
 
+  has_api_key = CONFIG_MAIN_API_KEY in data and data[CONFIG_MAIN_API_KEY]
   has_email = CONFIG_MAIN_EMAIL in data and data[CONFIG_MAIN_EMAIL]
   has_password = "password" in data and data["password"]
 
-  if not has_email or not has_password:
-    errors[CONFIG_MAIN_EMAIL] = "credentials_not_set"
-    return errors
+  if not has_api_key:
+    # No key supplied directly - mint one from credentials.
+    if not has_email or not has_password:
+      errors[CONFIG_MAIN_EMAIL] = "credentials_not_set"
+      return errors
 
-  try:
-    refresh_token = await async_get_refresh_token(data[CONFIG_MAIN_EMAIL], data["password"])
-  except AuthenticationException:
-    errors[CONFIG_MAIN_EMAIL] = "account_not_found"
-    return errors
-  except Exception:
-    errors[CONFIG_MAIN_EMAIL] = "server_error"
-    return errors
+    try:
+      api_key = await async_get_api_key_from_credentials(data[CONFIG_MAIN_EMAIL], data["password"])
+    except AuthenticationException:
+      errors[CONFIG_MAIN_EMAIL] = "account_not_found"
+      return errors
+    except Exception:
+      errors[CONFIG_MAIN_EMAIL] = "server_error"
+      return errors
 
-  data[CONFIG_MAIN_REFRESH_TOKEN] = refresh_token
+    data[CONFIG_MAIN_API_KEY] = api_key
+
+  # Never keep the password, and drop any legacy refresh token now we have a key.
   if "password" in data:
     del data["password"]
+  if CONFIG_MAIN_REFRESH_TOKEN in data:
+    del data[CONFIG_MAIN_REFRESH_TOKEN]
 
   try:
-    client = EDFEnergyApiClient(refresh_token)
+    client = EDFEnergyApiClient(api_key=data[CONFIG_MAIN_API_KEY])
     account_info = await client.async_get_account(data[CONFIG_ACCOUNT_ID])
   except RequestException:
     account_info = None
   except ServerException:
-    errors[CONFIG_MAIN_EMAIL] = "server_error"
+    errors[CONFIG_MAIN_API_KEY] = "server_error"
     return errors
 
   if account_info is None:
-    errors[CONFIG_MAIN_EMAIL] = "account_not_found"
+    errors[CONFIG_MAIN_API_KEY] = "account_not_found"
 
   return errors
