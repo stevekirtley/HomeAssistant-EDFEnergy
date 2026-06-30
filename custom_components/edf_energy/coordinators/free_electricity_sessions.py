@@ -48,7 +48,11 @@ def _normalise_football(result: EventFreeElectricityCoordinatorResult | None) ->
   if result is None or not result.has_event or result.start is None or result.end is None:
     return []
   code = f"football_{result.start.strftime('%Y%m%d%H%M')}"
-  return [FreeElectricitySession(code, result.start, result.end, "football")]
+  sessions = [FreeElectricitySession(code, result.start, result.end, "football")]
+  if result.et_start is not None and result.et_end is not None:
+    et_code = f"football_et_{result.et_start.strftime('%Y%m%d%H%M')}"
+    sessions.append(FreeElectricitySession(et_code, result.et_start, result.et_end, "football_et"))
+  return sessions
 
 
 _ALWAYS_ON_PROVIDERS: list[tuple[str, Callable[[Any], list[FreeElectricitySession]]]] = [

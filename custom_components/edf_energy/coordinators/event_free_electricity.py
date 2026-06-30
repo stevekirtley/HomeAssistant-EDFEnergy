@@ -36,7 +36,8 @@ class EventFreeElectricityCoordinatorResult(BaseCoordinatorResult):
   start: datetime | None
   end: datetime | None
   event_name: str | None
-  extended: bool
+  et_start: datetime | None
+  et_end: datetime | None
 
   def __init__(
     self,
@@ -45,31 +46,42 @@ class EventFreeElectricityCoordinatorResult(BaseCoordinatorResult):
     start: datetime | None,
     end: datetime | None,
     event_name: str | None,
-    extended: bool = False,
+    et_start: datetime | None = None,
+    et_end: datetime | None = None,
     last_error=None,
   ):
     super().__init__(last_evaluated, request_attempts, REFRESH_RATE_IN_MINUTES_EVENT_FREE_ELECTRICITY, None, last_error)
     self.start = start
     self.end = end
     self.event_name = event_name
-    self.extended = extended
+    self.et_start = et_start
+    self.et_end = et_end
     self.has_event = start is not None and end is not None
 
     # Tighten the refresh cadence around a match so we (a) wake up in time to start
-    # checking for extra time, (b) poll while it's undecided, and (c) advance to the
-    # next match once this window ends.
+    # checking for extra time, (b) poll every 2 min while undecided, and (c) advance
+    # to the next match once the window(s) end.
     if self.has_event:
       current = last_evaluated
       check_start = start + _EXTRA_TIME_CHECK_AFTER
-      check_end = start + _EXTRA_FREE_WINDOW
-      if not extended:
+
+      if et_start is None:
+        # ET not yet confirmed — wake up at the check window start, then poll every 2 min.
         if current < check_start:
           self.next_refresh = min(self.next_refresh, check_start)
-        elif current < check_end:
+        elif current < start + _EXTRA_FREE_WINDOW:
           self.next_refresh = min(self.next_refresh, current + _EXTRA_TIME_POLL)
-      after_end = end + timedelta(minutes=1)
-      if current < after_end:
-        self.next_refresh = min(self.next_refresh, after_end)
+
+      # Wake up just after the main session ends.
+      after_main = end + timedelta(minutes=1)
+      if current < after_main:
+        self.next_refresh = min(self.next_refresh, after_main)
+
+      # If ET confirmed, also wake up just after the ET session ends.
+      if et_end is not None:
+        after_et = et_end + timedelta(minutes=1)
+        if current < after_et:
+          self.next_refresh = min(self.next_refresh, after_et)
 
 
 def _parse_kickoff_utc(date_str: str, time_str: str) -> datetime | None:
@@ -131,14 +143,14 @@ def _select_candidate(
 def _extra_time_check_required(
   start: datetime,
   current: datetime,
-  already_extended: bool,
+  already_et: bool,
   is_knockout: bool = False,
 ) -> bool:
   """True when we should consult the relay: knockout match, in the [kickoff+88m, kickoff+3h)
-  window, and not already known to be extended."""
+  window, and ET not already confirmed."""
   if not is_knockout:
     return False
-  if already_extended:
+  if already_et:
     return False
   return start + _EXTRA_TIME_CHECK_AFTER <= current < start + _EXTRA_FREE_WINDOW
 
@@ -146,48 +158,48 @@ def _extra_time_check_required(
 def _resolve_window(
   windows: list[tuple[datetime, str, bool]],
   current: datetime,
-  already_extended: bool,
-  already_extended_start: datetime | None,
+  already_et_start: datetime | None,
   status: dict | None,
-) -> tuple[datetime | None, datetime | None, str | None, bool]:
-  """Pure decision: given the eligible windows, the current time, whether this match
-  was already confirmed as extended, and a relay `status` (or None when it wasn't
-  consulted / was unavailable), return (start, end, event_name, extended).
+) -> tuple[datetime | None, datetime | None, str | None, datetime | None, datetime | None]:
+  """Return (start, end, event_name, et_start, et_end).
 
-  Fallback rule: with no positive extra-time signal the window is the standard 2h.
-  The relay only ever lengthens it, and only for knockout matches.
+  The main session is always kickoff → kickoff+2h. When extra time is confirmed a
+  separate ET session (kickoff+2h → kickoff+3h) is returned alongside it — both
+  are surfaced as distinct free electricity slots rather than one extended window.
+
+  Fallback: without a positive ET signal the main session stays at 2h and et_start
+  is None.
   """
   start, name, is_knockout = _select_candidate(windows, current)
   if start is None:
-    return None, None, None, False
+    return None, None, None, None, None
 
-  # Already decided as extra time for this same match — hold the 3h window.
-  if already_extended and already_extended_start == start:
-    return start, start + _EXTRA_FREE_WINDOW, name, True
+  # ET already confirmed for this match — keep both sessions.
+  if already_et_start is not None and already_et_start == start:
+    return start, start + _FREE_WINDOW, name, start + _FREE_WINDOW, start + _EXTRA_FREE_WINDOW
 
-  # Group stage matches cannot go to extra time — always 2h, no relay check needed.
+  # Group stage: no ET possible.
   if not is_knockout:
-    return start, start + _FREE_WINDOW, name, False
+    return start, start + _FREE_WINDOW, name, None, None
 
-  # Not yet in the extra-time check window: standard 2h (upcoming or early in the match).
+  # Before the check window: main session only.
   if current < start + _EXTRA_TIME_CHECK_AFTER:
-    return start, start + _FREE_WINDOW, name, False
+    return start, start + _FREE_WINDOW, name, None, None
 
-  # In the check window. Trust the relay's latched outcome when we have one.
+  # In the check window — use the relay's latched verdict.
   if status is not None:
     if status.get("extra_time"):
-      return start, start + _EXTRA_FREE_WINDOW, name, True
+      return start, start + _FREE_WINDOW, name, start + _FREE_WINDOW, start + _EXTRA_FREE_WINDOW
     if status.get("match_finished"):
-      # Finished in normal time — drop this match and advance to the next one (future,
-      # so a standard 2h window with no relay call needed).
+      # Finished in normal time — advance to the next scheduled match.
       later = [w for w in windows if w[0] > start]
       nxt_start, nxt_name, _ = _select_candidate(later, current)
       if nxt_start is None:
-        return None, None, None, False
-      return nxt_start, nxt_start + _FREE_WINDOW, nxt_name, False
+        return None, None, None, None, None
+      return nxt_start, nxt_start + _FREE_WINDOW, nxt_name, None, None
 
-  # Undecided, or the relay was unavailable: keep the standard 2h window and retry.
-  return start, start + _FREE_WINDOW, name, False
+  # Undecided or relay unavailable — main session only, retry shortly.
+  return start, start + _FREE_WINDOW, name, None, None
 
 
 async def _async_fetch_extra_time(hass) -> dict | None:
@@ -231,7 +243,8 @@ def _error_result(
       existing.start,
       existing.end,
       existing.event_name,
-      existing.extended,
+      existing.et_start,
+      existing.et_end,
       last_error=error,
     )
   return EventFreeElectricityCoordinatorResult(
@@ -264,29 +277,31 @@ async def async_refresh_event_free_electricity(
 
   windows = _eligible_windows(data.get("matches", []))
 
-  already_extended = existing is not None and existing.extended
-  already_extended_start = existing.start if existing is not None else None
+  already_et_start = existing.et_start if existing is not None else None
 
-  # Only call the relay when an eligible match is actually in its extra-time window.
+  # Only call the relay when an eligible match is in its check window and ET not yet confirmed.
   status = None
   candidate_start, _, candidate_is_knockout = _select_candidate(windows, current)
   if candidate_start is not None and _extra_time_check_required(
-    candidate_start, current, already_extended and already_extended_start == candidate_start,
+    candidate_start, current,
+    already_et_start is not None and already_et_start == candidate_start,
     candidate_is_knockout,
   ):
     status = await _async_fetch_extra_time(hass)
 
-  start, end, name, extended = _resolve_window(
-    windows, current, already_extended, already_extended_start, status,
+  start, end, name, et_start, et_end = _resolve_window(
+    windows, current, already_et_start, status,
   )
 
   if start is not None:
-    suffix = " (extended for extra time)" if extended else ""
-    _LOGGER.debug(f"Eligible World Cup free window: {name}{suffix} {start} -> {end} UTC")
+    if et_start is not None:
+      _LOGGER.debug(f"World Cup free window: {name} {start} -> {end} UTC + ET bonus {et_start} -> {et_end} UTC")
+    else:
+      _LOGGER.debug(f"World Cup free window: {name} {start} -> {end} UTC")
   else:
     _LOGGER.debug("No upcoming eligible World Cup matches found for England or Scotland")
 
-  return EventFreeElectricityCoordinatorResult(current, 1, start, end, name, extended)
+  return EventFreeElectricityCoordinatorResult(current, 1, start, end, name, et_start, et_end)
 
 
 async def async_setup_event_free_electricity_coordinator(hass, account_id: str):
