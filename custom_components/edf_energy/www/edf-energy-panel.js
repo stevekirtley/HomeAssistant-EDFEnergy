@@ -693,7 +693,7 @@
       const windows  = Array.isArray(a.sunday_saver_windows) ? a.sunday_saver_windows : [];
       const st = se.state, end = a.end, freeHours = a.free_hours;
       const futureStart = isValidDate(st) && new Date(st) > Date.now();
-      const enrolled = active || hasEvent || windows.length > 0;
+      const enrolled = active || hasEvent || windows.length > 0 || a.is_enrolled === true;
 
       let badge, body;
       if (active && isValidDate(st)) {

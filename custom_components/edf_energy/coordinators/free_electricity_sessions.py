@@ -163,15 +163,10 @@ def refresh_free_electricity_sessions(
         "event_duration_in_minutes": event.duration_in_minutes,
       })
 
-  # Only fire the "all sessions" bus event when the list or the opt-in flag changes,
-  # to avoid flooding the event bus on every coordinator tick.
-  previous_events = existing_result.events if existing_result is not None else []
-  previous_football = existing_result.football_enabled if existing_result is not None else None
-  previous_auto_detected = existing_result.football_enrollment_auto_detected if existing_result is not None else None
-  if (not _sessions_equal(events, previous_events)
-      or football_enabled != previous_football
-      or football_enrollment_auto_detected != previous_auto_detected):
-    fire_event(EVENT_ALL_FREE_ELECTRICITY_SESSIONS, {
+  # Fire the "all sessions" bus event on every coordinator tick so that automations
+  # using the event entity as a trigger get a regular heartbeat — matching the behaviour
+  # of the upstream OctopusEnergy integration.
+  fire_event(EVENT_ALL_FREE_ELECTRICITY_SESSIONS, {
       "account_id": account_id,
       "football_free_electricity_enabled": football_enabled,
       "football_enrollment_auto_detected": football_enrollment_auto_detected,

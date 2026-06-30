@@ -91,6 +91,18 @@ Retrieve the Smart Charging dispatch history which was active for a given point 
 | `data.point_in_time`     | `no`     | The point in time to get the historic dispatch information that was active at the time.
 
 
+## Sunday Saver
+
+### edf_energy.join_sunday_saver
+
+Manually opt an account into the current month's Sunday Saver challenge. This is useful if you have disabled [automatic enrolment](./setup/account.md#sunday-saver) and prefer to manage it yourself.
+
+If the account is already enrolled, the service exits silently without making any changes. If enrolment succeeds, the Sunday Saver coordinator is refreshed immediately so the [start and end sensors](./entities/sunday_saver.md) reflect the updated state.
+
+| Attribute | Optional | Description |
+|---|---|---|
+| `data.account_id` | `yes` | The EDF Energy account number to enrol (e.g. `A-AAAA1111`). If omitted, all configured accounts are enrolled. |
+
 ## Miscellaneous
 
 ### edf_energy.purge_invalid_external_statistic_ids

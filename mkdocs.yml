@@ -14,6 +14,7 @@ nav:
     - Electricity: ./entities/electricity.md
     - Gas: ./entities/gas.md
     - Intelligent: ./entities/intelligent.md
+    - Sunday Saver: ./entities/sunday_saver.md
     - Diagnostics: ./entities/diagnostics.md
   - Migrations:
     - ./migrations/target_timeframes.md

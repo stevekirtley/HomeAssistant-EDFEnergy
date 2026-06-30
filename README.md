@@ -71,7 +71,7 @@ You will need:
 - Your EDF Energy **email address** and **password** (the same credentials you use to log in to the EDF Energy app or website)
 - Your EDF Energy **account number** (format `A-AAAA1111`) — found in the EDF Energy app under **Account**, or at the top of any bill
 
-The integration authenticates with the EDF Energy Kraken API using your email and password, and stores a refresh token for ongoing access. Your password is not stored.
+The integration authenticates with the EDF Energy Kraken API using your email and password. On first setup, an API key is generated and stored securely in Home Assistant — your password is used only once and is never stored.
 
 ## FAQ
 
@@ -85,3 +85,8 @@ You'll each get £75 (and they'll kindly give me £100) credited to our account 
 
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/stevekirtley)
+
+---
+
+[![GitHub Stars](https://img.shields.io/github/stars/stevekirtley/HomeAssistant-EDFEnergy?style=flat&label=GitHub%20stars)](https://github.com/stevekirtley/HomeAssistant-EDFEnergy)
+[![HA Analytics](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=active%20installs&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.edf_energy.total)](https://analytics.home-assistant.io)

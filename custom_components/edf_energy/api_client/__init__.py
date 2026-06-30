@@ -696,6 +696,123 @@ class EDFEnergyApiClient:
     """
     return await self.async_regenerate_secret_key()
 
+  async def async_get_sunday_saver_challenge_id(self) -> str | None:
+    """Fetch the current Sunday Saver campaign challengeId.
+
+    Returns the challengeId string, or None if it cannot be determined.
+    """
+    url = 'https://www.edfenergy.com/support/energyhub/api/sunday-saver/v1/campaign'
+    try:
+      await self.async_refresh_token()
+      client = self._create_client_session()
+      async with client.get(url, headers={'Authorization': self._graphql_token, 'Accept': 'application/json'}) as response:
+        if response.status != 200:
+          _LOGGER.warning("Sunday Saver campaign endpoint returned HTTP %s", response.status)
+          return None
+        data = await response.json(content_type=None)
+        challenge_id = (
+          data.get('challengeId')
+          or data.get('id')
+          or (data.get('campaign') or {}).get('challengeId')
+          or (data.get('campaign') or {}).get('id')
+        )
+        if challenge_id:
+          _LOGGER.debug("Sunday Saver challengeId from campaign: %s", challenge_id)
+        else:
+          _LOGGER.warning("Could not find challengeId in campaign response: %s", str(data)[:200])
+        return challenge_id
+    except Exception as e:
+      _LOGGER.warning("Failed to fetch Sunday Saver campaign: %s (%s)", e, type(e).__name__)
+      return None
+
+  async def async_get_sunday_saver_enrollment_status(self, account_id: str) -> bool | None:
+    """Check whether this account is already enrolled in the Sunday Saver challenge.
+
+    Returns True (enrolled), False (not enrolled), or None if the check could not be completed.
+    """
+    try:
+      await self.async_refresh_token()
+      url = (
+        f'https://www.edfenergy.com/support/energyhub/api/sunday-saver/v1/accounts'
+        f'/{account_id}/challenge/summary'
+      )
+      headers = {
+        'Authorization': self._graphql_token,
+        'Accept': 'application/json',
+      }
+      client = self._create_client_session()
+      async with client.get(url, headers=headers) as response:
+        if response.status == 200:
+          data = await response.json(content_type=None)
+          return _parse_football_enrollment_status(data)
+        if response.status == 404:
+          return False
+        body = await response.text()
+        _LOGGER.warning(
+          "Sunday Saver enrollment check returned HTTP %s for %s. Body: %s",
+          response.status, account_id, body[:500],
+        )
+        return None
+    except Exception as e:
+      _LOGGER.warning("Failed to check Sunday Saver enrollment for %s: %s (%s)", account_id, e, type(e).__name__)
+      return None
+
+  async def async_join_sunday_saver(self, account_id: str) -> tuple[bool, bool]:
+    """Opt this account into the Sunday Saver challenge.
+
+    Fetches the current challengeId from the campaign endpoint, checks enrollment,
+    and POSTs to the register endpoint if not already enrolled.
+
+    Returns (enrolled, newly_enrolled). enrolled is True if the account is now
+    enrolled (either was already, or just registered). newly_enrolled is True only
+    when a fresh registration POST was made successfully.
+    """
+    _FALLBACK_CHALLENGE_ID = 'sunday_saver_interest_capture_from_july26'
+
+    challenge_id = await self.async_get_sunday_saver_challenge_id()
+    if not challenge_id:
+      _LOGGER.warning(
+        "Sunday Saver sign-up for %s: could not retrieve challengeId from campaign, "
+        "falling back to '%s'", account_id, _FALLBACK_CHALLENGE_ID
+      )
+      challenge_id = _FALLBACK_CHALLENGE_ID
+
+    already_enrolled = await self.async_get_sunday_saver_enrollment_status(account_id)
+    if already_enrolled is True:
+      _LOGGER.info("Sunday Saver: account %s is already enrolled, skipping sign-up", account_id)
+      return True, False
+
+    try:
+      await self.async_refresh_token()
+      url = (
+        f'https://www.edfenergy.com/support/energyhub/api/sunday-saver/v1/accounts'
+        f'/{account_id}/challenge/register'
+      )
+      payload = {
+        'accountNumber': account_id,
+        'challengeType': 'SIGNUP',
+        'challengeId': challenge_id,
+      }
+      headers = {
+        'Authorization': self._graphql_token,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+      client = self._create_client_session()
+      async with client.post(url, json=payload, headers=headers) as response:
+        if response.status in (200, 201):
+          _LOGGER.info("Sunday Saver: successfully enrolled account %s (challengeId=%s)", account_id, challenge_id)
+          return True, True
+        body = await response.text()
+        _LOGGER.warning(
+          "Sunday Saver sign-up returned HTTP %s for %s. Body: %s",
+          response.status, account_id, body[:500],
+        )
+        return False, False
+    except Exception as e:
+      _LOGGER.warning("Sunday Saver sign-up failed for %s: %s (%s)", account_id, e, type(e).__name__)
+      return False, False
+
   async def async_get_football_enrollment_status(self, account_id: str) -> bool | None:
     """Check whether this account is enrolled in the football_2026 free electricity offer.
 

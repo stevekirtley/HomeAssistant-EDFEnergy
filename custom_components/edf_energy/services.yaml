@@ -1,3 +1,14 @@
+join_sunday_saver:
+  name: Join Sunday Saver
+  description: Opts the account into the EDF Sunday Saver challenge. Checks enrollment first and skips if already registered. Refreshes the Sunday Saver coordinator on success.
+  fields:
+    account_id:
+      name: Account ID
+      description: The EDF account number to enrol (e.g. A-XXXXXXXX). If omitted, all configured accounts are enrolled.
+      required: false
+      selector:
+        text:
+
 purge_invalid_external_statistic_ids:
   name: Purge invalid external statistics
   description: Removes external statistics for all meters that don't have an active tariff
