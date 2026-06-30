@@ -40,6 +40,7 @@ class EDFEnergySundaySaverStartSensor(CoordinatorEntity, RestoreSensor):
       "free_hours": None,
       "end": None,
       "is_active": None,
+      "is_enrolled": None,
       "sunday_saver_windows": [],
     }
     self.entity_id = generate_entity_id("sensor.{}", self.unique_id, hass=hass)
@@ -100,6 +101,7 @@ class EDFEnergySundaySaverStartSensor(CoordinatorEntity, RestoreSensor):
         "free_hours": result.free_hours if result.has_event else None,
         "end": result.end,
         "is_active": is_active,
+        "is_enrolled": result.is_enrolled,
         "sunday_saver_windows": [w.to_dict() for w in self._history],
       })
 

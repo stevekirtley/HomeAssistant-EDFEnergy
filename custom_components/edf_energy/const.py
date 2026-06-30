@@ -45,6 +45,7 @@ CONFIG_MAIN_INTELLIGENT_RATE_MODE_STARTED_DISPATCHES_ONLY = "started_dispatches_
 CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES = "intelligent_minimum_dispatch_duration_in_minutes"
 CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES = 0
 CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY = "football_free_electricity_enabled"
+CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL = "sunday_saver_auto_enrol"
 
 CONFIG_COST_TRACKER_NAME = "name"
 CONFIG_COST_TRACKER_MPAN = "mpan"
@@ -141,6 +142,7 @@ EVENT_NEW_FREE_ELECTRICITY_SESSION = "edf_energy_new_free_electricity_session"
 EVENT_ALL_FREE_ELECTRICITY_SESSIONS = "edf_energy_all_free_electricity_sessions"
 
 SERVICE_SET_FOOTBALL_FREE_ELECTRICITY = "set_football_free_electricity"
+SERVICE_JOIN_SUNDAY_SAVER = "join_sunday_saver"
 
 REPAIR_UNIQUE_RATES_CHANGED_KEY = "electricity_unique_rates_updated_{}"
 REPAIR_INVALID_API_KEY = "invalid_api_key_{}"

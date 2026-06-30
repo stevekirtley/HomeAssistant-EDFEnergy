@@ -99,6 +99,7 @@ from .const import (
   REPAIR_UNIQUE_RATES_CHANGED_KEY,
   REPAIR_UNKNOWN_INTELLIGENT_PROVIDER,
   SERVICE_SET_FOOTBALL_FREE_ELECTRICITY,
+  SERVICE_JOIN_SUNDAY_SAVER,
 )
 
 ACCOUNT_PLATFORMS = ["sensor", "binary_sensor", "number", "switch", "text", "time", "event", "select", "calendar"]
@@ -541,7 +542,7 @@ async def async_setup_dependencies(hass, entry, config):
                                                         config.get(CONFIG_MAIN_MANUAL_TARIFF_RATES))
 
   await async_setup_account_info_coordinator(hass, account_id, entry)
-  await async_setup_sunday_saver_coordinator(hass, account_id)
+  await async_setup_sunday_saver_coordinator(hass, account_id, entry)
   await async_setup_event_free_electricity_coordinator(hass, account_id)
   await async_setup_free_electricity_sessions_coordinator(hass, account_id, entry)
 
@@ -601,6 +602,34 @@ def _async_register_services(hass):
     _handle_set_football_free_electricity,
     schema=vol.Schema({
       vol.Required("enabled"): bool,
+      vol.Optional("account_id"): cv.string,
+    }),
+  )
+
+  async def _handle_join_sunday_saver(call):
+    account_id = call.data.get("account_id")
+    for entry in hass.config_entries.async_entries(DOMAIN):
+      if account_id is not None and entry.data.get(CONFIG_ACCOUNT_ID) != account_id:
+        continue
+      if entry.data.get(CONFIG_KIND) != CONFIG_KIND_ACCOUNT:
+        continue
+      entry_account_id = entry.data.get(CONFIG_ACCOUNT_ID)
+      client: EDFEnergyApiClient = hass.data.get(DOMAIN, {}).get(entry_account_id, {}).get(DATA_CLIENT)
+      if client is None:
+        continue
+      success, _ = await client.async_join_sunday_saver(entry_account_id)
+      if success:
+        coordinator = hass.data.get(DOMAIN, {}).get(entry_account_id, {}).get(
+          DATA_SUNDAY_SAVER_COORDINATOR.format(entry_account_id)
+        )
+        if coordinator is not None:
+          await coordinator.async_request_refresh()
+
+  hass.services.async_register(
+    DOMAIN,
+    SERVICE_JOIN_SUNDAY_SAVER,
+    _handle_join_sunday_saver,
+    schema=vol.Schema({
       vol.Optional("account_id"): cv.string,
     }),
   )

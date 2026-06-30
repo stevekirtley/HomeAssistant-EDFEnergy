@@ -8,6 +8,7 @@ Below are the main features of the integration
 * [Custom sensor support for tracking costs of other entities](#cost-tracker-sensors)
 * [Custom sensor support for comparing to other tariffs](#tariff-comparison-sensors)
 * [Smart Charging tariff settings support](#smart-charging)
+* [Sunday Saver](./entities/sunday_saver.md) free electricity window sensors with automatic enrolment
 
 ## How to install
 

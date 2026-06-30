@@ -10,7 +10,13 @@ You will need:
 - **Password** — your EDF Energy account password
 - **Account number** — format `A-AAAA1111`, shown in the EDF Energy app under **Account** or at the top of any bill
 
-The integration authenticates using your email and password to obtain a secure refresh token. Your password is used only during initial setup (and if you need to reconfigure) and is not stored by the integration.
+On first setup, the integration uses your email and password to generate an **API key**, which is then stored securely in Home Assistant. Your password is used only once and is never stored. All subsequent communication with the EDF Energy API uses the stored key.
+
+If you already have an API key (for example, from a previous setup), you can paste it directly into the **API key** field and leave the email and password blank.
+
+!!! info
+
+    If you upgrade from an earlier version of this integration that stored a refresh token, the migration to an API key happens automatically on the next restart — no action needed.
 
 ## Calorific Value
 
@@ -36,6 +42,18 @@ There are some tariffs where direct debit and non direct debit rates are availab
 !!! info
 
     It might take a couple of minutes for these changes to reflect once changed.
+
+## Sunday Saver
+
+### Automatically enrol in Sunday Saver
+
+When enabled (the default), the integration will automatically opt your account into the EDF Energy Sunday Saver challenge each month. Sunday Saver provides free electricity for a set window on Sunday mornings.
+
+If you prefer to manage enrolment manually — for example to review the terms before each month's challenge — disable this toggle and use the [`join_sunday_saver`](../services.md#edf_energyjoin_sunday_saver) service instead.
+
+When the integration successfully enrols your account for the first time, a persistent notification will appear in Home Assistant to confirm.
+
+See the [Sunday Saver entities](../entities/sunday_saver.md) for the sensors exposed by this feature.
 
 ## Smart Charging Settings
 

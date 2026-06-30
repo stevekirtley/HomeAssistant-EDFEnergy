@@ -57,6 +57,7 @@ from .const import (
   CONFIG_MAIN_API_KEY,
   CONFIG_MAIN_EMAIL,
   CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
+  CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL,
   CONFIG_MAIN_REFRESH_TOKEN,
   CONFIG_KIND_ACCOUNT,
 )
@@ -198,6 +199,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
       vol.Required(CONFIG_MAIN_CALORIFIC_VALUE, default=DEFAULT_CALORIFIC_VALUE): cv.positive_float,
       vol.Required(CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES, default=True): bool,
       vol.Required(CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS, default=False): bool,
+      vol.Required(CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL, default=True): bool,
       vol.Required(CONFIG_MAIN_INTELLIGENT_SETTINGS): section(
         vol.Schema(
             {
