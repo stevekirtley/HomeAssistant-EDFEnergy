@@ -499,6 +499,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../entities/sunday_saver/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sunday Saver
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../entities/diagnostics/" class="md-nav__link">
         
   
@@ -739,6 +760,30 @@
   <a href="#edf_energyget_point_in_time_intelligent_dispatch_history" class="md-nav__link">
     <span class="md-ellipsis">
       edf_energy.get_point_in_time_intelligent_dispatch_history
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sunday-saver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sunday Saver
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sunday Saver">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edf_energyjoin_sunday_saver" class="md-nav__link">
+    <span class="md-ellipsis">
+      edf_energy.join_sunday_saver
     </span>
   </a>
   
@@ -1264,6 +1309,30 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sunday-saver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sunday Saver
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sunday Saver">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edf_energyjoin_sunday_saver" class="md-nav__link">
+    <span class="md-ellipsis">
+      edf_energy.join_sunday_saver
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#miscellaneous" class="md-nav__link">
     <span class="md-ellipsis">
       Miscellaneous
@@ -1480,6 +1549,26 @@
 <td><code>data.point_in_time</code></td>
 <td><code>no</code></td>
 <td>The point in time to get the historic dispatch information that was active at the time.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sunday-saver">Sunday Saver<a class="headerlink" href="#sunday-saver" title="Permanent link">#</a></h2>
+<h3 id="edf_energyjoin_sunday_saver">edf_energy.join_sunday_saver<a class="headerlink" href="#edf_energyjoin_sunday_saver" title="Permanent link">#</a></h3>
+<p>Manually opt an account into the current month's Sunday Saver challenge. This is useful if you have disabled <a href="../setup/account/#sunday-saver">automatic enrolment</a> and prefer to manage it yourself.</p>
+<p>If the account is already enrolled, the service exits silently without making any changes. If enrolment succeeds, the Sunday Saver coordinator is refreshed immediately so the <a href="../entities/sunday_saver/">start and end sensors</a> reflect the updated state.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Optional</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data.account_id</code></td>
+<td><code>yes</code></td>
+<td>The EDF Energy account number to enrol (e.g. <code>A-AAAA1111</code>). If omitted, all configured accounts are enrolled.</td>
 </tr>
 </tbody>
 </table>

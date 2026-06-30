@@ -394,6 +394,30 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sunday-saver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sunday Saver
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sunday Saver">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatically-enrol-in-sunday-saver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Automatically enrol in Sunday Saver
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#smart-charging-settings" class="md-nav__link">
     <span class="md-ellipsis">
       Smart Charging Settings
@@ -627,6 +651,27 @@
   
   <span class="md-ellipsis">
     Intelligent
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/sunday_saver/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sunday Saver
   </span>
   
 
@@ -1143,6 +1188,30 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sunday-saver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sunday Saver
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sunday Saver">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatically-enrol-in-sunday-saver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Automatically enrol in Sunday Saver
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#smart-charging-settings" class="md-nav__link">
     <span class="md-ellipsis">
       Smart Charging Settings
@@ -1235,7 +1304,12 @@
 <li><strong>Password</strong> — your EDF Energy account password</li>
 <li><strong>Account number</strong> — format <code>A-AAAA1111</code>, shown in the EDF Energy app under <strong>Account</strong> or at the top of any bill</li>
 </ul>
-<p>The integration authenticates using your email and password to obtain a secure refresh token. Your password is used only during initial setup (and if you need to reconfigure) and is not stored by the integration.</p>
+<p>On first setup, the integration uses your email and password to generate an <strong>API key</strong>, which is then stored securely in Home Assistant. Your password is used only once and is never stored. All subsequent communication with the EDF Energy API uses the stored key.</p>
+<p>If you already have an API key (for example, from a previous setup), you can paste it directly into the <strong>API key</strong> field and leave the email and password blank.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>If you upgrade from an earlier version of this integration that stored a refresh token, the migration to an API key happens automatically on the next restart — no action needed.</p>
+</div>
 <h2 id="calorific-value">Calorific Value<a class="headerlink" href="#calorific-value" title="Permanent link">#</a></h2>
 <p>When calculating gas costs, a calorific value is included in the calculation. Unfortunately this changes from region to region and is not provided by the EDF Energy API. The default value of this is <code>40</code>, but if you check your latest bill you should be able to find the value for you. This will give you a more accurate consumption and cost calculation when your meter reports in <code>m3</code>.</p>
 <div class="admonition info">
@@ -1254,6 +1328,12 @@
 <p class="admonition-title">Info</p>
 <p>It might take a couple of minutes for these changes to reflect once changed.</p>
 </div>
+<h2 id="sunday-saver">Sunday Saver<a class="headerlink" href="#sunday-saver" title="Permanent link">#</a></h2>
+<h3 id="automatically-enrol-in-sunday-saver">Automatically enrol in Sunday Saver<a class="headerlink" href="#automatically-enrol-in-sunday-saver" title="Permanent link">#</a></h3>
+<p>When enabled (the default), the integration will automatically opt your account into the EDF Energy Sunday Saver challenge each month. Sunday Saver provides free electricity for a set window on Sunday mornings.</p>
+<p>If you prefer to manage enrolment manually — for example to review the terms before each month's challenge — disable this toggle and use the <a href="../../services/#edf_energyjoin_sunday_saver"><code>join_sunday_saver</code></a> service instead.</p>
+<p>When the integration successfully enrols your account for the first time, a persistent notification will appear in Home Assistant to confirm.</p>
+<p>See the <a href="../../entities/sunday_saver/">Sunday Saver entities</a> for the sensors exposed by this feature.</p>
 <h2 id="smart-charging-settings">Smart Charging Settings<a class="headerlink" href="#smart-charging-settings" title="Permanent link">#</a></h2>
 <h3 id="manually-refresh-intelligent-dispatches">Manually refresh intelligent dispatches<a class="headerlink" href="#manually-refresh-intelligent-dispatches" title="Permanent link">#</a></h3>
 <p>By default, Smart Charging dispatches are retrieved <a href="../../faq/#how-often-is-data-refreshed">periodically</a>. This is fine for most scenarios, but this can be a little slow depending on what else you're doing off the back of the dispatches. If you have other ways of knowing when new dispatches should be available (e.g. your charger changes to a charging state or a manual button in your HA dashboard), then you can turn on <code>Manually refresh intelligent dispatches</code>. This will disable the periodic refreshing and expose a <a href="../../services/#edf_energyrefresh_intelligent_dispatches">service</a> which can be called to refresh the dispatches.</p>
