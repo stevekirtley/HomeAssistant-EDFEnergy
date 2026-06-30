@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 from homeassistant.util.dt import (utcnow, as_utc, parse_datetime, now)
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.components import persistent_notification
 
 from ..const import (
   COORDINATOR_REFRESH_IN_SECONDS,
@@ -184,8 +185,9 @@ async def async_setup_sunday_saver_coordinator(hass, account_id: str, entry):
     )
 
     if newly_enrolled:
-      hass.components.persistent_notification.async_create(
-        f"Your EDF Energy account ({account_id}) has been automatically enrolled in Sunday Saver. "
+      persistent_notification.async_create(
+        hass,
+        message=f"Your EDF Energy account ({account_id}) has been automatically enrolled in Sunday Saver. "
         "You can opt out at any time via the integration's Reconfigure menu.",
         title="Sunday Saver: Enrolled",
         notification_id=f"edf_energy_sunday_saver_enrolled_{account_id}",
