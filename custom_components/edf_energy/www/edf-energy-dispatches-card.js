@@ -55,8 +55,20 @@
     // ── Data helpers ────────────────────────────────────────────────────────
 
     _parseDispatches(entity) {
-      if (!entity) return [];
-      const { completed_dispatches = [], planned_dispatches = [] } = entity.attributes;
+      if (!entity) return { dispatches: [], started: [] };
+      const {
+        completed_dispatches = [],
+        planned_dispatches = [],
+        started_dispatches = [],
+      } = entity.attributes;
+
+      // Started dispatches are the record of what actually charged. EDF doesn't populate
+      // completed_dispatches, so this is how we tell a real charge apart from a planned slot
+      // that never happened (e.g. the car was unplugged).
+      const started = started_dispatches
+        .map(d => ({ start: new Date(d.start), end: new Date(d.end) }))
+        .filter(d => !isNaN(d.start) && !isNaN(d.end));
+
       const seen = new Set();
       const result = [];
 
@@ -71,10 +83,17 @@
             charge_in_kwh: d.charge_in_kwh ?? null,
             source:        d.source        ?? null,
             location:      d.location      ?? null,
+            // completed_dispatches are authoritative; planned ones have to be verified
+            // against the started dispatches before we trust that they ran
+            confirmed:     completed_dispatches.includes(d),
           });
         }
       }
-      return result;
+      return { dispatches: result, started };
+    }
+
+    _overlapsStarted(slot, started) {
+      return started.some(s => s.start < slot.end && s.end > slot.start);
     }
 
     _localDateKey(date) {
@@ -89,11 +108,14 @@
       return keys.sort((a, b) => b.localeCompare(a)); // newest first
     }
 
-    _getStatus(dispatch) {
+    _getStatus(dispatch, started) {
       const now = new Date();
-      if (dispatch.end <= now)   return 'completed';
-      if (dispatch.start <= now) return 'active';
-      return 'planned';
+      if (dispatch.start <= now && dispatch.end > now) return 'active';
+      if (dispatch.end > now) return 'planned';
+      // Slot is in the past - only treat it as completed if it actually charged. A planned
+      // slot that never made it into the started dispatches is stale (e.g. car unplugged).
+      if (dispatch.confirmed || this._overlapsStarted(dispatch, started)) return 'completed';
+      return 'cancelled';
     }
 
     // ── Formatting ──────────────────────────────────────────────────────────
@@ -140,8 +162,8 @@
     _render() {
       if (!this._hass) return;
 
-      const entity    = this._findEntity(this._hass);
-      const all       = this._parseDispatches(entity);
+      const entity           = this._findEntity(this._hass);
+      const { dispatches: all, started } = this._parseDispatches(entity);
       const dates     = this._sortedDates(all);  // newest at index 0
 
       // Keep selected date valid
@@ -159,8 +181,8 @@
 
       const title = this._esc(this._config.title || 'Smart Charging Dispatches');
 
-      const STATUS_COLOUR = { completed: '#4CAF50', active: '#FF9800', planned: '#2196F3' };
-      const STATUS_LABEL  = { completed: 'Completed', active: 'Active', planned: 'Planned' };
+      const STATUS_COLOUR = { completed: '#4CAF50', active: '#FF9800', planned: '#2196F3', cancelled: '#9e9e9e' };
+      const STATUS_LABEL  = { completed: 'Completed', active: 'Active', planned: 'Planned', cancelled: 'Cancelled' };
 
       this.shadowRoot.innerHTML = `
         <style>
@@ -310,10 +332,11 @@
               ${dayDispatches.length === 0
                 ? `<div class="empty">No dispatches for this date.</div>`
                 : dayDispatches.map(d => {
-                    const status = this._getStatus(d);
+                    const status = this._getStatus(d, started);
                     const colour = STATUS_COLOUR[status];
                     const label  = STATUS_LABEL[status];
-                    const kwhStr = d.charge_in_kwh != null
+                    // Cancelled slots never charged, so their planned kWh estimate would mislead
+                    const kwhStr = (d.charge_in_kwh != null && status !== 'cancelled')
                       ? `<span>${d.charge_in_kwh.toFixed(1)} kWh</span>`
                       : '';
                     const srcStr = d.source
