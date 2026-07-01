@@ -54,15 +54,26 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function dispatchStatus(start, end) {
-    const now = Date.now();
-    if (new Date(end) <= now)   return 'completed';
-    if (new Date(start) <= now) return 'active';
-    return 'planned';
+  function overlapsStarted(start, end, started) {
+    if (!started || started.length === 0) return false;
+    const s = new Date(start).getTime(), e = new Date(end).getTime();
+    return started.some(x => x.start < e && x.end > s);
   }
 
-  const DISPATCH_COLOUR = { completed: '#4CAF50', active: '#FF9800', planned: '#2196F3' };
-  const DISPATCH_LABEL  = { completed: 'Completed', active: 'Active',    planned: 'Planned'   };
+  // `started` is optional. When passed (dispatch slots), a past slot that never appeared in the
+  // started dispatches is treated as cancelled rather than completed - EDF doesn't populate
+  // completed_dispatches, so started is the only record of what actually charged. Callers that
+  // don't pass it (e.g. Sunday Saver windows) keep the plain time-based behaviour.
+  function dispatchStatus(start, end, started) {
+    const now = Date.now();
+    if (new Date(start) <= now && new Date(end) > now) return 'active';
+    if (new Date(end) > now) return 'planned';
+    if (started !== undefined && !overlapsStarted(start, end, started)) return 'cancelled';
+    return 'completed';
+  }
+
+  const DISPATCH_COLOUR = { completed: '#4CAF50', active: '#FF9800', planned: '#2196F3', cancelled: '#9e9e9e' };
+  const DISPATCH_LABEL  = { completed: 'Completed', active: 'Active',    planned: 'Planned',   cancelled: 'Cancelled' };
 
   // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -412,6 +423,13 @@
         if (!seen.has(key)) { seen.add(key); result.push(d); }
       }
       return result;
+    }
+
+    _parseStartedDispatches(entity) {
+      if (!entity) return [];
+      return (entity.attributes.started_dispatches || [])
+        .map(d => ({ start: new Date(d.start).getTime(), end: new Date(d.end).getTime() }))
+        .filter(d => !isNaN(d.start) && !isNaN(d.end));
     }
 
     _parseOffPeakWindows(entity) {
@@ -836,6 +854,7 @@
       const ids = this._getDeviceEntityIds(de, this._hass);
 
       const dispatches          = this._parseDispatches(de);
+      const startedDispatches   = this._parseStartedDispatches(de);
       const offPeakWindows      = this._parseOffPeakWindows(oe);
       const sundaySaverWindows  = this._parseSundaySaverWindows(se);
       const dates               = this._allDates(dispatches, offPeakWindows, sundaySaverWindows);
@@ -974,7 +993,7 @@
                 ${dayDispatches.length === 0
                   ? `<div class="empty">No dispatch windows recorded for this date.</div>`
                   : dayDispatches.map(d => {
-                      const status = dispatchStatus(d.start, d.end);
+                      const status = dispatchStatus(d.start, d.end, startedDispatches);
                       const colour = DISPATCH_COLOUR[status];
                       return `
                         <div class="item">
@@ -985,7 +1004,7 @@
                               <span class="duration">(${formatDuration(d.start, d.end)})</span>
                             </div>
                             <div class="meta">
-                              ${d.charge_in_kwh != null ? `<span>${Number(d.charge_in_kwh).toFixed(1)} kWh</span>` : ''}
+                              ${d.charge_in_kwh != null && status !== 'cancelled' ? `<span>${Number(d.charge_in_kwh).toFixed(1)} kWh</span>` : ''}
                               ${d.source ? `<span>${esc(formatSource(d.source))}</span>` : ''}
                               <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
                             </div>
