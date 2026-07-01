@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from homeassistant.util.dt import (as_local, as_utc, parse_datetime)
 
 from ..const import (
+  KNOWN_OFF_PEAK_WINDOWS,
   REGEX_TARIFF_PARTS,
 )
 from ..utils.conversions import pence_to_pounds_pence_accurate
@@ -104,6 +105,27 @@ def is_off_peak(current: datetime, rates):
           rate_information["current_rate"]["is_intelligent_adjusted"] == False and 
           pence_to_pounds_pence_accurate(off_peak_value) == rate_information["current_rate"]["value_inc_vat"])
 
+def get_known_off_peak_end(tariff_code: str, start: datetime):
+  """For tariffs with a fixed off-peak window (see KNOWN_OFF_PEAK_WINDOWS), return the
+  datetime the window finishes for a window beginning at `start`. This is used as a fallback
+  end time when the API data has been truncated before the following day's off-peak rates
+  have been published, which would otherwise leave the window showing a too-early end time
+  until the next day's rates arrive."""
+  if tariff_code is None:
+    return None
+
+  for key, window in KNOWN_OFF_PEAK_WINDOWS.items():
+    if key in tariff_code:
+      (end_hour, end_minute) = window["end"]
+      local_start = as_local(start)
+      candidate = local_start.replace(hour=end_hour, minute=end_minute, second=0, microsecond=0)
+      # The window can span midnight, so the end may fall on the following day
+      if candidate <= local_start:
+        candidate = candidate + timedelta(days=1)
+      return as_utc(candidate)
+
+  return None
+
 class OffPeakTime:
   start: datetime
   end: datetime
@@ -138,7 +160,13 @@ def get_off_peak_times(current: datetime, rates: list, include_intelligent_adjus
         start = None
     
     if start is not None:
+      # The off-peak run reaches the end of the available data, so the window may be truncated
+      # because the next day's rates haven't been published yet. Fall back to the known window
+      # end for tariffs where it's fixed, but never bring the end earlier than the data shows.
       end = rates[-1]["end"]
+      known_end = get_known_off_peak_end(rates[-1].get("tariff_code"), start)
+      if known_end is not None and known_end > end:
+        end = known_end
       if end >= current:
         times.append(OffPeakTime(start, end))
   else:
