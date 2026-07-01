@@ -181,7 +181,7 @@
 
       const title = this._esc(this._config.title || 'Smart Charging Dispatches');
 
-      const STATUS_COLOUR = { completed: '#4CAF50', active: '#FF9800', planned: '#2196F3', cancelled: '#9e9e9e' };
+      const STATUS_COLOUR = { completed: '#4CAF50', active: '#FF9800', planned: '#2196F3', cancelled: '#F44336' };
       const STATUS_LABEL  = { completed: 'Completed', active: 'Active', planned: 'Planned', cancelled: 'Cancelled' };
 
       this.shadowRoot.innerHTML = `
