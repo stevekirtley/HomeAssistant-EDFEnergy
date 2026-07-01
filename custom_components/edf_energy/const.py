@@ -122,6 +122,16 @@ REGEX_WEIGHTING = f"^({REGEX_WEIGHTING_NUMBERS}|{REGEX_WEIGHTING_START}|{REGEX_W
 
 DEFAULT_CALORIFIC_VALUE = 40.0
 
+# Some tariffs have a fixed off-peak window but the API only publishes the rates a day at a
+# time, so a window that spans midnight (e.g. Go Electric's 23:00 -> 06:00) gets truncated at
+# the edge of the available data until the next day's rates land. We use these known windows
+# as a fallback for the end time in that case - the API is still used whenever the data is
+# actually there. Keyed by a substring that appears in the tariff code; the value is the local
+# (hour, minute) the off-peak window starts and finishes.
+KNOWN_OFF_PEAK_WINDOWS = {
+  "GOELEC": { "start": (23, 0), "end": (6, 0) },
+}
+
 EVENT_ELECTRICITY_PREVIOUS_DAY_RATES = "edf_energy_electricity_previous_day_rates"
 EVENT_ELECTRICITY_CURRENT_DAY_RATES = "edf_energy_electricity_current_day_rates"
 EVENT_ELECTRICITY_NEXT_DAY_RATES = "edf_energy_electricity_next_day_rates"
