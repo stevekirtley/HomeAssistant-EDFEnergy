@@ -32,9 +32,10 @@ _LOGGER = logging.getLogger(__name__)
 
 # How many days of off-peak windows to expose in the attribute. History is retained for 60 days
 # (see merge_off_peak_windows) but the attribute drives the date picker on the panel/card, so we
-# only surface a recent slice. 30 days keeps it under HA's ~16KB attribute size limit even on
-# intelligent tariffs that fragment the window into many pieces.
-OFF_PEAK_ATTRIBUTE_RETENTION_DAYS = 30
+# only surface a recent slice. 21 days (~22 dates) stays comfortably under HA's ~16KB attribute
+# size limit - 30 days measured ~18KB on real data because intelligent tariffs fragment the
+# window into many pieces on some days.
+OFF_PEAK_ATTRIBUTE_RETENTION_DAYS = 21
 
 class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor, BinarySensorEntity, RestoreEntity):
   """Sensor for determining if the current rate is off peak."""
