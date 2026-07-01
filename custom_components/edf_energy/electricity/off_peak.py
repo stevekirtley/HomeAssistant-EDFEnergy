@@ -30,6 +30,12 @@ from ..utils.attributes import dict_to_typed_dict
 
 _LOGGER = logging.getLogger(__name__)
 
+# How many days of off-peak windows to expose in the attribute. History is retained for 60 days
+# (see merge_off_peak_windows) but the attribute drives the date picker on the panel/card, so we
+# only surface a recent slice. 30 days keeps it under HA's ~16KB attribute size limit even on
+# intelligent tariffs that fragment the window into many pieces.
+OFF_PEAK_ATTRIBUTE_RETENTION_DAYS = 30
+
 class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor, BinarySensorEntity, RestoreEntity):
   """Sensor for determining if the current rate is off peak."""
 
@@ -114,17 +120,18 @@ class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor,
         for w in get_off_peak_windows_from_rates(rates)
       ]
       self._off_peak_history = merge_off_peak_windows(self._off_peak_history, new_windows, current)
-      # Expose 30 days of windows in the attribute (history is retained for 60). This drives the
-      # date picker on the panel/card - 7 days only gave ~9 selectable dates. 30 days keeps the
-      # attribute comfortably under HA's ~16KB size limit even on fragmented intelligent tariffs.
-      attr_min_time = current - timedelta(days=30)
-      self._attributes["off_peak_windows"] = [w.to_dict() for w in self._off_peak_history if w.end >= attr_min_time]
+      self._attributes["off_peak_windows"] = self._off_peak_windows_for_attribute(current)
       self._hass.async_create_task(self._async_save_history())
 
       self._last_updated = current
 
     self._attributes = dict_to_typed_dict(self._attributes)
     super()._handle_coordinator_update()
+
+  def _off_peak_windows_for_attribute(self, current):
+    """The recent slice of off-peak history to expose in the attribute (see OFF_PEAK_ATTRIBUTE_RETENTION_DAYS)."""
+    attr_min_time = current - timedelta(days=OFF_PEAK_ATTRIBUTE_RETENTION_DAYS)
+    return [w.to_dict() for w in self._off_peak_history if w.end >= attr_min_time]
 
   async def _async_save_history(self):
     await async_save_cached_off_peak_history(
@@ -146,6 +153,8 @@ class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor,
     self._off_peak_history = await async_load_cached_off_peak_history(
       self._hass, self._mpan, self._serial_number
     )
-    self._attributes["off_peak_windows"] = [w.to_dict() for w in self._off_peak_history]
+    # Apply the same retention window as the coordinator update path, otherwise restoring the full
+    # 60-day cached history would briefly blow past HA's attribute size limit on every restart.
+    self._attributes["off_peak_windows"] = self._off_peak_windows_for_attribute(now())
 
     _LOGGER.debug(f'Restored EDFEnergyElectricityOffPeak state: {self._state}')
