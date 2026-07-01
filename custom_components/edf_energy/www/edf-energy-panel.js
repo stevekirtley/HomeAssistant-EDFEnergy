@@ -72,7 +72,7 @@
     return 'completed';
   }
 
-  const DISPATCH_COLOUR = { completed: '#4CAF50', active: '#FF9800', planned: '#2196F3', cancelled: '#9e9e9e' };
+  const DISPATCH_COLOUR = { completed: '#4CAF50', active: '#FF9800', planned: '#2196F3', cancelled: '#F44336' };
   const DISPATCH_LABEL  = { completed: 'Completed', active: 'Active',    planned: 'Planned',   cancelled: 'Cancelled' };
 
   // ── Styles ────────────────────────────────────────────────────────────────────
