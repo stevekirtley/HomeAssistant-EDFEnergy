@@ -92,6 +92,7 @@ DATA_EVENT_FREE_ELECTRICITY_COORDINATOR = "EVENT_FREE_ELECTRICITY_COORDINATOR_{}
 # outcome). Consulted only while an eligible match is in its extra-time window; if it
 # is unreachable the free window simply stays at the standard 2 hours.
 EXTRA_TIME_RELAY_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=status"
+RELAY_FIXTURES_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=fixtures"
 DATA_FREE_ELECTRICITY_SESSIONS = "FREE_ELECTRICITY_SESSIONS_{}"
 DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR = "FREE_ELECTRICITY_SESSIONS_COORDINATOR_{}"
 

@@ -1,5 +1,4 @@
 import logging
-import re
 from datetime import datetime, timezone, timedelta
 
 import aiohttp
@@ -13,14 +12,12 @@ from ..const import (
   DATA_EVENT_FREE_ELECTRICITY_COORDINATOR,
   DOMAIN,
   EXTRA_TIME_RELAY_URL,
+  RELAY_FIXTURES_URL,
   REFRESH_RATE_IN_MINUTES_EVENT_FREE_ELECTRICITY,
 )
 from . import BaseCoordinatorResult
 
 _LOGGER = logging.getLogger(__name__)
-
-_WORLDCUP_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/refs/heads/master/2026/worldcup.json"
-_ELIGIBLE_TEAMS = {"England", "Scotland"}
 
 # Standard free window from kickoff; extended to 3h when a match goes to extra time.
 _FREE_WINDOW = timedelta(hours=2)
@@ -84,42 +81,21 @@ class EventFreeElectricityCoordinatorResult(BaseCoordinatorResult):
           self.next_refresh = min(self.next_refresh, after_et)
 
 
-def _parse_kickoff_utc(date_str: str, time_str: str) -> datetime | None:
-  """Parse "2026-06-14" + "13:00 UTC-6" into a UTC datetime."""
-  m = re.match(r'(\d{2}):(\d{2})\s+UTC([+-]\d+)', time_str)
-  if not m:
-    return None
-  hour = int(m.group(1))
-  minute = int(m.group(2))
-  offset_hours = int(m.group(3))
-  tz = timezone(timedelta(hours=offset_hours))
-  try:
-    local_dt = datetime(
-      *[int(p) for p in date_str.split('-')],
-      hour, minute, tzinfo=tz,
-    )
-    return local_dt.astimezone(timezone.utc)
-  except Exception:
-    return None
-
-
-def _eligible_windows(matches: list) -> list[tuple[datetime, str, bool]]:
-  """Return (kickoff, event_name, is_knockout) for every England/Scotland match, sorted by kickoff.
-
-  Knockout matches have no 'group' field; group stage matches do (e.g. 'Group A').
-  Only knockout matches can go to extra time.
-  """
+def _eligible_windows(fixtures: list) -> list[tuple[datetime, str, bool]]:
+  """Return (kickoff, event_name, is_knockout) for all relay fixtures, sorted by kickoff."""
   windows: list[tuple[datetime, str, bool]] = []
-  for m in matches:
-    team1 = m.get("team1", "")
-    team2 = m.get("team2", "")
-    if team1 not in _ELIGIBLE_TEAMS and team2 not in _ELIGIBLE_TEAMS:
+  for f in fixtures:
+    ts = f.get("timestamp")
+    if ts is None:
       continue
-    kickoff = _parse_kickoff_utc(m.get("date", ""), m.get("time", ""))
-    if kickoff is None:
+    try:
+      kickoff = datetime.fromtimestamp(int(ts), tz=timezone.utc)
+    except Exception:
       continue
-    is_knockout = not m.get("group")
-    windows.append((kickoff, f"{team1} v {team2}", is_knockout))
+    home = f.get("home", "")
+    away = f.get("away", "")
+    is_knockout = f.get("round", "group-stage") != "group-stage"
+    windows.append((kickoff, f"{home} v {away}", is_knockout))
   windows.sort(key=lambda w: w[0])
   return windows
 
@@ -264,18 +240,22 @@ async def async_refresh_event_free_electricity(
   try:
     session = async_get_clientsession(hass)
     async with session.get(
-      _WORLDCUP_URL,
+      RELAY_FIXTURES_URL,
       timeout=aiohttp.ClientTimeout(total=30),
     ) as response:
       if response.status != 200:
-        _LOGGER.warning(f"World Cup schedule returned HTTP {response.status}")
+        _LOGGER.warning(f"Relay fixtures returned HTTP {response.status}")
         return _error_result(current, existing)
       data = await response.json(content_type=None)
   except Exception as e:
-    _LOGGER.warning(f"Failed to fetch World Cup schedule: {e}")
+    _LOGGER.warning(f"Failed to fetch relay fixtures: {e}")
     return _error_result(current, existing, e)
 
-  windows = _eligible_windows(data.get("matches", []))
+  if not isinstance(data, dict) or not data.get("ok"):
+    _LOGGER.warning("Relay fixtures response was not OK")
+    return _error_result(current, existing)
+
+  windows = _eligible_windows(data.get("fixtures", []))
 
   already_et_start = existing.et_start if existing is not None else None
 
@@ -299,7 +279,7 @@ async def async_refresh_event_free_electricity(
     else:
       _LOGGER.debug(f"World Cup free window: {name} {start} -> {end} UTC")
   else:
-    _LOGGER.debug("No upcoming eligible World Cup matches found for England or Scotland")
+    _LOGGER.debug("No upcoming World Cup fixtures found")
 
   return EventFreeElectricityCoordinatorResult(current, 1, start, end, name, et_start, et_end)
 
