@@ -9,6 +9,9 @@ from custom_components.edf_energy.intelligent import is_intelligent_product
   ("INTELLI-22-03-29"),
   ("INTELLI-FIX-12M-25-04-10"),
   ("IOG-KDP-FIX-12M-25-04-10"),
+  ("EDF_EV_FIX_GOELEC_12M_HH"),
+  ("EDF_PODPOINT_EV_PANDP_FIX_24M_HH"),
+  ("EDF_PODPOINT_EV_FIX_POWER_12M_HH"),
 ])
 async def test_when_product_code_is_valid_then_true_returned(product_code: str):
   # Act

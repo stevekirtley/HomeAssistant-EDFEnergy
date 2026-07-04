@@ -218,8 +218,9 @@ def is_intelligent_product(product_code: str):
     "INTELLI-FIX" in product_code.upper() or
     product_code.upper().startswith("IOG") or
     re.search("INTELLI-[0-9]", product_code.upper()) is not None or
-    # EDF Energy EV smart-charging tariffs (e.g. EDF_EV_FIX_GOELEC_12M_HH)
-    product_code.upper().startswith("EDF_EV_")
+    # EDF Energy EV smart-charging tariffs (e.g. EDF_EV_FIX_GOELEC_12M_HH, EDF_PODPOINT_EV_PANDP_FIX_24M_HH)
+    product_code.upper().startswith("EDF_EV_") or
+    product_code.upper().startswith("EDF_PODPOINT_EV_")
   )
 
 def has_intelligent_tariff(current: datetime, account_info):
