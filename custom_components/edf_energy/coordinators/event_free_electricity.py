@@ -151,7 +151,7 @@ def _resolve_window(
     return None, None, None, None, None
 
   # ET already confirmed for this match — keep both sessions.
-  if already_et_start is not None and already_et_start == start:
+  if already_et_start is not None and already_et_start == start + _FREE_WINDOW:
     return start, start + _FREE_WINDOW, name, start + _FREE_WINDOW, start + _EXTRA_FREE_WINDOW
 
   # Group stage: no ET possible.
@@ -264,7 +264,7 @@ async def async_refresh_event_free_electricity(
   candidate_start, _, candidate_is_knockout = _select_candidate(windows, current)
   if candidate_start is not None and _extra_time_check_required(
     candidate_start, current,
-    already_et_start is not None and already_et_start == candidate_start,
+    already_et_start is not None and already_et_start == candidate_start + _FREE_WINDOW,
     candidate_is_knockout,
   ):
     status = await _async_fetch_extra_time(hass)
