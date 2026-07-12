@@ -678,14 +678,24 @@
       const end = efs.attributes?.end;
       const name = efs.attributes?.event_name;
       const active = efs.attributes?.is_active === true;
+      const etStart = efs.attributes?.extra_time_session_start;
+      const etEnd   = efs.attributes?.extra_time_session_end;
+      const hasEt   = isValidDate(etStart) && isValidDate(etEnd);
+      const nowMs   = Date.now();
+      const etActive = hasEt && new Date(etStart).getTime() <= nowMs && nowMs <= new Date(etEnd).getTime();
 
       let value, sub;
       if (active && isValidDate(st)) {
         value = '&#x1F7E2; Free now';
         sub = end ? `Until ${esc(formatTime(end))}` : '';
-      } else if (isValidDate(st) && new Date(st) > Date.now()) {
+        if (hasEt) sub += ` · extra time until ${esc(formatTime(etEnd))}`;
+      } else if (etActive) {
+        value = '&#x1F7E2; Free now (extra time)';
+        sub = etEnd ? `Until ${esc(formatTime(etEnd))}` : '';
+      } else if (isValidDate(st) && new Date(st) > nowMs) {
         value = esc(formatWindowLabel(st, end));
         sub = name ? esc(name) : '';
+        if (hasEt) sub += (sub ? ' · ' : '') + `extra time ${esc(formatTime(etStart))}–${esc(formatTime(etEnd))}`;
       } else {
         value = 'None scheduled';
         sub = '';
