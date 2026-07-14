@@ -82,7 +82,7 @@ See the [EDF Energy integration docs](https://stevekirtley.github.io/HomeAssista
 
 If you find this useful and are planning on switching to EDF Energy, you're welcome to use my [referral link](https://edfenergy.com/quote/refer-a-friend/massive-sun-7007).
 
-You'll each get £75 (and they'll kindly give me £100) credited to our account - usually £50 each, improved offer until 13th July 2026. 
+We'll each get £50 credited to our account.
 
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/stevekirtley)
