@@ -577,15 +577,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#current-consumption-data-last-retrieved" class="md-nav__link">
-    <span class="md-ellipsis">
-      Current Consumption Data Last Retrieved
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#intelligent-dispatches-data-last-retrieved" class="md-nav__link">
     <span class="md-ellipsis">
       Intelligent Dispatches Data Last Retrieved
@@ -1098,15 +1089,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#current-consumption-data-last-retrieved" class="md-nav__link">
-    <span class="md-ellipsis">
-      Current Consumption Data Last Retrieved
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#intelligent-dispatches-data-last-retrieved" class="md-nav__link">
     <span class="md-ellipsis">
       Intelligent Dispatches Data Last Retrieved
@@ -1174,39 +1156,6 @@
 <h2 id="account-data-last-retrieved">Account Data Last Retrieved<a class="headerlink" href="#account-data-last-retrieved" title="Permanent link">#</a></h2>
 <p><code>sensor.edf_energy_{{ACCOUNT_ID}}_account_data_last_retrieved</code></p>
 <p>This sensor states when account data was last retrieved.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This is <a href="../../faq/#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them">disabled by default</a>. </p>
-</div>
-<table>
-<thead>
-<tr>
-<th>Attribute</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>attempts</code></td>
-<td><code>integer</code></td>
-<td>The number of attempts that have been made to retrieve the data</td>
-</tr>
-<tr>
-<td><code>next_refresh</code></td>
-<td><code>datetime</code></td>
-<td>The timestamp of when the data will next be attempted to be retrieved</td>
-</tr>
-<tr>
-<td><code>last_error</code></td>
-<td><code>string</code></td>
-<td>The error that was raised to cause the last retrieval attempt to fail</td>
-</tr>
-</tbody>
-</table>
-<h2 id="current-consumption-data-last-retrieved">Current Consumption Data Last Retrieved<a class="headerlink" href="#current-consumption-data-last-retrieved" title="Permanent link">#</a></h2>
-<p><code>sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_consumption_data_last_retrieved</code> or <code>sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_current_consumption_data_last_retrieved</code></p>
-<p>This sensor states when the current consumption data was last retrieved.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This is <a href="../../faq/#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them">disabled by default</a>. </p>

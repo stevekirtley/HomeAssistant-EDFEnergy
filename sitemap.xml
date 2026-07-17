@@ -2,98 +2,98 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/blueprints/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/events/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/faq/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/services/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/architecture_decision_records/0001_target_rates_removal/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/architecture_decision_records/0002_intelligent_is_dispatching_behaviour_changes/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/diagnostics/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/electricity/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/gas/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/intelligent/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/sunday_saver/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/migrations/target_timeframes/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/account_not_found/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/cost_override_obsolete/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/meter_removed/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/no_active_tariff/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/tariff_rates_empty/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/unknown_intelligent_provider/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/unknown_product/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/setup/account/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/setup/cost_tracker/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/setup/energy_dashboard/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
     <url>
          <loc>https://stevekirtley.github.io/HomeAssistant-EDFEnergy/setup/tariff_comparison/</loc>
-         <lastmod>2026-06-30</lastmod>
+         <lastmod>2026-07-17</lastmod>
     </url>
 </urlset>

@@ -431,59 +431,20 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#for-electricity" class="md-nav__link">
+  <a href="#recommended-hildebrand-bright-glow-live-data" class="md-nav__link">
     <span class="md-ellipsis">
-      For Electricity
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="For Electricity">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#smart-meter-live-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      Smart Meter Live Data
+      Recommended: Hildebrand Bright (Glow) live data
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#alternative-methods-to-measure-current-home-consumption" class="md-nav__link">
+  <a href="#alternative-ct-clamp-or-inverter-grid-import-sensor" class="md-nav__link">
     <span class="md-ellipsis">
-      Alternative methods to measure current Home Consumption
+      Alternative: CT clamp or inverter grid-import sensor
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#for-gas" class="md-nav__link">
-    <span class="md-ellipsis">
-      For Gas
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="For Gas">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#smart-meter-live-data_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Smart Meter Live Data
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -503,7 +464,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#for-electricity_1" class="md-nav__link">
+  <a href="#for-electricity" class="md-nav__link">
     <span class="md-ellipsis">
       For Electricity
     </span>
@@ -512,7 +473,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#for-gas_1" class="md-nav__link">
+  <a href="#for-gas" class="md-nav__link">
     <span class="md-ellipsis">
       For Gas
     </span>
@@ -1141,59 +1102,20 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#for-electricity" class="md-nav__link">
+  <a href="#recommended-hildebrand-bright-glow-live-data" class="md-nav__link">
     <span class="md-ellipsis">
-      For Electricity
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="For Electricity">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#smart-meter-live-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      Smart Meter Live Data
+      Recommended: Hildebrand Bright (Glow) live data
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#alternative-methods-to-measure-current-home-consumption" class="md-nav__link">
+  <a href="#alternative-ct-clamp-or-inverter-grid-import-sensor" class="md-nav__link">
     <span class="md-ellipsis">
-      Alternative methods to measure current Home Consumption
+      Alternative: CT clamp or inverter grid-import sensor
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#for-gas" class="md-nav__link">
-    <span class="md-ellipsis">
-      For Gas
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="For Gas">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#smart-meter-live-data_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Smart Meter Live Data
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1213,7 +1135,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#for-electricity_1" class="md-nav__link">
+  <a href="#for-electricity" class="md-nav__link">
     <span class="md-ellipsis">
       For Electricity
     </span>
@@ -1222,7 +1144,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#for-gas_1" class="md-nav__link">
+  <a href="#for-gas" class="md-nav__link">
     <span class="md-ellipsis">
       For Gas
     </span>
@@ -1255,43 +1177,71 @@
 
 <h1 id="energy-dashboard">Energy Dashboard<a class="headerlink" href="#energy-dashboard" title="Permanent link">#</a></h1>
 <h2 id="current-consumption">Current Consumption<a class="headerlink" href="#current-consumption" title="Permanent link">#</a></h2>
-<h3 id="for-electricity">For Electricity<a class="headerlink" href="#for-electricity" title="Permanent link">#</a></h3>
-<p>You can only record current (i.e. today's) consumption in the Energy dashboard if you have a way of measuring live consumption in your home.</p>
-<h4 id="smart-meter-live-data">Smart Meter Live Data<a class="headerlink" href="#smart-meter-live-data" title="Permanent link">#</a></h4>
-<p>If you have a smart electricity meter you can obtain live meter reading data into Home Assistant:</p>
+<div class="admonition warning">
+<p class="admonition-title">EDF does not provide live/current consumption data</p>
+<p>Unlike Octopus Energy (which offers the Home Mini), EDF Energy's API has <strong>no live or current-day meter feed</strong>. This integration therefore does <strong>not</strong> create any <code>current_accumulative_consumption</code>, <code>current_consumption</code>, <code>current_demand</code> or <code>current_accumulative_cost</code> entities, and it never will unless EDF start serving that data. If you are looking for those sensors because you followed an older version of this guide, they don't exist — see the options below instead.</p>
+<p>You can still record today's consumption in the Energy dashboard, but you need an <strong>independent live source</strong> in Home Assistant to do it. The two practical routes are a Hildebrand Bright / Glow feed (recommended, since it reads the same smart meter) or a CT clamp / inverter sensor.</p>
+</div>
+<h3 id="recommended-hildebrand-bright-glow-live-data">Recommended: Hildebrand Bright (Glow) live data<a class="headerlink" href="#recommended-hildebrand-bright-glow-live-data" title="Permanent link">#</a></h3>
+<p>If you have a Hildebrand <a href="https://glowmarkt.com/">Bright app</a> account (also branded "Glow"), the free <a href="https://github.com/HandyHat/ha-hildebrand-glow">Hildebrand Glow (DCC)</a> HACS integration pulls near-real-time readings straight from your smart meter over the DCC network — no extra hardware needed. This is the closest equivalent to Octopus's live feed and works with the same meter EDF bills you from.</p>
+<p>Once that integration is set up you'll get a <code>glow_smart_meter_&lt;DEVICE_ID&gt;_...</code> device with these useful entities:</p>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>What it gives you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sensor...._smart_meter_electricity_import</code></td>
+<td>Cumulative electricity import (kWh) — a <code>total_increasing</code> sensor, ideal for the Energy dashboard</td>
+</tr>
+<tr>
+<td><code>sensor...._smart_meter_electricity_power</code></td>
+<td>Instantaneous demand in watts — live "what's my house using right now"</td>
+</tr>
+<tr>
+<td><code>sensor...._smart_meter_electricity_import_today</code></td>
+<td>Import so far today (kWh)</td>
+</tr>
+<tr>
+<td><code>sensor...._smart_meter_electricity_export</code></td>
+<td>Cumulative export (kWh), if you export</td>
+</tr>
+<tr>
+<td><code>sensor...._smart_meter_gas_import</code></td>
+<td>Cumulative gas import (kWh)</td>
+</tr>
+<tr>
+<td><code>sensor...._smart_meter_gas_import_vol</code></td>
+<td>Cumulative gas volume (m³)</td>
+</tr>
+<tr>
+<td><code>sensor...._smart_meter_gas_import_today</code></td>
+<td>Gas used so far today (kWh)</td>
+</tr>
+</tbody>
+</table>
+<p>To add it to the Energy dashboard:</p>
 <ol>
 <li>Go to your <a href="https://my.home-assistant.io/redirect/config_energy/">energy dashboard configuration</a></li>
 <li>Click <code>Add Consumption</code> under <code>Electricity grid</code></li>
-<li>For <code>Consumed energy</code> you want <code>sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_accumulative_consumption</code></li>
-<li>Choose the <code>Use an entity tracking the total costs</code> option and the entity is <code>sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_accumulative_cost</code></li>
+<li>For <code>Consumed energy</code> choose the cumulative import sensor, e.g. <code>sensor.glow_smart_meter_&lt;DEVICE_ID&gt;_smart_meter_electricity_import</code></li>
+<li>Choose <code>Use an entity with current price</code> and pick <code>sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_rate</code> so cost is calculated against your EDF tariff</li>
+<li>For gas, click <code>Add Gas Source</code> and use <code>sensor.glow_smart_meter_&lt;DEVICE_ID&gt;_smart_meter_gas_import</code> (kWh) or <code>..._smart_meter_gas_import_vol</code> (m³) the same way</li>
 </ol>
-<p><img alt="HA modal electricity example" src="../../assets/current_consumption_electricity.png" style="height:500px" /></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Data will only appear in the energy dashboard from the point the integration starts retrieving live data. It doesn't backport any data.</p>
+<p>Because these readings come from Hildebrand rather than from EDF directly, they won't include the standing charge and there will be a small measurement difference versus what EDF eventually bill. In practice the difference is usually tiny.</p>
 </div>
-<h4 id="alternative-methods-to-measure-current-home-consumption">Alternative methods to measure current Home Consumption<a class="headerlink" href="#alternative-methods-to-measure-current-home-consumption" title="Permanent link">#</a></h4>
-<p>If you don't have live data from your smart meter you may have another way to get live or near-live daily consumption into Home Assistant such as a Hildebrand Glow In Home Display, an Energy CT Clamp such as the Shelly EM on the incoming supply cable, or your existing Solar/Battery inverter may have a sensor that provides Grid import information that you can use in the Energy dashboard.</p>
-<p>Do be aware that as you are not directly capturing the smart meter readings in Home Assistant the consumption does not include the standing charge and there will always be a small measurement difference from what EDF Energy say you have used, but in practice the difference is likely to be quite small.</p>
+<h3 id="alternative-ct-clamp-or-inverter-grid-import-sensor">Alternative: CT clamp or inverter grid-import sensor<a class="headerlink" href="#alternative-ct-clamp-or-inverter-grid-import-sensor" title="Permanent link">#</a></h3>
+<p>If you don't use Bright/Glow, any other near-live grid-import source works too — a CT clamp such as a Shelly EM on the incoming supply cable, or a grid-import sensor from your solar/battery inverter.</p>
 <ol>
-<li>Create a utility meter that resets daily to store the consumption sensor information in, e.g. called <code>Grid Import Today</code></li>
-<li>The utility meter should point to the sensor that is measuring your grid import. e.g. for a Hildebrand Glow it could be <code>sensor.smart_meter_electricity_energy_import</code>; a Shelly EM will be <code>sensor.&lt;EM channel name&gt;_energy_total</code>; for a GivEnergy inverter using the GivTCP integration it will be <code>sensor.givtcp_XXyywwXnnn_import_energy_today_kwh</code></li>
-<li>Then add the consumption information to the Energy dashboard as per the steps above. For step 3, <code>consumed energy</code>, you want the utility meter you have just created above, e.g. <code>sensor.grid_import_today</code> and for step 4, choose <code>Use an entity with current price</code> and the entity is <code>sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_rate</code></li>
+<li>Create a utility meter that resets daily to store the consumption in, e.g. <code>Grid Import Today</code></li>
+<li>Point the utility meter at your grid-import sensor. e.g. for a Hildebrand Glow it could be <code>sensor.glow_smart_meter_&lt;DEVICE_ID&gt;_smart_meter_electricity_import</code>; a Shelly EM will be <code>sensor.&lt;EM channel name&gt;_energy_total</code>; for a GivEnergy inverter using GivTCP it will be <code>sensor.givtcp_XXyywwXnnn_import_energy_today_kwh</code></li>
+<li>Add the utility meter to the Energy dashboard as above: for <code>consumed energy</code> use the utility meter (e.g. <code>sensor.grid_import_today</code>), and for cost choose <code>Use an entity with current price</code> with <code>sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_rate</code></li>
 </ol>
-<h3 id="for-gas">For Gas<a class="headerlink" href="#for-gas" title="Permanent link">#</a></h3>
-<h4 id="smart-meter-live-data_1">Smart Meter Live Data<a class="headerlink" href="#smart-meter-live-data_1" title="Permanent link">#</a></h4>
-<p>If you have a smart gas meter you can obtain live meter reading data into Home Assistant:</p>
-<ol>
-<li>Go to your <a href="https://my.home-assistant.io/redirect/config_energy/">energy dashboard configuration</a></li>
-<li>Click <code>Add Gas Source</code> under <code>Gas consumption</code></li>
-<li>For <code>Gas usage</code> you want <code>sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_current_accumulative_consumption_kwh</code></li>
-<li>For <code>Use an entity tracking the total costs</code> option you want <code>sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_current_accumulative_cost</code> </li>
-</ol>
-<p><img alt="HA modal gas example" src="../../assets/current_consumption_gas.png" style="height:500px" /></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Data will only appear in the energy dashboard from the point the integration starts retrieving live data. It doesn't backport any data.</p>
-</div>
 <h2 id="previous-day-consumption">Previous Day Consumption<a class="headerlink" href="#previous-day-consumption" title="Permanent link">#</a></h2>
 <p>If none of the methods above for feeding Current Day Consumption information into the Energy dashboard are suitable, you can add <code>previous consumption</code> information to the dashboard, using information retrieved via the EDF Energy API. Note that the consumption information is only available on the following day so "today's" Energy dashboard will show zero values, but "yesterday's", "day before", etc will show the correct consumption for each day.</p>
 <div class="admonition warning">
@@ -1307,7 +1257,7 @@
 <p class="admonition-title">Note</p>
 <p>I'm still investigating having hourly breakdowns imported on the entity themselves rather than as external statistics, but currently in doing so it's still including the spikes on the day of retrieval. I've opened a <a href="https://community.home-assistant.io/t/help-needed-around-importing-historic-statistics/567726">forum post</a> but awaiting answers.</p>
 </div>
-<h3 id="for-electricity_1">For Electricity<a class="headerlink" href="#for-electricity_1" title="Permanent link">#</a></h3>
+<h3 id="for-electricity">For Electricity<a class="headerlink" href="#for-electricity" title="Permanent link">#</a></h3>
 <p><img alt="HA modal electricity example" src="../../assets/previous_consumption_electricity.png" style="height:500px" /></p>
 <ol>
 <li>Go to your <a href="https://my.home-assistant.io/redirect/config_energy/">energy dashboard configuration</a></li>
@@ -1321,7 +1271,7 @@
 <li><code>edf_energy:electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_peak</code> - The total cost for the previous day that applied during peak hours. This will only be populated if you're on a tariff with two available rates and is <a href="../../faq/#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them">disabled by default</a>. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_peak.</strong></li>
 <li><code>edf_energy:electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_off_peak</code> - The total cost for the previous day that applied during off-peak hours. This will only be populated if you're on a tariff with two available rates and is <a href="../../faq/#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them">disabled by default</a>. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_off_peak.</strong></li>
 </ol>
-<h3 id="for-gas_1">For Gas<a class="headerlink" href="#for-gas_1" title="Permanent link">#</a></h3>
+<h3 id="for-gas">For Gas<a class="headerlink" href="#for-gas" title="Permanent link">#</a></h3>
 <p><img alt="HA modal gas example" src="../../assets/previous_consumption_gas.png" style="height:500px" /></p>
 <ol>
 <li>Go to your <a href="https://my.home-assistant.io/redirect/config_energy/">energy dashboard configuration</a></li>
@@ -1353,7 +1303,7 @@
       
     </span>
     <nav>
-      Alec Rust, BottlecapDave, Geoffrey Coan, stevekirtley
+      BottlecapDave, Geoffrey Coan, stevekirtley, stevekirtley
     </nav>
   </span>
 
