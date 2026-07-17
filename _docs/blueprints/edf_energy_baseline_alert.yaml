@@ -1,27 +1,42 @@
 blueprint:
   name: EDF Energy - Consumption Baseline Approaching Alert
-  description: Automatically get an alert if current interval consumption is within a certain percentage of the configured baseline
+  description: >
+    Get an alert when your consumption for the current interval reaches a certain percentage of a
+    target baseline.
+
+    Note: EDF Energy does not provide a live/current consumption feed (unlike Octopus), so this
+    blueprint can't use an EDF sensor for live usage. Instead point the interval entity at a live
+    source you already have in Home Assistant - a Hildebrand Glow / Bright feed, a CT clamp such as
+    a Shelly EM, or an inverter grid-import sensor - via a utility meter with a short cycle. See the
+    interval entity description below.
   domain: automation
   author: BottlecapDave (amended for EDF Energy by Steve Kirtley)
   input:
     interval_consumption_entity:
       name: Interval consumption entity
-      description: The entity which reports the consumption for the current interval (e.g sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_interval_accumulative_consumption)
+      description: >
+        A sensor reporting how much you've consumed so far in the current interval. EDF does not
+        expose this, so create a utility meter with a 30 minute or hourly cycle pointed at your live
+        import source (e.g. sensor.glow_smart_meter_<id>_smart_meter_electricity_import for a
+        Hildebrand Glow / Bright feed, a Shelly EM channel, or your inverter's grid-import sensor)
+        and select that utility meter here.
       selector:
         entity:
           filter:
           - domain:
             - sensor
-            integration: edf_energy
     baseline_entity:
       name: Baseline entity
-      description: The entity which reports the current target baseline
+      description: >
+        A sensor or helper reporting your target baseline for the interval, in the same units and
+        over the same period as the interval entity above (e.g. an input_number helper or a template
+        sensor holding your budget in kWh).
       selector:
         entity:
           filter:
           - domain:
             - sensor
-            integration: edf_energy
+            - input_number
     percentage_threshold:
       name: Percentage Threshold
       description: The minimum percentage of the baseline that is reached for the automation to be triggered
