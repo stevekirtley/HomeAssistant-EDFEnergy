@@ -17,21 +17,6 @@ This sensor states when account data was last retrieved.
 | `next_refresh` | `datetime` | The timestamp of when the data will next be attempted to be retrieved |
 | `last_error` | `string` | The error that was raised to cause the last retrieval attempt to fail |
 
-## Current Consumption Data Last Retrieved
-
-`sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_consumption_data_last_retrieved` or `sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_current_consumption_data_last_retrieved`
-
-This sensor states when the current consumption data was last retrieved.
-
-!!! note
-    This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `attempts` | `integer` | The number of attempts that have been made to retrieve the data |
-| `next_refresh` | `datetime` | The timestamp of when the data will next be attempted to be retrieved |
-| `last_error` | `string` | The error that was raised to cause the last retrieval attempt to fail |
-
 ## Intelligent Dispatches Data Last Retrieved
 
 `sensor.edf_energy_{{DEVICE_ID}}_intelligent_dispatches_data_last_retrieved`
