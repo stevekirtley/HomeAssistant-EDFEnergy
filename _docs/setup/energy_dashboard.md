@@ -2,51 +2,47 @@
 
 ## Current Consumption
 
-### For Electricity
+!!! warning "EDF does not provide live/current consumption data"
 
-You can only record current (i.e. today's) consumption in the Energy dashboard if you have a way of measuring live consumption in your home.
+    Unlike Octopus Energy (which offers the Home Mini), EDF Energy's API has **no live or current-day meter feed**. This integration therefore does **not** create any `current_accumulative_consumption`, `current_consumption`, `current_demand` or `current_accumulative_cost` entities, and it never will unless EDF start serving that data. If you are looking for those sensors because you followed an older version of this guide, they don't exist — see the options below instead.
 
-#### Smart Meter Live Data
+    You can still record today's consumption in the Energy dashboard, but you need an **independent live source** in Home Assistant to do it. The two practical routes are a Hildebrand Bright / Glow feed (recommended, since it reads the same smart meter) or a CT clamp / inverter sensor.
 
-If you have a smart electricity meter you can obtain live meter reading data into Home Assistant:
+### Recommended: Hildebrand Bright (Glow) live data
+
+If you have a Hildebrand [Bright app](https://glowmarkt.com/) account (also branded "Glow"), the free [Hildebrand Glow (DCC)](https://github.com/HandyHat/ha-hildebrand-glow) HACS integration pulls near-real-time readings straight from your smart meter over the DCC network — no extra hardware needed. This is the closest equivalent to Octopus's live feed and works with the same meter EDF bills you from.
+
+Once that integration is set up you'll get a `glow_smart_meter_<DEVICE_ID>_...` device with these useful entities:
+
+| Entity | What it gives you |
+|--------|-------------------|
+| `sensor...._smart_meter_electricity_import` | Cumulative electricity import (kWh) — a `total_increasing` sensor, ideal for the Energy dashboard |
+| `sensor...._smart_meter_electricity_power` | Instantaneous demand in watts — live "what's my house using right now" |
+| `sensor...._smart_meter_electricity_import_today` | Import so far today (kWh) |
+| `sensor...._smart_meter_electricity_export` | Cumulative export (kWh), if you export |
+| `sensor...._smart_meter_gas_import` | Cumulative gas import (kWh) |
+| `sensor...._smart_meter_gas_import_vol` | Cumulative gas volume (m³) |
+| `sensor...._smart_meter_gas_import_today` | Gas used so far today (kWh) |
+
+To add it to the Energy dashboard:
 
 1. Go to your [energy dashboard configuration](https://my.home-assistant.io/redirect/config_energy/)
 2. Click `Add Consumption` under `Electricity grid`
-3. For `Consumed energy` you want `sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_accumulative_consumption`
-4. Choose the `Use an entity tracking the total costs` option and the entity is `sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_accumulative_cost`
-
-![HA modal electricity example](../assets/current_consumption_electricity.png){: style="height:500px"}
-
-!!! note
-  
-    Data will only appear in the energy dashboard from the point the integration starts retrieving live data. It doesn't backport any data.
-
-#### Alternative methods to measure current Home Consumption
-
-If you don't have live data from your smart meter you may have another way to get live or near-live daily consumption into Home Assistant such as a Hildebrand Glow In Home Display, an Energy CT Clamp such as the Shelly EM on the incoming supply cable, or your existing Solar/Battery inverter may have a sensor that provides Grid import information that you can use in the Energy dashboard.
-
-Do be aware that as you are not directly capturing the smart meter readings in Home Assistant the consumption does not include the standing charge and there will always be a small measurement difference from what EDF Energy say you have used, but in practice the difference is likely to be quite small.
-
-1. Create a utility meter that resets daily to store the consumption sensor information in, e.g. called `Grid Import Today`
-2. The utility meter should point to the sensor that is measuring your grid import. e.g. for a Hildebrand Glow it could be `sensor.smart_meter_electricity_energy_import`; a Shelly EM will be `sensor.<EM channel name>_energy_total`; for a GivEnergy inverter using the GivTCP integration it will be `sensor.givtcp_XXyywwXnnn_import_energy_today_kwh`
-3. Then add the consumption information to the Energy dashboard as per the steps above. For step 3, `consumed energy`, you want the utility meter you have just created above, e.g. `sensor.grid_import_today` and for step 4, choose `Use an entity with current price` and the entity is `sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_rate`
-
-### For Gas
-
-#### Smart Meter Live Data
-
-If you have a smart gas meter you can obtain live meter reading data into Home Assistant:
-
-1. Go to your [energy dashboard configuration](https://my.home-assistant.io/redirect/config_energy/)
-2. Click `Add Gas Source` under `Gas consumption`
-3. For `Gas usage` you want `sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_current_accumulative_consumption_kwh`
-4. For `Use an entity tracking the total costs` option you want `sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_current_accumulative_cost` 
-
-![HA modal gas example](../assets/current_consumption_gas.png){: style="height:500px"}
+3. For `Consumed energy` choose the cumulative import sensor, e.g. `sensor.glow_smart_meter_<DEVICE_ID>_smart_meter_electricity_import`
+4. Choose `Use an entity with current price` and pick `sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_rate` so cost is calculated against your EDF tariff
+5. For gas, click `Add Gas Source` and use `sensor.glow_smart_meter_<DEVICE_ID>_smart_meter_gas_import` (kWh) or `..._smart_meter_gas_import_vol` (m³) the same way
 
 !!! note
 
-    Data will only appear in the energy dashboard from the point the integration starts retrieving live data. It doesn't backport any data.
+    Because these readings come from Hildebrand rather than from EDF directly, they won't include the standing charge and there will be a small measurement difference versus what EDF eventually bill. In practice the difference is usually tiny.
+
+### Alternative: CT clamp or inverter grid-import sensor
+
+If you don't use Bright/Glow, any other near-live grid-import source works too — a CT clamp such as a Shelly EM on the incoming supply cable, or a grid-import sensor from your solar/battery inverter.
+
+1. Create a utility meter that resets daily to store the consumption in, e.g. `Grid Import Today`
+2. Point the utility meter at your grid-import sensor. e.g. for a Hildebrand Glow it could be `sensor.glow_smart_meter_<DEVICE_ID>_smart_meter_electricity_import`; a Shelly EM will be `sensor.<EM channel name>_energy_total`; for a GivEnergy inverter using GivTCP it will be `sensor.givtcp_XXyywwXnnn_import_energy_today_kwh`
+3. Add the utility meter to the Energy dashboard as above: for `consumed energy` use the utility meter (e.g. `sensor.grid_import_today`), and for cost choose `Use an entity with current price` with `sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_rate`
 
 ## Previous Day Consumption
 
