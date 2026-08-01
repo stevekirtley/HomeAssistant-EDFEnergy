@@ -75,6 +75,14 @@
   const DISPATCH_COLOUR = { completed: '#4CAF50', active: '#FF9800', planned: '#2196F3', cancelled: '#F44336' };
   const DISPATCH_LABEL  = { completed: 'Completed', active: 'Active',    planned: 'Planned',   cancelled: 'Cancelled' };
 
+  // Friendly labels for free electricity session sources (Sunday Saver has its own dedicated card).
+  const FREE_SESSION_SOURCE_LABEL = { football: 'World Cup', football_et: 'World Cup (extra time)' };
+  function freeSessionSourceLabel(source) {
+    if (FREE_SESSION_SOURCE_LABEL[source]) return FREE_SESSION_SOURCE_LABEL[source];
+    if (!source) return 'Free electricity';
+    return source.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
   // ── Styles ────────────────────────────────────────────────────────────────────
 
   const STYLES = `
@@ -304,6 +312,7 @@
         de?.last_changed, oe?.last_changed, se?.last_changed,
         fse?.attributes?.football_free_electricity_enabled,
         fse?.attributes?.football_enrollment_auto_detected,
+        (fse?.attributes?.free_electricity_windows || []).map(w => w.code).join(','),
         authExpiry?.state,
         ids.chargeTarget ? hass.states[ids.chargeTarget]?.last_changed : '',
         ids.targetTime   ? hass.states[ids.targetTime]?.last_changed   : '',
@@ -442,11 +451,18 @@
       return entity.attributes.sunday_saver_windows || [];
     }
 
-    _allDates(dispatches, offPeakWindows, sundaySaverWindows) {
+    _parseFreeSessionWindows(entity) {
+      // Sunday Saver sessions have their own dedicated card, so exclude them here to avoid duplication.
+      if (!entity) return [];
+      return (entity.attributes.free_electricity_windows || []).filter(w => w.source !== 'sunday_saver');
+    }
+
+    _allDates(dispatches, offPeakWindows, sundaySaverWindows, freeSessionWindows = []) {
       const keys = new Set([
         ...dispatches.map(d => localDateKey(d.start)),
         ...offPeakWindows.map(w => localDateKey(w.start)),
         ...sundaySaverWindows.map(w => localDateKey(w.start)),
+        ...freeSessionWindows.map(w => localDateKey(w.start)),
       ]);
       return [...keys].sort((a, b) => b.localeCompare(a));
     }
@@ -867,7 +883,8 @@
       const startedDispatches   = this._parseStartedDispatches(de);
       const offPeakWindows      = this._parseOffPeakWindows(oe);
       const sundaySaverWindows  = this._parseSundaySaverWindows(se);
-      const dates               = this._allDates(dispatches, offPeakWindows, sundaySaverWindows);
+      const freeSessionWindows  = this._parseFreeSessionWindows(fse);
+      const dates               = this._allDates(dispatches, offPeakWindows, sundaySaverWindows, freeSessionWindows);
 
       if (!this._selectedDateKey || !dates.includes(this._selectedDateKey))
         this._selectedDateKey = dates[0] || null;
@@ -885,6 +902,10 @@
         .sort((a, b) => new Date(a.start) - new Date(b.start));
 
       const daySundaySaver = sundaySaverWindows
+        .filter(w => localDateKey(w.start) === this._selectedDateKey)
+        .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+      const dayFreeSessions = freeSessionWindows
         .filter(w => localDateKey(w.start) === this._selectedDateKey)
         .sort((a, b) => new Date(a.start) - new Date(b.start));
 
@@ -927,7 +948,7 @@
               : `
               <div class="card">
                 <div class="section-title">Off-Peak &amp; Dispatch History</div>
-                <div class="section-info">A record of off-peak windows, Sunday Saver events, and smart charging dispatches for up to the past 60 days, accumulated as data is refreshed.</div>
+                <div class="section-info">A record of off-peak windows, Sunday Saver events, free electricity sessions, and smart charging dispatches for up to the past 60 days, accumulated as data is refreshed.</div>
                 <div class="nav-row">
                   <button class="nav-btn" id="btn-older" ${!canOlder ? 'disabled' : ''} title="Older">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
@@ -989,6 +1010,30 @@
                             </div>
                             <div class="meta">
                               ${w.free_hours != null ? `<span>${w.free_hours}h free</span>` : ''}
+                              <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')
+                }
+              </div>` : ''}
+
+              ${dayFreeSessions.length ? `<div class="card">
+                <div class="section-title">Free Electricity Sessions</div>
+                ${dayFreeSessions.map(w => {
+                      const status = dispatchStatus(w.start, w.end);
+                      const colour = DISPATCH_COLOUR[status];
+                      return `
+                        <div class="item">
+                          <div class="dot" style="background:${colour}"></div>
+                          <div class="info">
+                            <div class="time-str">
+                              ${formatTime(w.start)} – ${formatTime(w.end)}
+                              <span class="duration">(${formatDuration(w.start, w.end)})</span>
+                            </div>
+                            <div class="meta">
+                              <span>${esc(freeSessionSourceLabel(w.source))}</span>
                               <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
                             </div>
                           </div>

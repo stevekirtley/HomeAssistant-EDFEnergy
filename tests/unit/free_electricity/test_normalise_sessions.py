@@ -6,7 +6,11 @@ from custom_components.edf_energy.coordinators.free_electricity_sessions import 
   _normalise_sunday_saver,
   _normalise_football,
   _merge_sessions,
+  _todays_sessions,
   _sessions_equal,
+)
+from custom_components.edf_energy.storage.free_electricity_sessions_history import (
+  merge_free_electricity_sessions,
 )
 
 
@@ -99,6 +103,68 @@ class TestMergeSessions:
     s2 = _session("2024-01-07T10:00:00+00:00", "2024-01-07T13:00:00+00:00", "s2")
     result = _merge_sessions([s1, s2])
     assert len(result) == 2
+
+
+# ── merge_free_electricity_sessions (persisted history) ─────────────────────────
+
+class TestMergeFreeElectricitySessionsHistory:
+  _now = datetime.fromisoformat("2026-06-15T15:00:00+00:00")
+
+  def test_new_session_added_to_empty_history(self):
+    s = _session("2026-06-15T19:00:00+00:00", "2026-06-15T21:00:00+00:00", "football_pm")
+    result = merge_free_electricity_sessions([], [s], self._now)
+    assert [x.code for x in result] == ["football_pm"]
+
+  def test_existing_session_retained_when_provider_stops_reporting(self):
+    # history has this morning's finished session; providers now report nothing new
+    finished = _session("2026-06-15T10:00:00+00:00", "2026-06-15T12:00:00+00:00", "football_am")
+    result = merge_free_electricity_sessions([finished], [], self._now)
+    assert [x.code for x in result] == ["football_am"]
+
+  def test_sessions_sorted_by_start(self):
+    pm = _session("2026-06-15T19:00:00+00:00", "2026-06-15T21:00:00+00:00", "pm")
+    am = _session("2026-06-15T10:00:00+00:00", "2026-06-15T12:00:00+00:00", "am")
+    result = merge_free_electricity_sessions([pm], [am], self._now)
+    assert [x.code for x in result] == ["am", "pm"]
+
+  def test_same_code_deduplicated_with_new_winning(self):
+    # a knockout window whose end shifts once extra time is confirmed keeps one record, updated
+    original = _session("2026-06-15T19:00:00+00:00", "2026-06-15T21:00:00+00:00", "football_ko")
+    extended = _session("2026-06-15T19:00:00+00:00", "2026-06-15T22:00:00+00:00", "football_ko")
+    result = merge_free_electricity_sessions([original], [extended], self._now)
+    assert len(result) == 1
+    assert result[0].end == extended.end
+
+  def test_sessions_older_than_retention_are_purged(self):
+    stale = _session("2026-04-01T19:00:00+00:00", "2026-04-01T21:00:00+00:00", "old")
+    recent = _session("2026-06-15T19:00:00+00:00", "2026-06-15T21:00:00+00:00", "new")
+    result = merge_free_electricity_sessions([stale, recent], [], self._now)
+    assert [x.code for x in result] == ["new"]
+
+
+# ── _todays_sessions ────────────────────────────────────────────────────────────
+
+class TestTodaysSessions:
+  _now = datetime.fromisoformat("2026-06-15T15:00:00+00:00")
+
+  def test_todays_completed_and_upcoming_sessions_are_returned(self):
+    am = _session("2026-06-15T10:00:00+00:00", "2026-06-15T12:00:00+00:00", "am")
+    pm = _session("2026-06-15T19:00:00+00:00", "2026-06-15T21:00:00+00:00", "pm")
+    result = _todays_sessions([am, pm], self._now)
+    assert [s.code for s in result] == ["am", "pm"]
+
+  def test_yesterdays_session_is_excluded(self):
+    stale = _session("2026-06-14T19:00:00+00:00", "2026-06-14T21:00:00+00:00", "yesterday")
+    today = _session("2026-06-15T19:00:00+00:00", "2026-06-15T21:00:00+00:00", "today")
+    result = _todays_sessions([stale, today], self._now)
+    assert [s.code for s in result] == ["today"]
+
+  def test_repro_issue_24_window_retained_shortly_after_end(self):
+    # group-stage match 19:00-21:00; ~6 minutes after it ended it must still be in the feed
+    match = _session("2026-06-15T19:00:00+00:00", "2026-06-15T21:00:00+00:00", "football_202606151900")
+    just_after = datetime.fromisoformat("2026-06-15T21:06:00+00:00")
+    result = _todays_sessions([match], just_after)
+    assert [s.code for s in result] == ["football_202606151900"]
 
 
 # ── _sessions_equal ────────────────────────────────────────────────────────────

@@ -5,7 +5,13 @@ from homeassistant.components.event import EventEntity, EventExtraStoredData
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.entity import generate_entity_id
 
-from ..const import DATA_FREE_ELECTRICITY_SESSIONS, DOMAIN, EVENT_ALL_FREE_ELECTRICITY_SESSIONS
+from ..const import (
+  DATA_FREE_ELECTRICITY_SESSIONS,
+  DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
+  DOMAIN,
+  EVENT_ALL_FREE_ELECTRICITY_SESSIONS,
+)
+from ..storage.free_electricity_sessions_history import session_to_window
 from ..utils.attributes import dict_to_typed_dict
 from .base import EDFEnergyFreeElectricitySensor
 
@@ -28,6 +34,7 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
     self._hass = hass
     self._football_enabled = False
     self._football_enrollment_auto_detected = False
+    self._free_electricity_windows = []
     self._attr_event_types = [EVENT_ALL_FREE_ELECTRICITY_SESSIONS]
     self.entity_id = generate_entity_id("event.{}", self.unique_id, hass=hass)
 
@@ -44,6 +51,7 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
     return {
       "football_free_electricity_enabled": self._football_enabled,
       "football_enrollment_auto_detected": self._football_enrollment_auto_detected,
+      "free_electricity_windows": self._free_electricity_windows,
     }
 
   def update_football_enabled(self, enabled: bool):
@@ -60,6 +68,13 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
     if existing is not None:
       self._football_enabled = existing.football_enabled
       self._football_enrollment_auto_detected = existing.football_enrollment_auto_detected
+    # Seed the history-card windows from the restored session history, so the panel is populated
+    # before the coordinator fires its next event.
+    history = self._hass.data.get(DOMAIN, {}).get(self._account_id, {}).get(
+      DATA_FREE_ELECTRICITY_SESSIONS_HISTORY.format(self._account_id)
+    )
+    if history:
+      self._free_electricity_windows = [session_to_window(s) for s in history]
     self._hass.bus.async_listen(self._attr_event_types[0], self._async_handle_event)
 
   async def async_get_last_event_data(self):
@@ -74,5 +89,6 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
     if event.data is not None and event.data.get("account_id") == self._account_id:
       self._football_enabled = event.data.get("football_free_electricity_enabled", False)
       self._football_enrollment_auto_detected = event.data.get("football_enrollment_auto_detected", False)
+      self._free_electricity_windows = event.data.get("free_electricity_windows", []) or []
       self._trigger_event(event.event_type, event.data)
       self.async_write_ha_state()
