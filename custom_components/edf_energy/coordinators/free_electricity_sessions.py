@@ -13,6 +13,7 @@ from ..const import (
   DATA_FOOTBALL_ENROLLMENT,
   DATA_FREE_ELECTRICITY_SESSIONS,
   DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
+  DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
   DATA_SUNDAY_SAVER,
   DOMAIN,
   EVENT_ALL_FREE_ELECTRICITY_SESSIONS,
@@ -24,6 +25,12 @@ from .sunday_saver import SundaySaverCoordinatorResult
 from .event_free_electricity import EventFreeElectricityCoordinatorResult
 from ..api_client.free_electricity_sessions import FreeElectricitySession
 from ..api_client import EDFEnergyApiClient
+from ..storage.free_electricity_sessions_history import (
+  merge_free_electricity_sessions,
+  session_to_window,
+  async_load_cached_free_electricity_sessions_history,
+  async_save_cached_free_electricity_sessions_history,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,6 +87,22 @@ def _merge_sessions(sessions: list[FreeElectricitySession]) -> list[FreeElectric
     if not any(e.start == session.start and e.end == session.end for e in merged):
       merged.append(session)
   return merged
+
+
+def _todays_sessions(history: list[FreeElectricitySession], current: datetime) -> list[FreeElectricitySession]:
+  """The slice of persisted history to republish to the events feed: today onwards.
+
+  The football provider stops returning a match the moment its window closes (group stage:
+  kickoff + 2h), and Sunday Saver drops out once its event ends. Publishing only what the
+  providers currently report empties the `events` list as soon as a session finishes, and
+  consumers that rebuild the whole day's rate curve every cycle - notably Predbat via
+  `octopus_free_session` -> `cost_today` - then retroactively re-price everything imported
+  during the free window at the standard rate. Serving today's sessions from the persisted
+  history keeps them visible until the local day rolls over (matching upstream Octopus, which
+  publishes the API's session list as-is) and survives a restart mid-day.
+  """
+  start_of_today = current.replace(hour=0, minute=0, second=0, microsecond=0)
+  return [s for s in history if s.end >= start_of_today]
 
 
 def _sessions_equal(a: list[FreeElectricitySession], b: list[FreeElectricitySession]) -> bool:
@@ -160,11 +183,22 @@ def refresh_free_electricity_sessions(
     upstream = hass.data[DOMAIN][account_id].get(data_key.format(account_id))
     sessions.extend(normaliser(upstream))
 
-  events = _merge_sessions(sessions)
+  live_sessions = _merge_sessions(sessions)
 
-  # Fire "new session" events for any session not seen in the previous result
+  # Fold the live sessions into the persisted history (dedup by code, 60 day purge) and republish
+  # today's sessions from that history. This keeps completed windows in the feed until the local
+  # day rolls over and, because the history is restored on startup, survives a HA restart too.
+  history_key = DATA_FREE_ELECTRICITY_SESSIONS_HISTORY.format(account_id)
+  history = hass.data[DOMAIN][account_id].get(history_key) or []
+  history = merge_free_electricity_sessions(history, live_sessions, current)
+  hass.data[DOMAIN][account_id][history_key] = history
+
+  events = _todays_sessions(history, current)
+
+  # Fire "new session" events for any not-yet-finished session we haven't seen before. The
+  # end >= current guard stops a completed session restored from history re-firing after a restart.
   for event in events:
-    is_new = existing_result is None or not any(e.code == event.code for e in existing_result.events)
+    is_new = event.end >= current and (existing_result is None or not any(e.code == event.code for e in existing_result.events))
     if is_new:
       fire_event(EVENT_NEW_FREE_ELECTRICITY_SESSION, {
         "account_id": account_id,
@@ -192,6 +226,8 @@ def refresh_free_electricity_sessions(
         }
         for ev in events
       ],
+      # The full retained history (up to 60 days) drives the panel's free electricity history card.
+      "free_electricity_windows": [session_to_window(s) for s in history],
     })
 
   return FreeElectricitySessionsCoordinatorResult(current, 1, events, football_enabled, football_enrollment_auto_detected)
@@ -211,12 +247,27 @@ async def async_setup_free_electricity_sessions_coordinator(hass, account_id: st
       football_enabled = entry.options.get(CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY, False)
       football_enrollment_auto_detected = False
 
+    history_key = DATA_FREE_ELECTRICITY_SESSIONS_HISTORY.format(account_id)
+    history_before = hass.data[DOMAIN][account_id].get(history_key) or []
+
     result = refresh_free_electricity_sessions(
       current, hass, account_id, existing_result, hass.bus.async_fire,
       football_enabled, football_enrollment_auto_detected,
     )
     hass.data[DOMAIN][account_id][DATA_FREE_ELECTRICITY_SESSIONS.format(account_id)] = result
+
+    # Persist the history to disk only when it actually changed, to avoid a write on every tick.
+    history_after = hass.data[DOMAIN][account_id].get(history_key) or []
+    if not _sessions_equal(history_before, history_after):
+      await async_save_cached_free_electricity_sessions_history(hass, account_id, history_after)
+
     return result
+
+  # Restore any cached history before the first refresh so a restart mid-day keeps today's
+  # already-finished sessions in the feed.
+  hass.data[DOMAIN][account_id][DATA_FREE_ELECTRICITY_SESSIONS_HISTORY.format(account_id)] = (
+    await async_load_cached_free_electricity_sessions_history(hass, account_id)
+  )
 
   hass.data[DOMAIN][account_id][DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR.format(account_id)] = DataUpdateCoordinator(
     hass,
