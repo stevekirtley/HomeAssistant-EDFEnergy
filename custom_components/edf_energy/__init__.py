@@ -576,35 +576,38 @@ def _async_register_services(hass):
   import voluptuous as vol
   from homeassistant.helpers import config_validation as cv
 
-  if hass.services.has_service(DOMAIN, SERVICE_SET_FOOTBALL_FREE_ELECTRICITY):
+  if hass.services.has_service(DOMAIN, SERVICE_JOIN_SUNDAY_SAVER):
     return
 
-  async def _handle_set_football_free_electricity(call):
-    enabled = call.data.get("enabled", False)
-    account_id = call.data.get("account_id")
-    for entry in hass.config_entries.async_entries(DOMAIN):
-      if account_id is not None and entry.data.get(CONFIG_ACCOUNT_ID) != account_id:
-        continue
-      if entry.data.get("kind") != "account":
-        continue
-      hass.config_entries.async_update_entry(
-        entry, options={**entry.options, CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY: enabled}
-      )
-      coordinator = hass.data.get(DOMAIN, {}).get(entry.data.get(CONFIG_ACCOUNT_ID), {}).get(
-        DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR.format(entry.data.get(CONFIG_ACCOUNT_ID))
-      )
-      if coordinator is not None:
-        await coordinator.async_request_refresh()
-
-  hass.services.async_register(
-    DOMAIN,
-    SERVICE_SET_FOOTBALL_FREE_ELECTRICITY,
-    _handle_set_football_free_electricity,
-    schema=vol.Schema({
-      vol.Required("enabled"): bool,
-      vol.Optional("account_id"): cv.string,
-    }),
-  )
+  # ARCHIVED — World Cup 2026 ended 2026-07-19. Service disabled.
+  # Restore the block below when a new football tournament begins.
+  #
+  # async def _handle_set_football_free_electricity(call):
+  #   enabled = call.data.get("enabled", False)
+  #   account_id = call.data.get("account_id")
+  #   for entry in hass.config_entries.async_entries(DOMAIN):
+  #     if account_id is not None and entry.data.get(CONFIG_ACCOUNT_ID) != account_id:
+  #       continue
+  #     if entry.data.get("kind") != "account":
+  #       continue
+  #     hass.config_entries.async_update_entry(
+  #       entry, options={**entry.options, CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY: enabled}
+  #     )
+  #     coordinator = hass.data.get(DOMAIN, {}).get(entry.data.get(CONFIG_ACCOUNT_ID), {}).get(
+  #       DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR.format(entry.data.get(CONFIG_ACCOUNT_ID))
+  #     )
+  #     if coordinator is not None:
+  #       await coordinator.async_request_refresh()
+  #
+  # hass.services.async_register(
+  #   DOMAIN,
+  #   SERVICE_SET_FOOTBALL_FREE_ELECTRICITY,
+  #   _handle_set_football_free_electricity,
+  #   schema=vol.Schema({
+  #     vol.Required("enabled"): bool,
+  #     vol.Optional("account_id"): cv.string,
+  #   }),
+  # )
 
   async def _handle_join_sunday_saver(call):
     account_id = call.data.get("account_id")

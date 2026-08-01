@@ -59,9 +59,12 @@ _ALWAYS_ON_PROVIDERS: list[tuple[str, Callable[[Any], list[FreeElectricitySessio
   (DATA_SUNDAY_SAVER, _normalise_sunday_saver),
 ]
 
+# ARCHIVED — World Cup 2026 ended 2026-07-19. Football provider is dormant.
+# _normalise_football is kept so historic football_* session codes remain parseable.
+# Re-enable by restoring the entry below when a new football tournament begins.
 _OPT_IN_PROVIDERS: list[tuple[str, Callable[[Any], list[FreeElectricitySession]], str]] = [
   # (data_key_template, normaliser, config_key)
-  (DATA_EVENT_FREE_ELECTRICITY, _normalise_football, CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY),
+  # (DATA_EVENT_FREE_ELECTRICITY, _normalise_football, CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY),
 ]
 
 
@@ -89,6 +92,11 @@ _ENROLLMENT_CACHE_SECONDS = 3600  # Re-check enrollment once per hour
 
 
 async def _async_get_football_enrollment(hass, account_id: str) -> bool | None:
+  # ARCHIVED — World Cup 2026 ended 2026-07-19. Always returns None (no enrollment check).
+  # Restore body below when a new football tournament begins.
+  return None
+
+  # ↓↓↓ archived enrollment-check body ↓↓↓
   """Return cached enrollment status, re-fetching from the EDF API when stale.
 
   Returns True (enrolled), False (not enrolled), or None if the API is unavailable.

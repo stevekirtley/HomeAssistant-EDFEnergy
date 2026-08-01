@@ -601,6 +601,11 @@ class EDFEnergyAccountOptionsFlow(OptionsFlow):
     self._entry = config_entry
 
   async def async_step_init(self, user_input=None):
+    # ARCHIVED — World Cup 2026 ended 2026-07-19. Football toggle removed from options UI.
+    # Restore the form below when a new football tournament begins.
+    return self.async_create_entry(title="", data=self._entry.options)
+
+    # ↓↓↓ archived options-flow form ↓↓↓
     if user_input is not None:
       return self.async_create_entry(title="", data=user_input)
 

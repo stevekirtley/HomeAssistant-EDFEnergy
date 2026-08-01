@@ -234,6 +234,13 @@ async def async_refresh_event_free_electricity(
   current: datetime,
   existing: EventFreeElectricityCoordinatorResult | None,
 ) -> EventFreeElectricityCoordinatorResult:
+  # ARCHIVED — World Cup 2026 ended 2026-07-19. Live fixture polling is disabled.
+  # Re-enable by removing this early return and restoring the body below when a
+  # new football tournament begins.
+  return EventFreeElectricityCoordinatorResult(current, 1, None, None, None)
+
+  # ↓↓↓ archived World Cup 2026 live-polling body ↓↓↓
+
   if existing is not None and current < existing.next_refresh:
     return existing
 
