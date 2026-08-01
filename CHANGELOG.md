@@ -1,3 +1,16 @@
+## [18.9.6](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/v18.9.6) (2026-08-01)
+
+
+### Bug Fixes
+
+* Sunday Saver sign-up now treats an HTTP 204 ("no active challenge") response as a benign no-op instead of logging a warning on every refresh. This occurs while Sunday Saver is paused between promotions; existing enrolled users' remaining sessions are unaffected.
+
+
+### Changes
+
+* Archived the World Cup 2026 football free electricity feature now the tournament has ended (19 July 2026). Live fixture polling, the options toggle and the associated service call are disabled. Historic `football_*` sessions remain parseable, and the feature can be re-enabled for a future tournament.
+
+
 ## [18.2.1](https://github.com/BottlecapDave/HomeAssistant-EDFEnergy/compare/v18.2.0...v18.2.1) (2026-04-16)
 
 

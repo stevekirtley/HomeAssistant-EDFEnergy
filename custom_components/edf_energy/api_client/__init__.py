@@ -803,6 +803,16 @@ class EDFEnergyApiClient:
         if response.status in (200, 201):
           _LOGGER.info("Sunday Saver: successfully enrolled account %s (challengeId=%s)", account_id, challenge_id)
           return True, True
+        if response.status == 204:
+          # 204 No Content: the register endpoint accepted the request but there is no active
+          # challenge to join — Sunday Saver is paused between promotions (the challenge/summary
+          # 'registration' section reports 'SundaySaverTurnedOff'). This is a benign no-op, not an
+          # error and not an enrolment, so log quietly rather than warning on every refresh.
+          _LOGGER.debug(
+            "Sunday Saver sign-up returned 204 (no active challenge to join, promo paused) for %s",
+            account_id,
+          )
+          return False, False
         body = await response.text()
         _LOGGER.warning(
           "Sunday Saver sign-up returned HTTP %s for %s. Body: %s",
@@ -814,6 +824,11 @@ class EDFEnergyApiClient:
       return False, False
 
   async def async_get_football_enrollment_status(self, account_id: str) -> bool | None:
+    # ARCHIVED — World Cup 2026 ended 2026-07-19. Always returns None.
+    # Restore body below when a new football tournament begins.
+    return None
+
+    # ↓↓↓ archived enrollment API call body ↓↓↓
     """Check whether this account is enrolled in the football_2026 free electricity offer.
 
     Returns True (enrolled), False (not enrolled), or None if the check could not be completed.
