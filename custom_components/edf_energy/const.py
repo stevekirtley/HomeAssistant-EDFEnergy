@@ -11,6 +11,17 @@ REFRESH_RATE_IN_MINUTES_SUNDAY_SAVER = 60
 REFRESH_RATE_IN_MINUTES_EVENT_FREE_ELECTRICITY = 240
 REFRESH_RATE_IN_MINUTES_FREE_ELECTRICITY_SESSIONS = 60
 
+# How much completed dispatch history the dispatches store (and therefore the panel) keeps.
+INTELLIGENT_DISPATCH_RETENTION_IN_DAYS = 60
+
+# Backstops for the dispatch history store. Each history entry used to carry a full copy of
+# the 60 day completed dispatch list, which made the file grow with entries * completed and
+# reach gigabytes for some users - large enough to OOM Home Assistant when loaded. Entries no
+# longer store completed dispatches, and these two caps bound the damage if anything else
+# regresses.
+MAX_INTELLIGENT_DISPATCH_HISTORY_ENTRIES = 5000
+MAX_INTELLIGENT_DISPATCH_HISTORY_FILE_SIZE_IN_BYTES = 20 * 1024 * 1024 # 20MB
+
 CONFIG_VERSION = 9
 
 CONFIG_KIND = "kind"
@@ -44,6 +55,10 @@ CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES = "pending_and_
 CONFIG_MAIN_INTELLIGENT_RATE_MODE_STARTED_DISPATCHES_ONLY = "started_dispatches_only"
 CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES = "intelligent_minimum_dispatch_duration_in_minutes"
 CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES = 0
+CONFIG_MAIN_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = "intelligent_dispatch_history_retention_in_days"
+CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = 7
+CONFIG_MIN_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = 1
+CONFIG_MAX_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = 60
 CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY = "football_free_electricity_enabled"
 CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL = "sunday_saver_auto_enrol"
 
