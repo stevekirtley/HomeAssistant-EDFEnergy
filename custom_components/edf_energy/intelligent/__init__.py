@@ -6,7 +6,7 @@ from homeassistant.util.dt import (utcnow, parse_datetime)
 
 from ..utils import get_active_tariff
 
-from ..const import CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES, CONFIG_MAIN_INTELLIGENT_RATE_MODE_STARTED_DISPATCHES_ONLY, INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLE_CHARGERS, INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLES, INTELLIGENT_SOURCE_BUMP_CHARGE_OPTIONS, INTELLIGENT_SOURCE_SMART_CHARGE_OPTIONS, REFRESH_RATE_IN_MINUTES_INTELLIGENT
+from ..const import CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS, CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES, CONFIG_MAIN_INTELLIGENT_RATE_MODE_STARTED_DISPATCHES_ONLY, INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLE_CHARGERS, INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLES, INTELLIGENT_DISPATCH_RETENTION_IN_DAYS, INTELLIGENT_SOURCE_BUMP_CHARGE_OPTIONS, INTELLIGENT_SOURCE_SMART_CHARGE_OPTIONS, MAX_INTELLIGENT_DISPATCH_HISTORY_ENTRIES, REFRESH_RATE_IN_MINUTES_INTELLIGENT
 
 from ..storage.intelligent_dispatches_history import IntelligentDispatchesHistory, IntelligentDispatchesHistoryItem
 from ..api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
@@ -339,7 +339,7 @@ def is_in_bump_charge(current_date: datetime, dispatches: list[IntelligentDispat
   return False
 
 def clean_previous_dispatches(time: datetime, dispatches: list[IntelligentDispatchItem]) -> list[IntelligentDispatchItem]:
-  min_time = (time - timedelta(days=60)).replace(hour=0, minute=0, second=0, microsecond=0)
+  min_time = (time - timedelta(days=INTELLIGENT_DISPATCH_RETENTION_IN_DAYS)).replace(hour=0, minute=0, second=0, microsecond=0)
 
   new_dispatches = {}
   for dispatch in dispatches:
@@ -348,15 +348,31 @@ def clean_previous_dispatches(time: datetime, dispatches: list[IntelligentDispat
 
   return list(new_dispatches.values())
 
+def summarise_dispatches_for_history(dispatches: IntelligentDispatches) -> IntelligentDispatches:
+  """Produce the snapshot we store in the history.
+
+  Completed dispatches are deliberately dropped. History exists purely to answer "what did we
+  know at this point in time", which is driven by current_state/planned/started. Storing the
+  completed list as well meant every entry carried the full retention window of completed
+  dispatches, so the file grew with entries * completed rather than with entries."""
+  return IntelligentDispatches(
+    dispatches.current_state,
+    list(dispatches.planned) if dispatches.planned is not None else [],
+    [],
+    list(dispatches.started) if dispatches.started is not None else []
+  )
+
 def clean_intelligent_dispatch_history(time: datetime,
                                        dispatches: IntelligentDispatches,
-                                       history: list[IntelligentDispatchesHistoryItem]) -> list[IntelligentDispatchItem]:
+                                       history: list[IntelligentDispatchesHistoryItem],
+                                       retention_in_days: int = CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS,
+                                       max_entries: int = MAX_INTELLIGENT_DISPATCH_HISTORY_ENTRIES) -> list[IntelligentDispatchesHistoryItem]:
   history.sort(key = lambda x: x.timestamp)
 
   new_history: list[IntelligentDispatchesHistoryItem] = []
   previous_history_item: IntelligentDispatchesHistoryItem | None = None
-  min_time = time - timedelta(days=60)
-  
+  min_time = time - timedelta(days=retention_in_days)
+
   for history_item in history:
 
     if history_item.timestamp >= min_time:
@@ -372,11 +388,17 @@ def clean_intelligent_dispatch_history(time: datetime,
   if (len(new_history) == 0 and previous_history_item is not None):
     new_history.append(previous_history_item)
 
-  if len(new_history) < 1 or has_dispatches_changed(new_history[-1].dispatches, dispatches):
+  new_dispatches = summarise_dispatches_for_history(dispatches)
+
+  if len(new_history) < 1 or has_dispatches_changed(new_history[-1].dispatches, new_dispatches):
     new_history.append(IntelligentDispatchesHistoryItem(
       time,
-      dispatches)
+      new_dispatches)
     )
+
+  # Backstop so the store can never run away again, however often dispatches change
+  if max_entries is not None and len(new_history) > max_entries:
+    new_history = new_history[-max_entries:]
 
   return new_history
 

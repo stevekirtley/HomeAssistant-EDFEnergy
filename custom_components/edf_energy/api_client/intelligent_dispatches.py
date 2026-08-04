@@ -102,8 +102,9 @@ class IntelligentDispatches:
   
   def from_dict(data):
     return IntelligentDispatches(
-      data["current_state"],
-      list(map(lambda x: IntelligentDispatchItem.from_dict(x), data["planned"])),
-      list(map(lambda x: IntelligentDispatchItem.from_dict(x), data["completed"])),
-      list(map(lambda x: SimpleIntelligentDispatchItem.from_dict(x), data["started"] if "started" in data else [])),
+      data.get("current_state"),
+      list(map(lambda x: IntelligentDispatchItem.from_dict(x), data.get("planned") or [])),
+      # History entries no longer persist completed dispatches, so this may legitimately be absent
+      list(map(lambda x: IntelligentDispatchItem.from_dict(x), data.get("completed") or [])),
+      list(map(lambda x: SimpleIntelligentDispatchItem.from_dict(x), data.get("started") or [])),
     )

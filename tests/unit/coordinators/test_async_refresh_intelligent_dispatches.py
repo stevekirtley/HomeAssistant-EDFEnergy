@@ -20,6 +20,17 @@ serial_number = "abcdefgh"
 
 intelligent_device = mock_intelligent_devices()[0]
 
+def assert_history_dispatches_match(history_dispatches: IntelligentDispatches, dispatches: IntelligentDispatches):
+  """History entries store a summary of the dispatches rather than the dispatches themselves.
+
+  Completed dispatches are deliberately omitted - keeping them meant every entry carried the
+  full retention window of completed dispatches, which let the store grow into gigabytes."""
+  assert history_dispatches is not None
+  assert history_dispatches.current_state == dispatches.current_state
+  assert history_dispatches.planned == dispatches.planned
+  assert history_dispatches.started == dispatches.started
+  assert history_dispatches.completed == []
+
 def get_account_info(is_active_agreement = True, active_product_code = product_code, active_tariff_code = tariff_code):
   return {
     "id": "A-XXXXXX",
@@ -277,7 +288,7 @@ async def test_when_mock_is_true_then_none_returned():
     assert save_dispatches_history_history is not None
     assert len(save_dispatches_history_history.history) == 1
     assert save_dispatches_history_history.history[0].timestamp == current
-    assert save_dispatches_history_history.history[0].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[0].dispatches, retrieved_dispatches.dispatches)
 
 @pytest.mark.asyncio
 async def test_when_next_refresh_is_in_the_future_then_existing_dispatches_returned():
@@ -457,7 +468,7 @@ async def test_when_existing_dispatches_is_none_then_dispatches_retrieved(existi
     assert save_dispatches_history_history is not None
     assert len(save_dispatches_history_history.history) == 1
     assert save_dispatches_history_history.history[0].timestamp == current
-    assert save_dispatches_history_history.history[0].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[0].dispatches, retrieved_dispatches.dispatches)
     
 @pytest.mark.asyncio
 async def test_when_existing_dispatches_is_old_then_dispatches_retrieved():
@@ -523,7 +534,7 @@ async def test_when_existing_dispatches_is_old_then_dispatches_retrieved():
     assert save_dispatches_history_history.history[0].dispatches == expected_history[0].dispatches
 
     assert save_dispatches_history_history.history[1].timestamp == current
-    assert save_dispatches_history_history.history[1].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[1].dispatches, retrieved_dispatches.dispatches)
 
 @pytest.mark.asyncio
 async def test_when_existing_dispatches_history_is_old_then_not_included_in_new_history():
@@ -570,7 +581,10 @@ async def test_when_existing_dispatches_history_is_old_then_not_included_in_new_
       False,
       True,
       async_save_dispatches,
-      async_save_dispatches_history
+      async_save_dispatches_history,
+      # The history in this test straddles a two day boundary, so pin the retention rather than
+      # relying on whatever the default happens to be
+      2
     )
 
     assert retrieved_dispatches is not None
@@ -590,7 +604,7 @@ async def test_when_existing_dispatches_history_is_old_then_not_included_in_new_
     assert save_dispatches_history_history.history[0].dispatches == expected_history[1].dispatches
 
     assert save_dispatches_history_history.history[1].timestamp == current
-    assert save_dispatches_history_history.history[1].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[1].dispatches, retrieved_dispatches.dispatches)
 
 @pytest.mark.asyncio
 async def test_when_settings_not_retrieved_then_existing_dispatches_returned():
@@ -763,7 +777,7 @@ async def test_when_requests_reached_for_hour_and_due_to_be_reset_then_dispatche
     assert save_dispatches_history_history is not None
     assert len(save_dispatches_history_history.history) == 1
     assert save_dispatches_history_history.history[0].timestamp == current
-    assert save_dispatches_history_history.history[0].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[0].dispatches, retrieved_dispatches.dispatches)
 
 @pytest.mark.asyncio
 async def test_when_requests_reached_for_hour_and_not_due_to_be_reset_then_existing_dispatches_returned_with_error():
@@ -940,7 +954,7 @@ async def test_when_manual_refresh_is_called_after_one_minute_then_dispatches_re
     assert save_dispatches_history_history is not None
     assert len(save_dispatches_history_history.history) == 1
     assert save_dispatches_history_history.history[0].timestamp == current
-    assert save_dispatches_history_history.history[0].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[0].dispatches, retrieved_dispatches.dispatches)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("planned_is_empty,completed_is_empty",[
@@ -1077,7 +1091,7 @@ async def test_when_retrieved_planned_dispatch_started_and_in_boosting_mode_then
     assert save_dispatches_history_history is not None
     assert len(save_dispatches_history_history.history) == 1
     assert save_dispatches_history_history.history[0].timestamp == current
-    assert save_dispatches_history_history.history[0].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[0].dispatches, retrieved_dispatches.dispatches)
 
 @pytest.mark.asyncio
 async def test_when_retrieved_planned_dispatch_started_and_not_in_boosting_mode_then_started_dispatches_added_to():
@@ -1147,7 +1161,7 @@ async def test_when_retrieved_planned_dispatch_started_and_not_in_boosting_mode_
     assert save_dispatches_history_history is not None
     assert len(save_dispatches_history_history.history) == 1
     assert save_dispatches_history_history.history[0].timestamp == current
-    assert save_dispatches_history_history.history[0].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[0].dispatches, retrieved_dispatches.dispatches)
 
 @pytest.mark.asyncio
 async def test_when_retrieved_planned_dispatch_started_and_existing_started_dispatch_exists_in_previous_period_then_existing_started_dispatch_extended():
@@ -1225,7 +1239,7 @@ async def test_when_retrieved_planned_dispatch_started_and_existing_started_disp
     assert save_dispatches_history_history is not None
     assert len(save_dispatches_history_history.history) == 1
     assert save_dispatches_history_history.history[0].timestamp == current
-    assert save_dispatches_history_history.history[0].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[0].dispatches, retrieved_dispatches.dispatches)
 
 @pytest.mark.asyncio
 async def test_when_retrieved_planned_dispatch_started_and_existing_started_dispatch_exists_not_in_previous_period_then_existing_started_dispatch_not_extended():
@@ -1304,7 +1318,7 @@ async def test_when_retrieved_planned_dispatch_started_and_existing_started_disp
     assert save_dispatches_history_history is not None
     assert len(save_dispatches_history_history.history) == 1
     assert save_dispatches_history_history.history[0].timestamp == current
-    assert save_dispatches_history_history.history[0].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[0].dispatches, retrieved_dispatches.dispatches)
 
 @pytest.mark.asyncio
 async def test_when_existing_started_dispatches_more_than_three_days_old_then_old_started_dispatches_removed():
@@ -1380,4 +1394,4 @@ async def test_when_existing_started_dispatches_more_than_three_days_old_then_ol
     assert save_dispatches_history_history is not None
     assert len(save_dispatches_history_history.history) == 1
     assert save_dispatches_history_history.history[0].timestamp == current
-    assert save_dispatches_history_history.history[0].dispatches == retrieved_dispatches.dispatches
+    assert_history_dispatches_match(save_dispatches_history_history.history[0].dispatches, retrieved_dispatches.dispatches)

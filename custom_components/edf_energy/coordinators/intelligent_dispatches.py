@@ -8,6 +8,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from ..const import (
+  CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS,
   COORDINATOR_REFRESH_IN_SECONDS,
   DATA_INTELLIGENT_DEVICE_COORDINATOR,
   DATA_INTELLIGENT_DEVICES,
@@ -199,11 +200,13 @@ async def async_retrieve_intelligent_dispatches(
         dispatches.completed = clean_previous_dispatches(current,
                                                          (existing_intelligent_dispatches_result.dispatches.completed if existing_intelligent_dispatches_result is not None and existing_intelligent_dispatches_result.dispatches is not None and existing_intelligent_dispatches_result.dispatches.completed is not None else []) + dispatches.completed)
         
-        new_history = clean_intelligent_dispatch_history(current,
-                                                         dispatches,
-                                                         existing_intelligent_dispatches_result.history.history if existing_intelligent_dispatches_result is not None else [])
+        # History is built by the caller once started dispatches have been merged, so that the
+        # stored snapshot reflects the dispatches we actually ended up with
+        existing_history = (existing_intelligent_dispatches_result.history
+                            if existing_intelligent_dispatches_result is not None and existing_intelligent_dispatches_result.history is not None
+                            else IntelligentDispatchesHistory([]))
 
-        return IntelligentDispatchesCoordinatorResult(current, 1, dispatches, IntelligentDispatchesHistory(new_history), requests_current_hour + 1, requests_last_reset)
+        return IntelligentDispatchesCoordinatorResult(current, 1, dispatches, existing_history, requests_current_hour + 1, requests_last_reset)
       
       result = None
       if (existing_intelligent_dispatches_result is not None):
@@ -249,6 +252,7 @@ async def async_refresh_intelligent_dispatches(
   planned_dispatches_supported: bool,
   async_save_dispatches: Callable[[IntelligentDispatches], Awaitable[list]],
   async_save_dispatches_history: Callable[[IntelligentDispatchesHistory], Awaitable[list]],
+  dispatch_history_retention_in_days: int = CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS,
 ):
   result = await async_retrieve_intelligent_dispatches(
     current,
@@ -274,6 +278,13 @@ async def async_refresh_intelligent_dispatches(
                                                          else [],
                                                          result.dispatches.planned)
 
+    result.history = IntelligentDispatchesHistory(
+      clean_intelligent_dispatch_history(current,
+                                         result.dispatches,
+                                         result.history.history if result.history is not None else [],
+                                         dispatch_history_retention_in_days)
+    )
+
     if (existing_intelligent_dispatches_result is None or
         existing_intelligent_dispatches_result.dispatches is None or
         has_dispatches_changed(existing_intelligent_dispatches_result.dispatches, result.dispatches)):
@@ -288,7 +299,8 @@ async def async_setup_intelligent_dispatches_coordinator(
     device_id: str,
     mock_intelligent_data: bool,
     manual_dispatch_refreshes: bool,
-    planned_dispatches_supported: bool):
+    planned_dispatches_supported: bool,
+    dispatch_history_retention_in_days: int = CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS):
   async def async_update_intelligent_dispatches_data(is_manual_refresh = False):
     """Fetch data from API endpoint."""
     # Request our account data to be refreshed
@@ -322,7 +334,8 @@ async def async_setup_intelligent_dispatches_coordinator(
       is_manual_refresh,
       planned_dispatches_supported,
       lambda dispatches: async_save_cached_intelligent_dispatches(hass, device_id, dispatches),
-      lambda history: async_save_cached_intelligent_dispatches_history(hass, device_id, history)
+      lambda history: async_save_cached_intelligent_dispatches_history(hass, device_id, history),
+      dispatch_history_retention_in_days
     )
     
     return hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DISPATCHES][device_id]
