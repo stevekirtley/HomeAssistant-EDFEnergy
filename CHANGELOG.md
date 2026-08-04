@@ -1,3 +1,19 @@
+## [18.9.7](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/v18.9.7) (2026-08-04)
+
+
+### Bug Fixes
+
+* Fixed the smart charging dispatch history growing without limit, which could consume several gigabytes of memory and take Home Assistant down with an out of memory error. Every history entry was storing a full copy of the 60 day completed dispatch list, so the file grew with entries multiplied by completed dispatches rather than simply with entries. One user's `edf_energy.intelligent_dispatches_history_*` file had reached 1.5GB, against 3.5MB for the equivalent file from another integration. History entries no longer store completed dispatches, which are unnecessary for the point in time dispatch history action they exist to serve. This affects everyone who has been on 18.4.0 or later; the file only reached its full size after roughly 60 days, which is why it has surfaced now. Reported and diagnosed on Reddit by [u/napalmDaz](https://www.reddit.com/user/napalmDaz/) and [u/timknowlden](https://www.reddit.com/user/timknowlden/), who spotted both the oversized `.storage` file and that it was being loaded into memory — thank you both.
+* Oversized dispatch history files are now detected and discarded on startup instead of being loaded. The file size is checked before any parsing, so an affected installation recovers by itself on upgrade rather than needing the file deleted from `.storage` by hand. A warning is logged when this happens and history restarts from that point.
+* Fixed the dispatch history recording started dispatches inconsistently. The stored snapshot was taken before started dispatches were merged and only picked them up by accident, through a shared reference.
+
+
+### Changes
+
+* Added a "Days of dispatch history to keep" option under Smart Charging settings, adjustable between 1 and 60 days and defaulting to 7. Lower values use less disk and memory. This governs the record of what dispatches were known at each point in time; the 60 days of completed dispatches shown on the panel are unaffected.
+* Added a 5000 entry cap on the dispatch history as a backstop, so the store cannot run away again however often dispatches change.
+
+
 ## [18.9.6](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/v18.9.6) (2026-08-01)
 
 
