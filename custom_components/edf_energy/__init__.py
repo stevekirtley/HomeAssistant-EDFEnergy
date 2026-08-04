@@ -62,6 +62,8 @@ from .const import (
   CONFIG_KIND_COST_TRACKER,
   CONFIG_KIND_TARGET_RATE,
   CONFIG_MAIN_INTELLIGENT_MANUAL_DISPATCHES,
+  CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS,
+  CONFIG_MAIN_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS,
   CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES,
@@ -734,6 +736,11 @@ async def async_register_intelligent_devices(hass, config: dict, now: datetime, 
       config[CONFIG_MAIN_INTELLIGENT_SETTINGS][CONFIG_MAIN_INTELLIGENT_MANUAL_DISPATCHES] == False):
     intelligent_manual_service_enabled = False
 
+  # The number selector hands this back as a float, so normalise it before it reaches timedelta
+  dispatch_history_retention_in_days = int(config[CONFIG_MAIN_INTELLIGENT_SETTINGS][CONFIG_MAIN_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS]
+                                           if CONFIG_MAIN_INTELLIGENT_SETTINGS in config and CONFIG_MAIN_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS in config[CONFIG_MAIN_INTELLIGENT_SETTINGS]
+                                           else CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS)
+
   await async_save_cached_intelligent_devices(hass, account_id, intelligent_devices)
 
   for intelligent_device in intelligent_devices:
@@ -798,7 +805,8 @@ async def async_register_intelligent_devices(hass, config: dict, now: datetime, 
       intelligent_device.id,
       should_mock_intelligent_data,
       intelligent_manual_service_enabled,
-      intelligent_features.planned_dispatches_supported if intelligent_features is not None else True
+      intelligent_features.planned_dispatches_supported if intelligent_features is not None else True,
+      dispatch_history_retention_in_days
     )
 
     await async_setup_intelligent_settings_coordinator(hass, account_id, intelligent_device.id, should_mock_intelligent_data)
