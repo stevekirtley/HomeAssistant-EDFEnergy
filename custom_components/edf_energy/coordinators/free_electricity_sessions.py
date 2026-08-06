@@ -189,8 +189,8 @@ def refresh_free_electricity_sessions(
   # today's sessions from that history. This keeps completed windows in the feed until the local
   # day rolls over and, because the history is restored on startup, survives a HA restart too.
   history_key = DATA_FREE_ELECTRICITY_SESSIONS_HISTORY.format(account_id)
-  history = hass.data[DOMAIN][account_id].get(history_key) or []
-  history = merge_free_electricity_sessions(history, live_sessions, current)
+  existing_history = hass.data[DOMAIN][account_id].get(history_key) or []
+  history = merge_free_electricity_sessions(existing_history, live_sessions, current)
   hass.data[DOMAIN][account_id][history_key] = history
 
   events = _todays_sessions(history, current)
@@ -209,28 +209,46 @@ def refresh_free_electricity_sessions(
         "event_duration_in_minutes": event.duration_in_minutes,
       })
 
-  # Fire the "all sessions" bus event on every coordinator tick so that automations
-  # using the event entity as a trigger get a regular heartbeat — matching the behaviour
-  # of the upstream OctopusEnergy integration.
-  fire_event(EVENT_ALL_FREE_ELECTRICITY_SESSIONS, {
-      "account_id": account_id,
-      "football_free_electricity_enabled": football_enabled,
-      "football_enrollment_auto_detected": football_enrollment_auto_detected,
-      "events": [
-        {
-          "code": ev.code,
-          "source": ev.source,
-          "start": as_local(ev.start),
-          "end": as_local(ev.end),
-          "duration_in_minutes": ev.duration_in_minutes,
-        }
-        for ev in events
-      ],
-      # The full retained history (up to 60 days) drives the panel's free electricity history card.
-      "free_electricity_windows": [session_to_window(s) for s in history],
-    })
+  # Fire the "all sessions" bus event when something actually changed, plus a heartbeat every
+  # REFRESH_RATE_IN_MINUTES_FREE_ELECTRICITY_SESSIONS so automations using the event entity as a
+  # periodic trigger keep working.
+  #
+  # This used to fire on every coordinator tick. The event entity's state is the timestamp of the
+  # last event, so every fire is by definition a new state and the recorder can never dedupe it -
+  # that was 1440 database rows a day per account. Upstream OctopusEnergy gates its equivalent on
+  # next_refresh for the same reason.
+  has_changed = (existing_result is None or
+                 not _sessions_equal(existing_result.events, events) or
+                 not _sessions_equal(existing_history, history) or
+                 existing_result.football_enabled != football_enabled or
+                 existing_result.football_enrollment_auto_detected != football_enrollment_auto_detected)
+  is_heartbeat_due = existing_result is not None and current >= existing_result.next_refresh
 
-  return FreeElectricitySessionsCoordinatorResult(current, 1, events, football_enabled, football_enrollment_auto_detected)
+  if has_changed or is_heartbeat_due:
+    fire_event(EVENT_ALL_FREE_ELECTRICITY_SESSIONS, {
+        "account_id": account_id,
+        "football_free_electricity_enabled": football_enabled,
+        "football_enrollment_auto_detected": football_enrollment_auto_detected,
+        "events": [
+          {
+            "code": ev.code,
+            "source": ev.source,
+            "start": as_local(ev.start),
+            "end": as_local(ev.end),
+            "duration_in_minutes": ev.duration_in_minutes,
+          }
+          for ev in events
+        ],
+        # The full retained history (up to 60 days) drives the panel's free electricity history card.
+        "free_electricity_windows": [session_to_window(s) for s in history],
+      })
+    last_evaluated = current
+  else:
+    # Stay anchored to when we last fired. Sliding this forward every tick would push next_refresh
+    # out by a minute each time, so the heartbeat would never come due.
+    last_evaluated = existing_result.last_evaluated
+
+  return FreeElectricitySessionsCoordinatorResult(last_evaluated, 1, events, football_enabled, football_enrollment_auto_detected)
 
 
 async def async_setup_free_electricity_sessions_coordinator(hass, account_id: str, entry):
