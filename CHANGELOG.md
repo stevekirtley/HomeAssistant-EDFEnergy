@@ -4,7 +4,6 @@
 ### Bug Fixes
 
 * Fixed the free electricity session event entity writing to the recorder database every minute, which caused significant database growth over time. The entity's state is the timestamp of the last event it received, so every fire is by definition a new state that the recorder cannot deduplicate — the "all sessions" event was being fired on every coordinator tick, which came to 1,440 database rows a day for every account. It now fires when the sessions or the retained history actually change, plus once an hour as a heartbeat so that automations using the entity as a periodic trigger keep working. This cuts the entity's routine database writes by around 98%, and no longer requires excluding the entity from the recorder as a workaround. Reported by [@narjekdjcusbe](https://github.com/narjekdjcusbe) ([#27](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/27)).
-* The comment describing this behaviour claimed it matched the upstream Octopus Energy integration. It did not — upstream gates the same event on its refresh rate and fires roughly every 90 minutes, not every minute.
 
 
 ### Features
