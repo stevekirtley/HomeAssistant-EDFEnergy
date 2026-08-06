@@ -8,6 +8,8 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report, and first may I say I'm sorry that you've encountered an issue.
+
+        **Tip:** GitHub opens links in this form in the same tab, which loses anything you've typed. Middle-click, or Ctrl/Cmd+click, to open the links below in a new tab instead. Everything you need to gather logs is repeated on this page so you shouldn't need to leave it.
   - type: textarea
     id: description
     attributes:
@@ -66,7 +68,14 @@ body:
     id: ha-logs
     attributes:
       label: Home Assistant Logs
-      description: Paste any related Home Assistant logs here. Please follow the instructions as outlined in the [FAQ](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/faq#how-do-i-increase-the-logs-for-the-integration)
+      description: |
+        Paste any related Home Assistant logs here. To gather them, without leaving this page:
+
+        1. In Home Assistant, go to **Settings → Devices & Services → EDF Energy**
+        2. Click the three dots menu and choose **Enable debug logging**
+        3. Reproduce the problem, then choose **Disable debug logging** — the log downloads automatically
+
+        Please remove any personal information (email address, account number, MPAN/MPRN, meter serial numbers) before pasting. More detail in the [FAQ](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/faq#how-do-i-increase-the-logs-for-the-integration) — Ctrl/Cmd+click to open it in a new tab.
     validations:
       required: true
   - type: checkboxes
