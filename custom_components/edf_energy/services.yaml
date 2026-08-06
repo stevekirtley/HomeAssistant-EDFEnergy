@@ -13,6 +13,32 @@ purge_invalid_external_statistic_ids:
   name: Purge invalid external statistics
   description: Removes external statistics for all meters that don't have an active tariff
 
+purge_free_electricity_event_history:
+  name: Purge free electricity event history
+  description: >-
+    Deletes the recorded history of the free electricity session event entities. Before 18.9.8
+    these wrote a database row every minute, so an installation upgrading from an earlier version
+    may be carrying a large number of dead rows. This removes them immediately rather than waiting
+    for them to age out of the recorder. The entities keep working normally afterwards.
+  fields:
+    account_id:
+      name: Account ID
+      description: The EDF account number to purge (e.g. A-XXXXXXXX). If omitted, all configured accounts are purged.
+      required: false
+      selector:
+        text:
+    repack:
+      name: Reclaim disk space
+      description: >-
+        Also rebuild the recorder database so the freed space is returned to the filesystem.
+        Without this the rows are deleted but the database file stays the same size. Rebuilding
+        can take several minutes on a large database, needs free disk space roughly equal to the
+        current database size, and pauses recording while it runs.
+      required: false
+      default: false
+      selector:
+        boolean:
+
 refresh_previous_consumption_data:
   name: Refresh previous consumption data
   description: Refreshes the previous consumption data for a given entity from a given date.

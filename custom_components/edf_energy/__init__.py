@@ -16,6 +16,7 @@ from homeassistant.const import (
     EVENT_HOMEASSISTANT_STOP
 )
 from homeassistant.helpers import (
+  entity_registry as er,
   issue_registry as ir
 )
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -102,6 +103,7 @@ from .const import (
   REPAIR_UNKNOWN_INTELLIGENT_PROVIDER,
   SERVICE_SET_FOOTBALL_FREE_ELECTRICITY,
   SERVICE_JOIN_SUNDAY_SAVER,
+  SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
 )
 
 ACCOUNT_PLATFORMS = ["sensor", "binary_sensor", "number", "switch", "text", "time", "event", "select", "calendar"]
@@ -636,6 +638,60 @@ def _async_register_services(hass):
     _handle_join_sunday_saver,
     schema=vol.Schema({
       vol.Optional("account_id"): cv.string,
+    }),
+  )
+
+  async def _handle_purge_free_electricity_event_history(call):
+    """Clear the recorder history for the free electricity session event entities.
+
+    Before 18.9.8 these entities wrote a row every minute, so an installation that has been
+    running a while carries a lot of dead rows. Fixing the write rate stops it getting worse but
+    doesn't remove what's already there - the nightly recorder purge would, but only once the
+    rows age past the configured retention. This clears them now.
+    """
+    account_id = call.data.get("account_id")
+    repack = call.data.get("repack", False)
+
+    entity_registry = er.async_get(hass)
+    entity_ids = []
+    for entry in hass.config_entries.async_entries(DOMAIN):
+      if entry.data.get(CONFIG_KIND) != CONFIG_KIND_ACCOUNT:
+        continue
+      entry_account_id = entry.data.get(CONFIG_ACCOUNT_ID)
+      if account_id is not None and entry_account_id != account_id:
+        continue
+      entity_id = entity_registry.async_get_entity_id(
+        "event", DOMAIN, f"edf_energy_{entry_account_id}_free_electricity_session_events"
+      )
+      if entity_id is not None:
+        entity_ids.append(entity_id)
+
+    if len(entity_ids) < 1:
+      _LOGGER.warning("No free electricity session event entities found to purge")
+      return
+
+    _LOGGER.info(f"Purging recorder history for {', '.join(entity_ids)}")
+    await hass.services.async_call(
+      "recorder",
+      "purge_entities",
+      { "entity_id": entity_ids, "keep_days": 0 },
+      blocking=True,
+    )
+
+    # purge_entities only deletes rows. On SQLite the pages are freed for reuse but the file
+    # itself stays the same size, so reclaiming disk needs a repack (a VACUUM). That rewrites the
+    # whole database, so it's opt in.
+    if repack:
+      _LOGGER.info("Repacking the recorder database to reclaim disk space - this may take a while")
+      await hass.services.async_call("recorder", "purge", { "repack": True }, blocking=True)
+
+  hass.services.async_register(
+    DOMAIN,
+    SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
+    _handle_purge_free_electricity_event_history,
+    schema=vol.Schema({
+      vol.Optional("account_id"): cv.string,
+      vol.Optional("repack", default=False): cv.boolean,
     }),
   )
 
