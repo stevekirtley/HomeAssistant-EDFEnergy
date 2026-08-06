@@ -1,3 +1,18 @@
+## [18.9.8](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/v18.9.8) (2026-08-06)
+
+
+### Bug Fixes
+
+* Fixed the free electricity session event entity writing to the recorder database every minute, which caused significant database growth over time. The entity's state is the timestamp of the last event it received, so every fire is by definition a new state that the recorder cannot deduplicate — the "all sessions" event was being fired on every coordinator tick, which came to 1,440 database rows a day for every account. It now fires when the sessions or the retained history actually change, plus once an hour as a heartbeat so that automations using the entity as a periodic trigger keep working. This cuts the entity's routine database writes by around 98%, and no longer requires excluding the entity from the recorder as a workaround. Reported by [@narjekdjcusbe](https://github.com/narjekdjcusbe) ([#27](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/27)).
+* The comment describing this behaviour claimed it matched the upstream Octopus Energy integration. It did not — upstream gates the same event on its refresh rate and fires roughly every 90 minutes, not every minute.
+
+
+### Features
+
+* After upgrading, anyone carrying a significant amount of this history will be offered a repair in **Settings → Devices & Services → Repairs**, showing how many rows have built up with a "Fix" button that clears them. The repair only appears when there is enough there to be worth acting on (around a week's worth or more), and it is an offer rather than something that happens automatically — this is your own recorder history, not integration cache, so nothing is deleted without you asking. The fix dialogue includes the same optional "Reclaim disk space" switch described below.
+* Added a "Purge free electricity event history" action, for clearing out the rows the bug above has already written. Fixing the write rate stops the problem getting worse, but the existing rows would otherwise sit in the database until they aged past your recorder retention. The action deletes them straight away and the entities carry on working normally. It takes an optional account ID, and an optional "Reclaim disk space" switch that also rebuilds the database so the freed space is returned to the filesystem — worth knowing that the rebuild can take several minutes on a large database, needs roughly as much free disk as the database currently uses, and pauses recording while it runs. Without it the rows are removed but the database file stays the same size.
+
+
 ## [18.9.7](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/v18.9.7) (2026-08-04)
 
 
