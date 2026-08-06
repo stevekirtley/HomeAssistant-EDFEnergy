@@ -49,6 +49,7 @@ from .api_client.intelligent_dispatches import IntelligentDispatches
 from .discovery import DiscoveryManager
 from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult, async_setup_intelligent_devices_coordinator
 
+from .utils.recorder_history import async_count_recorded_states
 from .utils.repairs import safe_repair_key
 
 from .const import (
@@ -104,6 +105,8 @@ from .const import (
   SERVICE_SET_FOOTBALL_FREE_ELECTRICITY,
   SERVICE_JOIN_SUNDAY_SAVER,
   SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
+  REPAIR_FREE_ELECTRICITY_EVENT_HISTORY,
+  FREE_ELECTRICITY_EVENT_HISTORY_ROW_THRESHOLD,
 )
 
 ACCOUNT_PLATFORMS = ["sensor", "binary_sensor", "number", "switch", "text", "time", "event", "select", "calendar"]
@@ -551,6 +554,52 @@ async def async_setup_dependencies(hass, entry, config):
   await async_setup_free_electricity_sessions_coordinator(hass, account_id, entry)
 
   _async_register_services(hass)
+
+  # Don't hold up setup for a database count — it runs once startup has settled
+  hass.async_create_task(_async_check_free_electricity_event_history(hass, account_id))
+
+
+async def _async_check_free_electricity_event_history(hass, account_id: str):
+  """Offer to clear the event history left behind by the pre-18.9.8 write rate.
+
+  Until 18.9.8 the free electricity session event entity wrote a row a minute, so an installation
+  upgrading from an earlier version is carrying rows it has no use for. They'd eventually age out
+  of the recorder on their own, so this is an offer rather than something we do unasked — it is
+  the user's history, not our cache.
+  """
+  repair_key = safe_repair_key(REPAIR_FREE_ELECTRICITY_EVENT_HISTORY, account_id)
+
+  entity_id = er.async_get(hass).async_get_entity_id(
+    "event", DOMAIN, f"edf_energy_{account_id}_free_electricity_session_events"
+  )
+  if entity_id is None:
+    # Nothing registered yet (fresh install), so there's nothing recorded to clear either
+    ir.async_delete_issue(hass, DOMAIN, repair_key)
+    return
+
+  row_count = await async_count_recorded_states(hass, entity_id)
+  if row_count is None:
+    return
+
+  if row_count < FREE_ELECTRICITY_EVENT_HISTORY_ROW_THRESHOLD:
+    ir.async_delete_issue(hass, DOMAIN, repair_key)
+    return
+
+  _LOGGER.debug(f"{entity_id} holds {row_count} recorded states; offering to purge")
+  ir.async_create_issue(
+    hass,
+    DOMAIN,
+    repair_key,
+    is_fixable=True,
+    severity=ir.IssueSeverity.WARNING,
+    translation_key="free_electricity_event_history",
+    translation_placeholders={
+      "account_id": account_id,
+      "entity_id": entity_id,
+      "row_count": f"{row_count:,}",
+    },
+    data={ "account_id": account_id, "entity_id": entity_id },
+  )
 
 
 def _async_check_auth_expiry_for_repair(hass, entry, account_id: str, expiry: datetime):

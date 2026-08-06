@@ -184,6 +184,11 @@ REPAIR_INTELLIGENT_DEVICE_REMOVED = "intelligent_device_removed_{}"
 REPAIR_TARIFF_RATES_EMPTY = "tariff_rates_empty_{}_{}"
 REPAIR_TARGET_RATE_NOT_SUPPORTED = "target_rate_not_supported"
 REPAIR_AUTH_TOKEN_EXPIRING_SOON = "auth_token_expiring_soon_{}"
+REPAIR_FREE_ELECTRICITY_EVENT_HISTORY = "free_electricity_event_history_{}"
+
+# Roughly a week of the pre-18.9.8 once-a-minute writes. Below this there's little to reclaim and
+# the repair would be more noise than help.
+FREE_ELECTRICITY_EVENT_HISTORY_ROW_THRESHOLD = 10000
 
 DATA_AUTH_TOKEN_EXPIRY = "AUTH_TOKEN_EXPIRY_{}"
 DATA_FOOTBALL_ENROLLMENT = "FOOTBALL_ENROLLMENT_{}"

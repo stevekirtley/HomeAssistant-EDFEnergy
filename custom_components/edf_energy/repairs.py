@@ -14,6 +14,7 @@ from .const import (
   CONFIG_MANUAL_TARIFF_OFF_PEAK_RATE,
   CONFIG_MANUAL_TARIFF_STANDING_CHARGE,
   DOMAIN,
+  SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -83,5 +84,43 @@ class ManualTariffRatesRepairFlow(RepairsFlow):
     )
 
 
+class FreeElectricityEventHistoryRepairFlow(RepairsFlow):
+  """Offers to clear the recorder history left behind by the pre-18.9.8 write rate."""
+
+  def __init__(self, data: dict):
+    self._account_id = data.get("account_id")
+    self._entity_id = data.get("entity_id")
+
+  async def async_step_init(self, user_input=None):
+    return await self.async_step_confirm()
+
+  async def async_step_confirm(self, user_input=None):
+    if user_input is not None:
+      await self.hass.services.async_call(
+        DOMAIN,
+        SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
+        {
+          "account_id": self._account_id,
+          "repack": user_input.get("repack", False),
+        },
+        blocking=True,
+      )
+      return self.async_create_entry(title="", data={})
+
+    return self.async_show_form(
+      step_id="confirm",
+      data_schema=vol.Schema({
+        vol.Required("repack", default=False): cv.boolean,
+      }),
+      description_placeholders={
+        "account_id": self._account_id or "",
+        "entity_id": self._entity_id or "",
+      },
+    )
+
+
 async def async_create_fix_flow(hass, issue_id: str, data: dict | None):
+  if issue_id.startswith("free_electricity_event_history"):
+    return FreeElectricityEventHistoryRepairFlow(data or {})
+
   return ManualTariffRatesRepairFlow(data or {})
