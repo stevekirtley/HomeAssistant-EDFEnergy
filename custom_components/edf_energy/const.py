@@ -170,6 +170,7 @@ EVENT_ALL_FREE_ELECTRICITY_SESSIONS = "edf_energy_all_free_electricity_sessions"
 
 SERVICE_SET_FOOTBALL_FREE_ELECTRICITY = "set_football_free_electricity"
 SERVICE_JOIN_SUNDAY_SAVER = "join_sunday_saver"
+SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY = "purge_free_electricity_event_history"
 
 REPAIR_UNIQUE_RATES_CHANGED_KEY = "electricity_unique_rates_updated_{}"
 REPAIR_INVALID_API_KEY = "invalid_api_key_{}"
