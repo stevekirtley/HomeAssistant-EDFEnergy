@@ -308,6 +308,21 @@
     "auth_token_expiring_soon": {
       "title": "EDF Energy authentication expires soon for {account_id}",
       "description": "Your EDF Energy authentication will expire in {days} day(s) (on {expiry_date}). After expiry, the integration will stop fetching data. To fix this, go to **Settings → Integrations → EDF Energy → Reconfigure** and log in again."
+    },
+    "free_electricity_event_history": {
+      "title": "Free electricity event history is using a lot of database space",
+      "description": "`{entity_id}` has {row_count} rows recorded against it. Until version 18.9.8 this entity wrote to the database every minute whether anything had changed or not, and those rows are still there. New writes are already fixed \u2014 this is only about clearing what has built up.\n\nSelecting \"Submit\" deletes the recorded history for this entity. The entity itself carries on working normally; you only lose the past states of the event entity, and nothing else is touched.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Clear free electricity event history",
+            "description": "This deletes the recorded history of `{entity_id}` for account {account_id}. The entity keeps working \u2014 only its past states go.\n\nDeleting rows does not by itself make the database file any smaller: the space is freed for reuse but stays claimed on disk. Tick \"Reclaim disk space\" to rebuild the database and hand the space back. That can take several minutes on a large database, needs about as much free disk as the database currently uses, and pauses recording while it runs.",
+            "data": {
+              "repack": "Reclaim disk space (slower)"
+            }
+          }
+        }
+      }
     }
   },
   "entity": {
