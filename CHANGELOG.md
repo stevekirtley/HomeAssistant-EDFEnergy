@@ -1,4 +1,17 @@
-## [18.9.8](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/v18.9.8) (2026-08-06)
+## [18.9.9](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/18.9.9) (2026-08-06)
+
+
+### Bug Fixes
+
+* Your email address is now redacted from downloaded diagnostics. It was appearing in full under `config_entry`, alongside the account ID and API key which were already being redacted. Diagnostics are routinely attached to GitHub issues, so this was a genuine leak. Any password left on an older config entry is now redacted too. Reported by [@narjekdjcusbe](https://github.com/narjekdjcusbe) ([#27](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/27)).
+
+
+### Changes
+
+* The bug report form now includes the debug logging steps inline, so you no longer have to follow a link out of a half-filled form to find them. GitHub gives no way to force a link to open in a new tab, so the form now says as much and suggests Ctrl/Cmd+click. It also spells out which details to strip before pasting logs.
+
+
+## [18.9.8](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/18.9.8) (2026-08-06)
 
 
 ### Bug Fixes
@@ -12,7 +25,7 @@
 * Added a "Purge free electricity event history" action, for clearing out the rows the bug above has already written. Fixing the write rate stops the problem getting worse, but the existing rows would otherwise sit in the database until they aged past your recorder retention. The action deletes them straight away and the entities carry on working normally. It takes an optional account ID, and an optional "Reclaim disk space" switch that also rebuilds the database so the freed space is returned to the filesystem — worth knowing that the rebuild can take several minutes on a large database, needs roughly as much free disk as the database currently uses, and pauses recording while it runs. Without it the rows are removed but the database file stays the same size.
 
 
-## [18.9.7](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/v18.9.7) (2026-08-04)
+## [18.9.7](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/18.9.7) (2026-08-04)
 
 
 ### Bug Fixes
@@ -28,7 +41,7 @@
 * Added a 5000 entry cap on the dispatch history as a backstop, so the store cannot run away again however often dispatches change.
 
 
-## [18.9.6](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/v18.9.6) (2026-08-01)
+## [18.9.6](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/18.9.6) (2026-08-01)
 
 
 ### Features
