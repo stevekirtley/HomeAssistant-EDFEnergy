@@ -13,6 +13,7 @@ from .const import (
   CONFIG_COST_TRACKER_MPAN,
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
   CONFIG_MAIN_API_KEY,
+  CONFIG_MAIN_EMAIL,
   CONFIG_MAIN_REFRESH_TOKEN,
   DATA_ACCOUNT,
   DOMAIN,
@@ -23,6 +24,19 @@ from .api_client import EDFEnergyApiClient, TimeoutException
 from .utils.debug_overrides import AccountDebugOverride, async_get_account_debug_override
 
 _LOGGER = logging.getLogger(__name__)
+
+# Config entry keys stripped from diagnostics. Diagnostics downloads routinely get attached to
+# GitHub issues, so anything identifying belongs here. "password" is never persisted by the config
+# flow, but is listed defensively in case an older entry still carries one.
+REDACTED_CONFIG_KEYS = {
+  CONFIG_ACCOUNT_ID,
+  CONFIG_MAIN_API_KEY,
+  CONFIG_MAIN_EMAIL,
+  CONFIG_MAIN_REFRESH_TOKEN,
+  CONFIG_COST_TRACKER_MPAN,
+  CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
+  "password",
+}
 
 async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, existing_account_info: dict, account_debug_override: AccountDebugOverride | None, get_entity_info: Callable[[dict], dict]):
   _LOGGER.info('Retrieving account details for diagnostics...')
@@ -149,7 +163,7 @@ async def async_get_device_diagnostics(hass, entry, device):
     
     return {
       **diagnostics,
-      "config_entry": async_redact_data(config, { CONFIG_ACCOUNT_ID, CONFIG_MAIN_API_KEY, CONFIG_MAIN_REFRESH_TOKEN, CONFIG_COST_TRACKER_MPAN, CONFIG_COST_TRACKER_TARGET_ENTITY_ID }),
+      "config_entry": async_redact_data(config, REDACTED_CONFIG_KEYS),
     }
 
 async def async_get_config_entry_diagnostics(hass, entry):
@@ -192,5 +206,5 @@ async def async_get_config_entry_diagnostics(hass, entry):
     
     return {
       **diagnostics,
-      "config_entry": async_redact_data(config, { CONFIG_ACCOUNT_ID, CONFIG_MAIN_API_KEY, CONFIG_MAIN_REFRESH_TOKEN, CONFIG_COST_TRACKER_MPAN, CONFIG_COST_TRACKER_TARGET_ENTITY_ID }),
+      "config_entry": async_redact_data(config, REDACTED_CONFIG_KEYS),
     }
