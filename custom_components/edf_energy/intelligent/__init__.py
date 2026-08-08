@@ -373,20 +373,34 @@ def clean_intelligent_dispatch_history(time: datetime,
   previous_history_item: IntelligentDispatchesHistoryItem | None = None
   min_time = time - timedelta(days=retention_in_days)
 
+  def retain(history_item: IntelligentDispatchesHistoryItem) -> IntelligentDispatchesHistoryItem:
+    """Drop the completed dispatches off entries written before 18.9.7.
+
+    Retention alone doesn't rescue a legacy file: entries still inside the window keep the full
+    completed list they were written with, leaving the store far larger than it needs to be until
+    they age out. Normalising them on the way through heals it on the first refresh instead."""
+    if not history_item.dispatches.completed:
+      return history_item
+
+    return IntelligentDispatchesHistoryItem(
+      history_item.timestamp,
+      summarise_dispatches_for_history(history_item.dispatches)
+    )
+
   for history_item in history:
 
     if history_item.timestamp >= min_time:
       # Ensure we have one record before the minimum stored time so we know what we had at the start
       if (len(new_history) == 0 and previous_history_item is not None):
-        new_history.append(previous_history_item)
+        new_history.append(retain(previous_history_item))
 
-      new_history.append(history_item)
+      new_history.append(retain(history_item))
 
     previous_history_item = history_item
 
   # Ensure we have one record before the minimum stored time so we know what we had at the start
   if (len(new_history) == 0 and previous_history_item is not None):
-    new_history.append(previous_history_item)
+    new_history.append(retain(previous_history_item))
 
   new_dispatches = summarise_dispatches_for_history(dispatches)
 
