@@ -34,6 +34,31 @@ def test_when_dispatches_provided_then_completed_dispatches_are_not_stored():
   assert len(dispatches.completed) == 500
 
 
+def test_when_legacy_entries_are_retained_then_their_completed_dispatches_are_dropped():
+  """Entries written before 18.9.7 carry a full completed list. Purging by retention isn't enough
+  on its own - anything still inside the window keeps that list, so a recovering file stays far
+  bigger than it needs to be until those entries age out."""
+  # Arrange - legacy shaped entries, all well inside the retention window
+  current = datetime.fromisoformat("2025-10-01T12:00:00+00:00")
+  history = [
+    IntelligentDispatchesHistoryItem(
+      current - timedelta(hours=hours),
+      build_dispatches(current, completed_count=200, planned_count=hours)
+    )
+    for hours in range(24, 0, -1)
+  ]
+
+  # Act
+  result = clean_intelligent_dispatch_history(current, build_dispatches(current, planned_count=99), history, 7)
+
+  # Assert - retained, but normalised on the way through
+  assert len(result) == 25
+  assert all(item.dispatches.completed == [] for item in result)
+  # The rest of each entry is untouched, so the history stays useful
+  assert result[0].dispatches.current_state == "SMART_CONTROL_CAPABLE"
+  assert len(result[0].dispatches.planned) == 24
+
+
 def test_when_history_older_than_retention_then_it_is_purged():
   # Arrange
   current = datetime.fromisoformat("2025-10-01T12:00:00+00:00")
