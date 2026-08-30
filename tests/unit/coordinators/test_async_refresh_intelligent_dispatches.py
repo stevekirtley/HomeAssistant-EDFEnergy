@@ -1357,8 +1357,8 @@ async def test_when_existing_started_dispatches_more_than_three_days_old_then_ol
   existing_dispatches = IntelligentDispatchesCoordinatorResult(last_retrieved - timedelta(days=60), 1, mock_intelligent_dispatches(), IntelligentDispatchesHistory([]), 1, last_retrieved)
   existing_dispatches.dispatches.started = [
     SimpleIntelligentDispatchItem(
-      current.replace(second=0, microsecond=0) - timedelta(days=3, hours=1),
-      current.replace(second=0, microsecond=0) - timedelta(days=3)
+      current.replace(second=0, microsecond=0) - timedelta(days=61, hours=1),
+      current.replace(second=0, microsecond=0) - timedelta(days=61)
     )
   ]
   expected_retrieved_dispatches = IntelligentDispatchesCoordinatorResult(current, 1, expected_dispatches, IntelligentDispatchesHistory([]), 1, last_retrieved)
