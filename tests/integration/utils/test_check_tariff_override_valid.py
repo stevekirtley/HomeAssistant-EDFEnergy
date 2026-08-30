@@ -24,7 +24,8 @@ from custom_components.edf_energy.api_client import EDFEnergyApiClient
 async def test_when_data_provided_then_expected_error_is_returned(original_tariff_code, tariff_code, expected_error_message):
   # Arrange
   context = get_test_context()
-  client = EDFEnergyApiClient(context.refresh_token)
+  # Use api_key (BasicAuth) to avoid GraphQL token refresh; /v1/products is a public REST endpoint
+  client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
   
   # Act
   result = await check_tariff_override_valid(client, original_tariff_code, tariff_code)
