@@ -11,7 +11,7 @@ async def async_assert_electricity_data(product_code, tariff_code, is_smart_mete
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.refresh_token, price_cap)
+    client = EDFEnergyApiClient(electricity_price_cap=price_cap, api_key=context.refresh_token or "public")
 
     # Act
     data = await client.async_get_electricity_rates(product_code, tariff_code, is_smart_meter, period_from, period_to)
@@ -182,7 +182,7 @@ async def test_when_get_electricity_rates_is_called_for_non_existent_tariff_then
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.refresh_token)
+    client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
 
     # Act
     data = await client.async_get_electricity_rates(product_code, tariff_code, True, default_period_from, default_period_to)
