@@ -1,12 +1,10 @@
 {
-  "name": "octopusenergy",
+  "name": "edf-energy",
   "version": "1.0.0",
   "description": "Home Assistant integration for interacting with EDF Energy",
   "main": "index.js",
   "scripts": {
     "prepare": "husky || true",
-    "build": "tsc ./.build/*.ts --noEmit",
-    "release": "semantic-release",
     "test-unit": "python -m pytest tests/unit",
     "test-integration": "python -m pytest tests/integration",
     "docs-serve": "python -m mkdocs serve",
@@ -14,29 +12,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BottlecapDave/HomeAssistant-EDFEnergy.git"
+    "url": "git+https://github.com/stevekirtley/HomeAssistant-EDFEnergy.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/BottlecapDave/HomeAssistant-EDFEnergy/issues"
+    "url": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues"
   },
-  "homepage": "https://github.com/BottlecapDave/HomeAssistant-EDFEnergy#readme",
+  "homepage": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy#readme",
   "devDependencies": {
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/exec": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
-    "commitizen": "^4.3.0",
-    "conventional-changelog-eslint": "^6.0.0",
-    "cz-customizable": "^7.1.0",
-    "husky": "9.1.7",
-    "semantic-release": "^24.0.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
-  },
-  "config": {
-    "commitizen": {
-      "path": "node_modules/cz-customizable"
-    }
+    "husky": "9.1.7"
   }
 }
