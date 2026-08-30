@@ -22,6 +22,8 @@ def _make_result(has_event, start_str=None, end_str=None):
   r.has_event = has_event
   r.start = datetime.fromisoformat(start_str) if start_str else None
   r.end = datetime.fromisoformat(end_str) if end_str else None
+  r.et_start = None
+  r.et_end = None
   return r
 
 
