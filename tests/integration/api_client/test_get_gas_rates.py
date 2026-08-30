@@ -18,7 +18,7 @@ async def test_when_get_gas_rates_is_called_for_existent_tariff_then_rates_are_r
     # Arrange
     context = get_test_context()
 
-    client = EDFEnergyApiClient(context.refresh_token, None, price_cap)
+    client = EDFEnergyApiClient(gas_price_cap=price_cap, api_key=context.refresh_token or "public")
 
     # Act
     data = await client.async_get_gas_rates(product_code, tariff_code, period_from, period_to)
@@ -55,7 +55,7 @@ async def test_when_get_gas_rates_is_called_for_non_existent_tariff_then_none_is
     period_from = now().replace(hour=0, minute=0, second=0, microsecond=0)
     period_to = (now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    client = EDFEnergyApiClient(context.refresh_token)
+    client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
 
     # Act
     data = await client.async_get_gas_rates(product_code, tariff_code, period_from, period_to)
