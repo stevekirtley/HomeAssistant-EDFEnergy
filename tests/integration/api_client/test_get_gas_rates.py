@@ -1,20 +1,17 @@
 from datetime import datetime, timedelta
 import pytest
 
-from homeassistant.util.dt import (now)
-
 from integration import (get_test_context)
 from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
-pytestmark = pytest.mark.xfail(reason="Test uses Octopus-specific product/tariff codes not present on the EDF Kraken API", strict=False)
+default_period_from = datetime.strptime("2026-08-28T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
+default_period_to = datetime.strptime("2026-08-29T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("product_code,tariff_code,price_cap,period_from,period_to",[
-    ("SUPER-GREEN-24M-21-07-30", "G-1R-SUPER-GREEN-24M-21-07-30-A", None, datetime.strptime("2021-12-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2021-12-02T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
-    ("SUPER-GREEN-24M-21-07-30", "G-1R-SUPER-GREEN-24M-21-07-30-A", 2, datetime.strptime("2021-12-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2021-12-02T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
-    ("SILVER-FLEX-22-11-25", "G-1R-SILVER-FLEX-22-11-25-C", None, datetime.strptime("2023-06-01T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2023-06-02T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
-    ("SILVER-FLEX-22-11-25", "G-1R-SILVER-FLEX-22-11-25-C", 2, datetime.strptime("2023-06-01T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2023-06-02T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
-    ("OE-FIX-12M-24-12-14", "G-1R-OE-FIX-12M-24-12-14-A", None, datetime.strptime("2025-09-06T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2025-09-07T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
+    ("EDF_SIMPLY_FIXED_SEP2027", "G-1R-EDF_SIMPLY_FIXED_SEP2027-A", None, datetime.strptime("2026-08-28T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-08-29T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
+    ("EDF_SIMPLY_FIXED_SEP2027", "G-1R-EDF_SIMPLY_FIXED_SEP2027-A", 2, datetime.strptime("2026-08-28T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-08-29T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
+    ("EDF_STANDARD_VARIABLE", "G-1R-EDF_STANDARD_VARIABLE-A", None, datetime.strptime("2026-08-28T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-08-29T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
 ])
 async def test_when_get_gas_rates_is_called_for_existent_tariff_then_rates_are_returned(product_code, tariff_code, price_cap, period_from, period_to):
     # Arrange
@@ -48,19 +45,17 @@ async def test_when_get_gas_rates_is_called_for_existent_tariff_then_rates_are_r
 @pytest.mark.asyncio
 @pytest.mark.parametrize("product_code,tariff_code",[
     ("NOT-A-PRODUCT", "G-1R-NOT-A-PRODUCT-A"),
-    ("SUPER-GREEN-24M-21-07-30", "NOT-A-TARIFF"),
-    ("NOT-A-PRODUCT", "G-1R-SUPER-GREEN-24M-21-07-30-A")
+    ("EDF_SIMPLY_FIXED_SEP2027", "NOT-A-TARIFF"),
+    ("NOT-A-PRODUCT", "G-1R-EDF_SIMPLY_FIXED_SEP2027-A")
 ])
 async def test_when_get_gas_rates_is_called_for_non_existent_tariff_then_none_is_returned(product_code, tariff_code):
     # Arrange
     context = get_test_context()
-    period_from = now().replace(hour=0, minute=0, second=0, microsecond=0)
-    period_to = (now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
     client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
 
     # Act
-    data = await client.async_get_gas_rates(product_code, tariff_code, period_from, period_to)
+    data = await client.async_get_gas_rates(product_code, tariff_code, default_period_from, default_period_to)
 
     # Assert
     assert data is None

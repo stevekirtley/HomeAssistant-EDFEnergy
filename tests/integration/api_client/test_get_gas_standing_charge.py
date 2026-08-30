@@ -4,17 +4,15 @@ import pytest
 from integration import (get_test_context)
 from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
-pytestmark = pytest.mark.xfail(reason="Test uses Octopus-specific product/tariff codes not present on the EDF Kraken API", strict=False)
-
-period_from = datetime.strptime("2026-03-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
-period_to = datetime.strptime("2026-03-02T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
+period_from = datetime.strptime("2026-08-28T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
+period_to = datetime.strptime("2026-08-29T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("product_code,tariff_code,expected_value,favour_direct_debit",
-                         [("SUPER-GREEN-24M-21-07-30", "G-1R-SUPER-GREEN-24M-21-07-30-A", 26.586, True),
-                          ("SUPER-GREEN-24M-21-07-30", "G-1R-SUPER-GREEN-24M-21-07-30-A", 26.586, False),
-                          ("VAR-22-11-01", "G-1R-VAR-22-11-01-A", 33.37593, True),
-                          ("VAR-22-11-01", "G-1R-VAR-22-11-01-A", 39.95124, False)])
+                         [("EDF_SIMPLY_FIXED_SEP2027", "G-1R-EDF_SIMPLY_FIXED_SEP2027-A", 28.7028, True),
+                          ("EDF_SIMPLY_FIXED_SEP2027", "G-1R-EDF_SIMPLY_FIXED_SEP2027-A", 28.7028, False),
+                          ("EDF_STANDARD_VARIABLE", "G-1R-EDF_STANDARD_VARIABLE-A", 28.7028, True),
+                          ("EDF_STANDARD_VARIABLE", "G-1R-EDF_STANDARD_VARIABLE-A", 36.6975, False)])
 async def test_when_get_gas_standing_charge_is_called_for_existent_tariff_then_rates_are_returned(product_code, tariff_code, expected_value, favour_direct_debit):
     # Arrange
     context = get_test_context()
@@ -30,30 +28,10 @@ async def test_when_get_gas_standing_charge_is_called_for_existent_tariff_then_r
     assert result["value_inc_vat"] == expected_value
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("product_code,tariff_code,favour_direct_debit",
-                         [("SILVER-FLEX-22-11-25", "G-1R-SILVER-FLEX-22-11-25-C", True),
-                          ("SILVER-FLEX-22-11-25", "G-1R-SILVER-FLEX-22-11-25-C", False)])
-async def test_when_get_gas_standing_charge_is_called_with_tracker_tariff_then_rates_are_returned(product_code, tariff_code, favour_direct_debit):
-    # Arrange
-    context = get_test_context()
-    client = EDFEnergyApiClient(favour_direct_debit_rates=favour_direct_debit, api_key=context.refresh_token or "public")
-
-    period_from = datetime.strptime("2022-12-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
-    period_to = datetime.strptime("2022-12-02T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
-
-    # Act
-    result = await client.async_get_gas_standing_charge(product_code, tariff_code, period_from, period_to)
-
-    # Assert
-    assert result is not None
-    assert "value_inc_vat" in result
-    assert result["value_inc_vat"] is not None
-
-@pytest.mark.asyncio
 @pytest.mark.parametrize("product_code,tariff_code",[
-    ("SUPER-GREEN-24M-21-07-30", "G-1R-NOT-A-TARIFF-A"),
-    ("SUPER-GREEN-24M-21-07-30", "NOT-A-TARIFF"),
-    ("NOT-A-PRODUCT", "G-1R-SILVER-FLEX-22-11-25-C")
+    ("EDF_SIMPLY_FIXED_SEP2027", "G-1R-NOT-A-TARIFF-A"),
+    ("EDF_SIMPLY_FIXED_SEP2027", "NOT-A-TARIFF"),
+    ("NOT-A-PRODUCT", "G-1R-EDF_SIMPLY_FIXED_SEP2027-A")
 ])
 async def test_when_get_gas_standing_charge_is_called_for_non_existent_tariff_then_none_is_returned(product_code, tariff_code):
     # Arrange
