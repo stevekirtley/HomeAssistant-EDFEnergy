@@ -3,6 +3,5 @@
   "country": ["GB"],
   "render_readme": true,
   "homeassistant": "2025.11.0",
-  "hide_default_branch": true,
-  "donation_url": "https://ko-fi.com/stevekirtley"
+  "hide_default_branch": true
 }
