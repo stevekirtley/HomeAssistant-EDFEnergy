@@ -29,13 +29,8 @@ def get_test_context():
   if (account_id is None):
       raise Exception("ACCOUNT_ID must be set")
 
-  gas_mprn = os.environ["GAS_MPRN"]
-  if (gas_mprn is None):
-      raise Exception("GAS_MPRN must be set")
-
-  gas_serial_number = os.environ["GAS_SN"]
-  if (gas_serial_number is None):
-      raise Exception("GAS_SN must be set")
+  gas_mprn = os.environ.get("GAS_MPRN", None)
+  gas_serial_number = os.environ.get("GAS_SN", None)
 
   electricity_mpan= os.environ["ELECTRICITY_MPAN"]
   if (electricity_mpan is None):
