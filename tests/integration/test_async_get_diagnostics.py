@@ -7,6 +7,8 @@ from integration import get_test_context
 from custom_components.edf_energy.api_client import EDFEnergyApiClient
 from custom_components.edf_energy.diagnostics import async_get_diagnostics
 
+pytestmark = pytest.mark.xfail(reason="GraphQL token refresh blocked by CloudFront on GitHub Actions runner IPs", strict=False)
+
 def assert_meter(meter, expected_serial_number: int):
   assert meter["is_smart_meter"] == True
   assert meter["serial_number"] == expected_serial_number

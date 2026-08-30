@@ -8,6 +8,8 @@ from integration import (create_consumption_data, create_rate_data, get_test_con
 from custom_components.edf_energy.coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult, async_fetch_consumption_and_rates
 from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
+pytestmark = pytest.mark.xfail(reason="GraphQL token refresh blocked by CloudFront on GitHub Actions runner IPs", strict=False)
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("previous_data_available",[
   (True),
