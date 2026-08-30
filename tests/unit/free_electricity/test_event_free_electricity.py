@@ -1,7 +1,6 @@
 from datetime import datetime, timezone, timedelta
 
 from custom_components.edf_energy.coordinators.event_free_electricity import (
-  _parse_kickoff_utc,
   _eligible_windows,
   _select_candidate,
   _extra_time_check_required,
@@ -21,42 +20,40 @@ def _at(minutes_after_ko):
   return KO + timedelta(minutes=minutes_after_ko)
 
 
-# ── _parse_kickoff_utc ──────────────────────────────────────────────────────────
-
-class TestParseKickoffUtc:
-  def test_converts_local_kickoff_to_utc(self):
-    assert _parse_kickoff_utc("2026-06-14", "13:00 UTC-6") == datetime(2026, 6, 14, 19, 0, tzinfo=timezone.utc)
-
-  def test_positive_offset(self):
-    assert _parse_kickoff_utc("2026-06-17", "23:00 UTC+1") == datetime(2026, 6, 17, 22, 0, tzinfo=timezone.utc)
-
-  def test_unparseable_time_returns_none(self):
-    assert _parse_kickoff_utc("2026-06-17", "kick off soon") is None
-
-
 # ── _eligible_windows ───────────────────────────────────────────────────────────
 
+KO_TS = int(KO.timestamp())
+
 class TestEligibleWindows:
-  def test_keeps_only_england_scotland_and_sorts_by_kickoff(self):
+  def test_converts_timestamp_and_builds_name(self):
+    matches = [{"timestamp": KO_TS, "home": "England", "away": "Croatia", "round": "group-stage"}]
+    windows = _eligible_windows(matches)
+    assert windows == [(KO, "England v Croatia", False)]
+
+  def test_sorts_by_kickoff(self):
+    later = KO + timedelta(hours=48)
     matches = [
-      {"team1": "Spain", "team2": "France", "date": "2026-06-20", "time": "20:00 UTC+0", "group": "Group A"},
-      {"team1": "Scotland", "team2": "Morocco", "date": "2026-06-19", "time": "22:00 UTC+0", "group": "Group C"},
-      {"team1": "England", "team2": "Croatia", "date": "2026-06-17", "time": "20:00 UTC+0", "group": "Group L"},
+      {"timestamp": int(later.timestamp()), "home": "Scotland", "away": "Morocco", "round": "group-stage"},
+      {"timestamp": KO_TS, "home": "England", "away": "Croatia", "round": "group-stage"},
     ]
     windows = _eligible_windows(matches)
     assert [n for _, n, _ in windows] == ["England v Croatia", "Scotland v Morocco"]
 
-  def test_ignores_unparseable_kickoffs(self):
-    matches = [{"team1": "England", "team2": "Wales", "date": "2026-06-17", "time": "tbc", "group": "Group L"}]
+  def test_skips_fixture_with_no_timestamp(self):
+    matches = [{"home": "England", "away": "Wales", "round": "group-stage"}]
+    assert _eligible_windows(matches) == []
+
+  def test_skips_fixture_with_invalid_timestamp(self):
+    matches = [{"timestamp": "tbc", "home": "England", "away": "Wales", "round": "group-stage"}]
     assert _eligible_windows(matches) == []
 
   def test_group_stage_match_is_not_knockout(self):
-    matches = [{"team1": "England", "team2": "Croatia", "date": "2026-06-17", "time": "20:00 UTC+0", "group": "Group L"}]
+    matches = [{"timestamp": KO_TS, "home": "England", "away": "Croatia", "round": "group-stage"}]
     windows = _eligible_windows(matches)
     assert windows[0][2] is False
 
   def test_knockout_match_is_knockout(self):
-    matches = [{"team1": "England", "team2": "France", "date": "2026-07-04", "time": "20:00 UTC+0"}]
+    matches = [{"timestamp": KO_TS, "home": "England", "away": "France", "round": "quarter-final"}]
     windows = _eligible_windows(matches)
     assert windows[0][2] is True
 
@@ -104,54 +101,61 @@ class TestExtraTimeCheckRequired:
 
 
 # ── _resolve_window ──────────────────────────────────────────────────────────────
+# Signature: (windows, current, already_et_start: datetime|None, status) -> (start, end, name, et_start, et_end)
+# already_et_start is None when ET has not been confirmed; equals start+2h once it has been.
+# ET is surfaced as a separate slot (et_start, et_end) rather than extending the main window.
+
+ET_START = KO + timedelta(hours=2)  # the value passed as already_et_start once ET is latched
 
 class TestResolveWindow:
   def test_no_windows_returns_nothing(self):
-    assert _resolve_window([], _at(30), False, None, None) == (None, None, None, False)
+    assert _resolve_window([], _at(30), None, None) == (None, None, None, None, None)
 
   def test_upcoming_match_is_two_hours(self):
-    start, end, name, extended = _resolve_window(KO_WINDOWS, _at(-10), False, None, None)
-    assert (start, end, name, extended) == (KO, KO + timedelta(hours=2), NAME, False)
+    start, end, name, et_start, et_end = _resolve_window(KO_WINDOWS, _at(-10), None, None)
+    assert (start, end, name, et_start) == (KO, KO + timedelta(hours=2), NAME, None)
 
   def test_early_in_match_is_two_hours_and_does_not_consult_status(self):
     # status present but we're before the check window -> ignored
-    start, end, name, extended = _resolve_window(KO_WINDOWS, _at(45), False, None, {"extra_time": True})
+    start, end, name, et_start, et_end = _resolve_window(KO_WINDOWS, _at(45), None, {"extra_time": True})
     assert end == KO + timedelta(hours=2)
-    assert extended is False
+    assert et_start is None
 
   def test_relay_unavailable_falls_back_to_two_hours(self):
     # In the check window but status is None (relay down / timed out / bad JSON).
-    start, end, name, extended = _resolve_window(KO_WINDOWS, _at(95), False, None, None)
-    assert (end, extended) == (KO + timedelta(hours=2), False)
+    start, end, name, et_start, et_end = _resolve_window(KO_WINDOWS, _at(95), None, None)
+    assert (end, et_start) == (KO + timedelta(hours=2), None)
 
   def test_undecided_status_stays_two_hours(self):
     status = {"extra_time": False, "match_finished": False}
-    _, end, _, extended = _resolve_window(KO_WINDOWS, _at(95), False, None, status)
-    assert (end, extended) == (KO + timedelta(hours=2), False)
+    _, end, _, et_start, _ = _resolve_window(KO_WINDOWS, _at(95), None, status)
+    assert (end, et_start) == (KO + timedelta(hours=2), None)
 
-  def test_extra_time_extends_to_three_hours_for_knockout(self):
+  def test_extra_time_returns_separate_et_slot_for_knockout(self):
     status = {"extra_time": True, "match_finished": False}
-    _, end, _, extended = _resolve_window(KO_WINDOWS, _at(118), False, None, status)
-    assert (end, extended) == (KO + timedelta(hours=3), True)
+    start, end, name, et_start, et_end = _resolve_window(KO_WINDOWS, _at(118), None, status)
+    assert end == KO + timedelta(hours=2)
+    assert (et_start, et_end) == (KO + timedelta(hours=2), KO + timedelta(hours=3))
 
-  def test_group_stage_match_never_extends_to_three_hours(self):
-    # Even with extra_time signal, group stage is always 2h
+  def test_group_stage_match_never_gets_et_slot(self):
+    # Even with extra_time signal, group stage never gets an ET slot
     status = {"extra_time": True, "match_finished": False}
-    _, end, _, extended = _resolve_window(GROUP_WINDOWS, _at(95), False, None, status)
-    assert (end, extended) == (KO + timedelta(hours=2), False)
+    _, end, _, et_start, et_end = _resolve_window(GROUP_WINDOWS, _at(95), None, status)
+    assert (end, et_start) == (KO + timedelta(hours=2), None)
 
   def test_finished_in_normal_time_advances_to_next_match(self):
     later = (KO + timedelta(days=2), "England v Ghana", False)
     status = {"extra_time": False, "match_finished": True}
-    start, end, name, extended = _resolve_window([(KO, NAME, True), later], _at(116), False, None, status)
-    assert (start, name, extended) == (later[0], later[1], False)
+    start, end, name, et_start, _ = _resolve_window([(KO, NAME, True), later], _at(116), None, status)
+    assert (start, name, et_start) == (later[0], later[1], None)
     assert end == later[0] + timedelta(hours=2)
 
   def test_finished_in_normal_time_with_no_next_match_returns_nothing(self):
     status = {"extra_time": False, "match_finished": True}
-    assert _resolve_window(KO_WINDOWS, _at(116), False, None, status) == (None, None, None, False)
+    assert _resolve_window(KO_WINDOWS, _at(116), None, status) == (None, None, None, None, None)
 
-  def test_already_extended_holds_three_hours_without_status(self):
-    # Latched: once extra time was confirmed, later ticks keep 3h even if relay is down.
-    _, end, _, extended = _resolve_window(KO_WINDOWS, _at(150), True, KO, None)
-    assert (end, extended) == (KO + timedelta(hours=3), True)
+  def test_already_extended_holds_et_slot_without_status(self):
+    # Latched: once ET was confirmed, later ticks keep the ET slot even if relay is down.
+    _, end, _, et_start, et_end = _resolve_window(KO_WINDOWS, _at(150), ET_START, None)
+    assert end == KO + timedelta(hours=2)
+    assert (et_start, et_end) == (KO + timedelta(hours=2), KO + timedelta(hours=3))
