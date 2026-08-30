@@ -3,6 +3,7 @@ import os
 import hashlib
 import voluptuous as vol
 from datetime import datetime, timedelta, timezone
+from homeassistant.helpers import config_validation as cv
 
 from homeassistant.core import callback
 from homeassistant.components import websocket_api
@@ -116,6 +117,8 @@ TARIFF_COMPARISON_PLATFORMS = ["sensor"]
 from .api_client import ApiException, AuthenticationException, EDFEnergyApiClient
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema("edf_energy")
 
 SCAN_INTERVAL = timedelta(minutes=1)
 
