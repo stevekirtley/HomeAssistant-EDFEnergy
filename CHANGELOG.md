@@ -1,3 +1,23 @@
+## [19.1.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.1.0) (2026-09-07)
+
+
+### Bug Fixes
+
+* Home Assistant will no longer automatically enrol your account in Sunday Saver. EDF retired Sunday Saver and replaced it with Flextras, but left the old sign-up endpoint in place and now use it to capture "interest" in the new schemes. When EDF activated a new October interest campaign, the endpoint changed from quietly doing nothing to accepting registrations, so the automatic enrolment started firing for everyone who had it switched on — repeatedly, because the enrolment check can never report success while Sunday Saver is switched off. Worse, the registration was reported as successful without anything actually appearing on the account. The automatic enrolment is now switched off. The setting remains in the Reconfigure menu, marked inactive, so it can be brought back if EDF ever revive the scheme.
+
+### Features
+
+* Added support for **Flextras**, EDF's replacement for Sunday Saver. New entities show whether your account is registered, your joining bonus hours and whether they have been claimed, and whether you are signed up to Power Perks. Joining Flextras itself is only possible in the EDF mobile app, but once you have joined, everything else is visible in Home Assistant.
+* Added a **Register for Power Perks** button and a matching `edf_energy.register_power_perks` action, so you can opt into EDF's short-notice free electricity slots without opening the app.
+* Added a **Claim bonus hours** button and an `edf_energy.claim_flextras_bonus_hours` action for claiming the Flextras joining bonus. Both buttons disable themselves once the action no longer applies.
+* Schemes your tariff cannot join are now hidden rather than shown as permanently unavailable. Weekend Saver requires a one or two-rate tariff, so on a time-of-use tariff its entity is not created at all, and an existing one is removed. Where a requirement is something you can actually fix — a missing mobile number, or not enough smart meter readings — the scheme stays visible and shows EDF's own explanation instead. Note that changing tariff needs the integration reloading for these to appear or disappear.
+* The EDF Energy panel has a new Flextras card showing membership, bonus hours, Weekend Saver status and Power Perks.
+
+### Changes
+
+* The Sunday Saver card has been hidden on the EDF Energy panel now that the scheme has ended. The underlying sensors and their session history are untouched, and the card can be restored if EDF revive the scheme.
+
+
 ## [18.9.9](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/18.9.9) (2026-08-06)
 
 
