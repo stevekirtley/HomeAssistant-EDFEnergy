@@ -2,7 +2,7 @@
 
 Flextras replaced Sunday Saver in 2026. Joining is only possible in the EDF
 mobile app, so this coordinator is read-only apart from claiming the joining
-bonus hours (the one write endpoint we have confirmed). See _docs/flextras_api.md.
+bonus hours (the one write endpoint we have confirmed).
 """
 import logging
 from datetime import datetime, timedelta

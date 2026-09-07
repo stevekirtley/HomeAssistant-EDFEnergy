@@ -21,7 +21,7 @@ from . import BaseCoordinatorResult
 _LOGGER = logging.getLogger(__name__)
 _UK_TZ = ZoneInfo("Europe/London")
 
-# Sunday Saver was retired in 2026 and replaced by Flextras (see _docs/flextras_api.md).
+# Sunday Saver was retired in 2026 and replaced by Flextras.
 # EDF now reuse challenge/register purely to capture "interest" in the new schemes: the
 # campaign endpoint serves a fresh sunday_saver_interest_capture_from_<month> id, and
 # challenge/summary reports SundaySaverTurnedOff so the enrolment check can never return
