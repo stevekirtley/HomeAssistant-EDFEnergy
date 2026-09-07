@@ -55,6 +55,7 @@ from .api_client.intelligent_device import IntelligentDevice
 from .intelligent.current_state import EDFEnergyIntelligentCurrentState
 from .intelligent import get_intelligent_features
 from .sunday_saver.sensor import EDFEnergySundaySaverStartSensor, EDFEnergySundaySaverEndSensor
+from .flextras.sensor import EDFEnergyFlextrasBonusHours
 from .events.sensor import EDFEnergyEventFreeStartSensor, EDFEnergyEventFreeEndSensor
 
 from .utils.debug_overrides import async_get_meter_debug_override
@@ -94,6 +95,7 @@ from .const import (
   DATA_INTELLIGENT_DISPATCHES_COORDINATOR,
   DATA_INTELLIGENT_SETTINGS_COORDINATOR,
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
+  DATA_FLEXTRAS_COORDINATOR,
   DATA_SUNDAY_SAVER_COORDINATOR,
   DATA_EVENT_FREE_ELECTRICITY_COORDINATOR,
   DEFAULT_CALORIFIC_VALUE,
@@ -235,6 +237,10 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
   if sunday_saver_coordinator is not None:
     entities.append(EDFEnergySundaySaverStartSensor(hass, sunday_saver_coordinator, account_id))
     entities.append(EDFEnergySundaySaverEndSensor(hass, sunday_saver_coordinator, account_id))
+
+  flextras_coordinator = hass.data[DOMAIN][account_id].get(DATA_FLEXTRAS_COORDINATOR.format(account_id))
+  if flextras_coordinator is not None:
+    entities.append(EDFEnergyFlextrasBonusHours(hass, flextras_coordinator, account_id))
 
   event_coordinator = hass.data[DOMAIN][account_id].get(DATA_EVENT_FREE_ELECTRICITY_COORDINATOR.format(account_id))
   if event_coordinator is not None:

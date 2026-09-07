@@ -10,6 +10,12 @@ import homeassistant.helpers.config_validation as cv
 from .electricity.off_peak import EDFEnergyElectricityOffPeak
 from .intelligent.dispatching import EDFEnergyIntelligentDispatching
 from .sunday_saver.binary_sensor import EDFEnergySundaySaverFreeElectricity
+from .flextras import async_remove_ineligible_entity
+from .flextras.binary_sensor import (
+  EDFEnergyFlextrasRegistered,
+  EDFEnergyFlextrasWeekendSaverEligible,
+  EDFEnergyFlextrasPowerPerksRegistered,
+)
 from .utils import get_active_tariff
 from .api_client.intelligent_device import IntelligentDevice
 from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult
@@ -27,6 +33,7 @@ from .const import (
   CONFIG_MAIN_INTELLIGENT_SETTINGS,
   DATA_INTELLIGENT_DEVICES,
   DATA_INTELLIGENT_DISPATCHES_COORDINATOR,
+  DATA_FLEXTRAS_COORDINATOR,
   DATA_SUNDAY_SAVER_COORDINATOR,
   DOMAIN,
 
@@ -75,6 +82,28 @@ async def async_setup_main_sensors(hass, entry, async_add_entities):
   sunday_saver_coordinator = hass.data[DOMAIN][account_id].get(DATA_SUNDAY_SAVER_COORDINATOR.format(account_id))
   if sunday_saver_coordinator is not None:
     entities.append(EDFEnergySundaySaverFreeElectricity(hass, sunday_saver_coordinator, account_id))
+
+  flextras_coordinator = hass.data[DOMAIN][account_id].get(DATA_FLEXTRAS_COORDINATOR.format(account_id))
+  if flextras_coordinator is not None:
+    entities.append(EDFEnergyFlextrasRegistered(hass, flextras_coordinator, account_id))
+
+    # Sub-scheme entities are only created where the account's tariff permits the
+    # scheme at all, so a permanently-off sensor never appears. A tariff change
+    # requires reloading the integration for these to appear or disappear.
+    flextras_result = flextras_coordinator.data
+    if flextras_result is None or not flextras_result.weekend_saver_tariff_excluded:
+      entities.append(EDFEnergyFlextrasWeekendSaverEligible(hass, flextras_coordinator, account_id))
+    else:
+      async_remove_ineligible_entity(
+        hass, "binary_sensor", f"edf_energy_{account_id}_flextras_weekend_saver_eligible"
+      )
+
+    if flextras_result is None or not flextras_result.power_perks_excluded:
+      entities.append(EDFEnergyFlextrasPowerPerksRegistered(hass, flextras_coordinator, account_id))
+    else:
+      async_remove_ineligible_entity(
+        hass, "binary_sensor", f"edf_energy_{account_id}_flextras_power_perks_registered"
+      )
 
   if len(entities) > 0:
     async_add_entities(entities)
