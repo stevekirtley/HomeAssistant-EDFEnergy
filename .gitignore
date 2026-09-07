@@ -8,3 +8,6 @@ test_local.py
 **/debug_token_probe.py
 *.har
 *.log
+# Captured API traffic — contains live bearer tokens / account data
+_docs/tools/snapshots/
+*.mitm
