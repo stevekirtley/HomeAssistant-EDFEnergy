@@ -826,7 +826,7 @@ class EDFEnergyApiClient:
   # ── Flextras ────────────────────────────────────────────────────────────────
   # EDF's 2026 replacement for Sunday Saver. Joining is only possible in the EDF
   # mobile app, but the read endpoints and the bonus-hours claim accept the same
-  # Kraken JWT as the rest of the integration. See _docs/flextras_api.md.
+  # Kraken JWT as the rest of the integration.
 
   async def _async_get_edf_rest_json(self, url: str, request_context: str):
     """GET an edfenergy.com REST endpoint authenticated with the Kraken JWT.

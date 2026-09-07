@@ -11,3 +11,6 @@ test_local.py
 # Captured API traffic — contains live bearer tokens / account data
 _docs/tools/snapshots/
 *.mitm
+
+# Reverse-engineering notes: kept local, not published
+_docs/flextras_api.md
