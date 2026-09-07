@@ -21,7 +21,7 @@
           "password": "Your password is used only once to obtain an API key and is never stored.",
           "api_key": "Optional. If you already have an EDF API key, paste it here and leave the email and password blank. Otherwise leave this empty and a key will be generated from your email and password.",
           "calorific_value": "This can be found on your gas statement and can change from time to time",
-          "sunday_saver_auto_enrol": "When enabled, HA will automatically opt your account into each month's Sunday Saver challenge. Disable if you prefer to manage enrolment manually via the join_sunday_saver service."
+          "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme."
         },
         "sections": {
           "price_cap_settings": {
@@ -120,7 +120,7 @@
           "password": "Entering your password generates a fresh API key. It is used only once and never stored.",
           "api_key": "Optional. Paste an existing EDF API key, or leave blank and enter your email and password to generate one.",
           "calorific_value": "This can be found on your gas statement and can change from time to time",
-          "sunday_saver_auto_enrol": "When enabled, HA will automatically opt your account into each month's Sunday Saver challenge. Disable if you prefer to manage enrolment manually via the join_sunday_saver service."
+          "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme."
         },
         "sections": {
           "price_cap_settings": {
@@ -429,7 +429,7 @@
         },
         "data_description": {
           "football_free_electricity_enabled": "When enabled, free electricity windows are added to the session feed for every England or Scotland World Cup match (2 hours from kick-off). Only enable this if your account is enrolled in EDF's World Cup free electricity offer.",
-          "sunday_saver_auto_enrol": "When enabled, HA will automatically opt your account into each month's Sunday Saver challenge. Disable if you prefer to manage enrolment manually via the join_sunday_saver service."
+          "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme."
         }
       }
     }

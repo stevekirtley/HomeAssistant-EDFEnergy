@@ -21,6 +21,15 @@ from . import BaseCoordinatorResult
 _LOGGER = logging.getLogger(__name__)
 _UK_TZ = ZoneInfo("Europe/London")
 
+# Sunday Saver was retired in 2026 and replaced by Flextras (see _docs/flextras_api.md).
+# EDF now reuse challenge/register purely to capture "interest" in the new schemes: the
+# campaign endpoint serves a fresh sunday_saver_interest_capture_from_<month> id, and
+# challenge/summary reports SundaySaverTurnedOff so the enrolment check can never return
+# True. Auto-enrolment therefore re-registers on every refresh and silently signs users up
+# to something they did not ask for. The machinery below is deliberately left intact
+# because Flextras is expected to need the same shape - flip this to True to revive it.
+AUTO_ENROL_SUPPORTED = False
+
 
 def _parse_edf_datetime(dt_str: str) -> datetime | None:
   """Parse a Sunday Saver datetime string as UK local time.
@@ -171,7 +180,7 @@ async def async_setup_sunday_saver_coordinator(hass, account_id: str, entry):
     existing = hass.data[DOMAIN][account_id].get(DATA_SUNDAY_SAVER.format(account_id))
     # Read from entry.data first (set via Reconfigure); fall back to entry.options
     # for installs that configured this before it moved to the Reconfigure form.
-    auto_enrol = entry.data.get(
+    auto_enrol = AUTO_ENROL_SUPPORTED and entry.data.get(
       CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL,
       entry.options.get(CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL, True),
     )
