@@ -823,6 +823,155 @@ class EDFEnergyApiClient:
       _LOGGER.warning("Sunday Saver sign-up failed for %s: %s (%s)", account_id, e, type(e).__name__)
       return False, False
 
+  # ── Flextras ────────────────────────────────────────────────────────────────
+  # EDF's 2026 replacement for Sunday Saver. Joining is only possible in the EDF
+  # mobile app, but the read endpoints and the bonus-hours claim accept the same
+  # Kraken JWT as the rest of the integration. See _docs/flextras_api.md.
+
+  async def _async_get_edf_rest_json(self, url: str, request_context: str):
+    """GET an edfenergy.com REST endpoint authenticated with the Kraken JWT.
+
+    Returns the decoded JSON, or None if the request could not be completed.
+    """
+    try:
+      await self.async_refresh_token()
+      headers = {
+        'Authorization': self._graphql_token,
+        'Accept': 'application/json',
+      }
+      client = self._create_client_session()
+      async with client.get(url, headers=headers) as response:
+        if response.status == 200:
+          return await response.json(content_type=None)
+        if response.status == 404:
+          return None
+        body = await response.text()
+        _LOGGER.warning(
+          "%s returned HTTP %s. Body: %s", request_context, response.status, body[:500]
+        )
+        return None
+    except Exception as e:
+      _LOGGER.warning("%s failed: %s (%s)", request_context, e, type(e).__name__)
+      return None
+
+  async def async_get_flextras_status(self, account_id: str):
+    """Fetch Flextras registration state for an account.
+
+    Returns a dict with registrationDate, tasteCardActivationDate, optedOut,
+    optedOutDate, bonusHoursAwarded, claimedSignUpBonusHours and
+    powerPerksSignUpDate, or None if unavailable.
+    """
+    return await self._async_get_edf_rest_json(
+      f'https://edfenergy.com/support/cus-event/api/flextras/status/{account_id}',
+      f'Flextras status check for {account_id}',
+    )
+
+  async def async_get_weekend_saver_eligibility(self, account_id: str, property_id: str):
+    """Fetch Weekend Saver / bonus hours tile eligibility for a property."""
+    return await self._async_get_edf_rest_json(
+      f'https://www.edfenergy.com/support/energyhub/api/weekend-saver/v1'
+      f'/{account_id}/{property_id}/eligibility',
+      f'Weekend Saver eligibility for {account_id}/{property_id}',
+    )
+
+  async def async_get_weekend_saver_challenges(self, account_id: str, property_id: str):
+    """Fetch the Weekend Saver challenge screen (server-driven UI).
+
+    Contains the SIGNUP_BANNER canSignUp flag and the CHECKLIST of eligibility
+    gates, which carry human-readable reasons when an account cannot join.
+    """
+    return await self._async_get_edf_rest_json(
+      f'https://www.edfenergy.com/support/energyhub/api/weekend-saver/v1'
+      f'/{account_id}/{property_id}/ui/challenges',
+      f'Weekend Saver challenges for {account_id}/{property_id}',
+    )
+
+  async def async_register_power_perks(self, account_id: str):
+    """Register the account for Power Perks.
+
+    Power Perks offers short-notice (typically day-before) free electricity slots.
+    The request takes no body - the account number in the path is the whole input.
+    Returns the response dict on success, or None if the request failed.
+    """
+    try:
+      await self.async_refresh_token()
+      url = (
+        f'https://edfenergy.com/support/cus-event/api/flextras/power-perks'
+        f'/register/{account_id}'
+      )
+      headers = {
+        'Authorization': self._graphql_token,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+      client = self._create_client_session()
+      async with client.post(url, headers=headers) as response:
+        if response.status in (200, 201):
+          data = await response.json(content_type=None)
+          _LOGGER.info("Power Perks: registered account %s (%s)", account_id, str(data)[:200])
+          return data
+        body = await response.text()
+        _LOGGER.warning(
+          "Power Perks registration returned HTTP %s for %s. Body: %s",
+          response.status, account_id, body[:500],
+        )
+        return None
+    except Exception as e:
+      _LOGGER.warning(
+        "Power Perks registration failed for %s: %s (%s)", account_id, e, type(e).__name__
+      )
+      return None
+
+  async def async_get_feature_flag(self, flag: str):
+    """Read an EDF Energy Hub feature flag.
+
+    Returns e.g. {"name": "bonusHoursEnabled", "enabled": false,
+    "nextCampaignId": null, ...}. nextCampaignId is how the app learns that a
+    campaign is scheduled, so this is a useful launch canary.
+    """
+    return await self._async_get_edf_rest_json(
+      f'https://www.edfenergy.com/support/energyhub/api/feature/v1?flag={flag}',
+      f'Feature flag {flag}',
+    )
+
+  async def async_claim_flextras_bonus_hours(self, account_id: str, property_id: str):
+    """Claim the Flextras joining bonus hours.
+
+    Returns the response dict (hoursAwarded, claimedSignUpBonusHours) on success,
+    or None if the claim could not be made. Claiming again once already claimed is
+    harmless - EDF simply reports the existing award.
+    """
+    try:
+      await self.async_refresh_token()
+      url = (
+        f'https://edfenergy.com/support/cus-event/api/flextras/bonus-hours'
+        f'/{account_id}/claim'
+      )
+      headers = {
+        'Authorization': self._graphql_token,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+      client = self._create_client_session()
+      async with client.post(url, json={'propertyId': str(property_id)}, headers=headers) as response:
+        if response.status in (200, 201):
+          data = await response.json(content_type=None)
+          _LOGGER.info(
+            "Flextras: claimed bonus hours for %s (%s)", account_id, str(data)[:200]
+          )
+          return data
+        body = await response.text()
+        _LOGGER.warning(
+          "Flextras bonus hours claim returned HTTP %s for %s. Body: %s",
+          response.status, account_id, body[:500],
+        )
+        return None
+    except Exception as e:
+      _LOGGER.warning(
+        "Flextras bonus hours claim failed for %s: %s (%s)", account_id, e, type(e).__name__
+      )
+      return None
+
   async def async_get_football_enrollment_status(self, account_id: str) -> bool | None:
     # ARCHIVED — World Cup 2026 ended 2026-07-19. Always returns None.
     # Restore body below when a new football tournament begins.

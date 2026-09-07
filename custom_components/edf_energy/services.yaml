@@ -9,6 +9,35 @@ join_sunday_saver:
       selector:
         text:
 
+claim_flextras_bonus_hours:
+  name: Claim Flextras bonus hours
+  description: >-
+    Claims the Flextras joining bonus free electricity hours for an account. Only
+    the claim is performed here - joining Flextras itself is only possible in the
+    EDF mobile app. Claiming when already claimed is harmless.
+  fields:
+    account_id:
+      name: Account Id
+      description: The id of the account to claim for. If not specified, all accounts are claimed for.
+      required: false
+      example: A-XXXXXXXX
+      selector:
+        text:
+
+register_power_perks:
+  name: Register for Power Perks
+  description: >-
+    Opts the account into Power Perks, EDF's short-notice free electricity slots.
+    Requires the account to already be signed up to Flextras (app only).
+  fields:
+    account_id:
+      name: Account Id
+      description: The id of the account to register. If not specified, all accounts are registered.
+      required: false
+      example: A-XXXXXXXX
+      selector:
+        text:
+
 purge_invalid_external_statistic_ids:
   name: Purge invalid external statistics
   description: Removes external statistics for all meters that don't have an active tariff

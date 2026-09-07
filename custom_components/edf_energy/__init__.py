@@ -31,6 +31,7 @@ from .coordinators.intelligent_dispatches import IntelligentDispatchesCoordinato
 from .coordinators.intelligent_settings import async_setup_intelligent_settings_coordinator
 from .coordinators.electricity_rates import async_setup_electricity_rates_coordinator
 from .coordinators.sunday_saver import async_setup_sunday_saver_coordinator
+from .coordinators.flextras import async_setup_flextras_coordinator, get_property_id
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
 from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
 from .statistics import get_statistic_ids_to_remove
@@ -105,12 +106,15 @@ from .const import (
   REPAIR_UNKNOWN_INTELLIGENT_PROVIDER,
   SERVICE_SET_FOOTBALL_FREE_ELECTRICITY,
   SERVICE_JOIN_SUNDAY_SAVER,
+  SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS,
+  SERVICE_REGISTER_POWER_PERKS,
+  DATA_FLEXTRAS_COORDINATOR,
   SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
   REPAIR_FREE_ELECTRICITY_EVENT_HISTORY,
   FREE_ELECTRICITY_EVENT_HISTORY_ROW_THRESHOLD,
 )
 
-ACCOUNT_PLATFORMS = ["sensor", "binary_sensor", "number", "switch", "text", "time", "event", "select", "calendar"]
+ACCOUNT_PLATFORMS = ["sensor", "binary_sensor", "number", "switch", "text", "time", "event", "select", "calendar", "button"]
 COST_TRACKER_PLATFORMS = ["sensor"]
 TARIFF_COMPARISON_PLATFORMS = ["sensor"]
 
@@ -553,6 +557,7 @@ async def async_setup_dependencies(hass, entry, config):
 
   await async_setup_account_info_coordinator(hass, account_id, entry)
   await async_setup_sunday_saver_coordinator(hass, account_id, entry)
+  await async_setup_flextras_coordinator(hass, account_id, entry)
   await async_setup_event_free_electricity_coordinator(hass, account_id)
   await async_setup_free_electricity_sessions_coordinator(hass, account_id, entry)
 
@@ -688,6 +693,68 @@ def _async_register_services(hass):
     DOMAIN,
     SERVICE_JOIN_SUNDAY_SAVER,
     _handle_join_sunday_saver,
+    schema=vol.Schema({
+      vol.Optional("account_id"): cv.string,
+    }),
+  )
+
+  async def _handle_claim_flextras_bonus_hours(call):
+    account_id = call.data.get("account_id")
+    for entry in hass.config_entries.async_entries(DOMAIN):
+      if account_id is not None and entry.data.get(CONFIG_ACCOUNT_ID) != account_id:
+        continue
+      if entry.data.get(CONFIG_KIND) != CONFIG_KIND_ACCOUNT:
+        continue
+      entry_account_id = entry.data.get(CONFIG_ACCOUNT_ID)
+      client: EDFEnergyApiClient = hass.data.get(DOMAIN, {}).get(entry_account_id, {}).get(DATA_CLIENT)
+      if client is None:
+        continue
+      property_id = get_property_id(hass, entry_account_id)
+      if property_id is None:
+        _LOGGER.warning(
+          "Cannot claim Flextras bonus hours for %s: no property id available", entry_account_id
+        )
+        continue
+      result = await client.async_claim_flextras_bonus_hours(entry_account_id, property_id)
+      if result is not None:
+        coordinator = hass.data.get(DOMAIN, {}).get(entry_account_id, {}).get(
+          DATA_FLEXTRAS_COORDINATOR.format(entry_account_id)
+        )
+        if coordinator is not None:
+          await coordinator.async_request_refresh()
+
+  hass.services.async_register(
+    DOMAIN,
+    SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS,
+    _handle_claim_flextras_bonus_hours,
+    schema=vol.Schema({
+      vol.Optional("account_id"): cv.string,
+    }),
+  )
+
+  async def _handle_register_power_perks(call):
+    account_id = call.data.get("account_id")
+    for entry in hass.config_entries.async_entries(DOMAIN):
+      if account_id is not None and entry.data.get(CONFIG_ACCOUNT_ID) != account_id:
+        continue
+      if entry.data.get(CONFIG_KIND) != CONFIG_KIND_ACCOUNT:
+        continue
+      entry_account_id = entry.data.get(CONFIG_ACCOUNT_ID)
+      client: EDFEnergyApiClient = hass.data.get(DOMAIN, {}).get(entry_account_id, {}).get(DATA_CLIENT)
+      if client is None:
+        continue
+      result = await client.async_register_power_perks(entry_account_id)
+      if result is not None:
+        coordinator = hass.data.get(DOMAIN, {}).get(entry_account_id, {}).get(
+          DATA_FLEXTRAS_COORDINATOR.format(entry_account_id)
+        )
+        if coordinator is not None:
+          await coordinator.async_request_refresh()
+
+  hass.services.async_register(
+    DOMAIN,
+    SERVICE_REGISTER_POWER_PERKS,
+    _handle_register_power_perks,
     schema=vol.Schema({
       vol.Optional("account_id"): cv.string,
     }),
