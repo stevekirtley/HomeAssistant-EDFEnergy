@@ -39,6 +39,19 @@
       : `${formatDateShort(s)} ${formatTime(s)} – ${formatDateShort(e)} ${formatTime(e)}`;
   }
 
+  // HA serialises these attributes as full ISO timestamps; the card only wants the day.
+  // Sunday Saver was retired in 2026 and replaced by Flextras. The card is hidden
+  // rather than deleted so it can be brought back if EDF revive the scheme, or
+  // reused for whatever Weekend Saver turns into. Flip to true to restore it.
+  const SHOW_SUNDAY_SAVER_CARD = false;
+
+  function formatDateOnly(v) {
+    if (!v) return '';
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return String(v);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
   function isValidDate(v) {
     return v && v !== 'unknown' && v !== 'unavailable' && !isNaN(Date.parse(v));
   }
@@ -354,6 +367,14 @@
       for (const [id, s] of Object.entries(hass.states))
         if (id.startsWith('sensor.') && id.includes('edf_energy') && id.endsWith('_sunday_saver_start'))
           return s;
+      return null;
+    }
+
+    _findFlextrasEntity(hass) {
+      if (!hass) return null;
+      for (const [id, st] of Object.entries(hass.states))
+        if (id.startsWith('binary_sensor.') && id.includes('edf_energy') && id.endsWith('_flextras_registered'))
+          return st;
       return null;
     }
 
@@ -726,8 +747,108 @@
         </div>`;
     }
 
+    // ── Flextras card ─────────────────────────────────────────────────────────
+    // Flextras replaced Sunday Saver in 2026. Joining, and joining the schemes
+    // beneath it, is only possible in the EDF mobile app, so this card is
+    // read-only apart from claiming the joining bonus hours.
+    _renderFlextrasCard() {
+      const fe = this._findFlextrasEntity(this._hass);
+      if (!fe) return '';
+
+      const a = fe.attributes || {};
+      const registered = fe.state === 'on';
+      const optedOut = a.opted_out === true;
+
+      let badge;
+      if (registered) badge = `<span class="status-pill on">Registered</span>`;
+      else if (optedOut) badge = `<span class="status-pill">Opted out</span>`;
+      else badge = `<span class="status-pill">Not registered</span>`;
+
+      const rows = [];
+
+      // Bonus hours - the one action we can perform from HA.
+      const hours = a.bonus_hours_awarded;
+      if (hours != null) {
+        const claimed = a.bonus_hours_claimed === true;
+        rows.push(`
+          <div class="control-row">
+            <div class="control-label">
+              Joining bonus
+              <div class="control-sub">${claimed ? 'Claimed - use on a weekend of your choice' : 'Not yet claimed'}</div>
+            </div>
+            <div style="text-align:right;font-weight:600;white-space:nowrap">${esc(String(hours))}h</div>
+          </div>`);
+      }
+
+      // Weekend Saver - hidden outright where the tariff rules the account out
+      // (a permanently blocked row is noise); otherwise show EDF's own reason,
+      // which is actionable for gates like a missing mobile number.
+      const canSignUp = a.weekend_saver_can_sign_up;
+      const blockers = Array.isArray(a.weekend_saver_blockers) ? a.weekend_saver_blockers : [];
+      const wsExcluded = a.weekend_saver_tariff_excluded === true;
+      if (!wsExcluded && (canSignUp != null || blockers.length)) {
+        const sub = canSignUp === true
+          ? 'Eligible to join'
+          : (blockers.length ? blockers.map(b => esc(String(b))).join('; ') : 'Not eligible');
+        rows.push(`
+          <div class="control-row">
+            <div class="control-label">
+              Weekend Saver
+              <div class="control-sub">${sub}</div>
+            </div>
+            <div style="text-align:right;font-weight:600;white-space:nowrap">${canSignUp === true ? '&#x2705;' : '&#x2014;'}</div>
+          </div>`);
+      }
+
+      // Power Perks - field exists ahead of launch, so absence is expected.
+      // Power Perks - hidden where the tariff cannot join (e.g. FreePhase, which
+      // already includes free electricity events).
+      const perks = a.power_perks_signup_date;
+      if (a.power_perks_excluded !== true) rows.push(`
+        <div class="control-row">
+          <div class="control-label">
+            Power Perks
+            <div class="control-sub">${perks ? 'Signed up ' + esc(formatDateOnly(perks)) : 'Not signed up'}</div>
+          </div>
+          <div style="text-align:right;font-weight:600;white-space:nowrap">${perks ? '&#x2705;' : '&#x2014;'}</div>
+        </div>`);
+
+      if (a.tastecard_activation_date) {
+        rows.push(`
+          <div class="control-row">
+            <div class="control-label">
+              Tastecard
+              <div class="control-sub">Activated ${esc(formatDateOnly(a.tastecard_activation_date))}</div>
+            </div>
+            <div style="text-align:right;font-weight:600">&#x2705;</div>
+          </div>`);
+      }
+
+      const banner = registered ? '' : `
+        <div class="wc-banner">
+          Flextras can only be joined in the EDF mobile app. Once joined, its status
+          and rewards appear here.
+        </div>`;
+
+      return `
+        <div class="card">
+          <div class="section-title">&#x2B50; Flextras</div>
+          <div class="control-row">
+            <div class="control-label">
+              Flextras membership
+              <div class="control-sub">${a.registration_date ? 'Registered ' + esc(formatDateOnly(a.registration_date)) : 'Monthly challenges, free energy events and perks'}</div>
+            </div>
+            ${badge}
+          </div>
+          ${banner}
+          ${rows.join('')}
+        </div>`;
+    }
+
     // ── Sunday Saver card ──────────────────────────────────────────────────────
     _renderSundaySaverCard() {
+      if (!SHOW_SUNDAY_SAVER_CARD) return '';
+
       const se = this._findSundaySaverEntity(this._hass);
       if (!se) return '';
 
@@ -771,12 +892,11 @@
             <div style="text-align:right;font-weight:600">&#x2014;</div>
           </div>`;
       } else {
-        badge = `<span class="status-pill">Awaiting</span>`;
-        body = `
-          <div class="wc-banner">
-            Sunday Saver gives around 16 hours of free electricity on selected Sundays.
-            Your next session will appear here once EDF schedule it on your account.
-          </div>`;
+        // Sunday Saver was retired in 2026 and replaced by Flextras. With no
+        // enrolment, no scheduled session and no history left to show, the card
+        // has nothing to say, so hide it rather than advertising a dead scheme.
+        // It reappears automatically if EDF ever schedule a session again.
+        return '';
       }
 
       return `
@@ -940,6 +1060,7 @@
             ${this._renderAuthExpiryBanner()}
             ${this._renderControls(ids)}
             ${this._renderWorldCupCard()}
+            ${this._renderFlextrasCard()}
             ${this._renderSundaySaverCard()}
             ${this._renderApiKeyCard()}
 
