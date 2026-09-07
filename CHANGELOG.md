@@ -3,6 +3,10 @@
 
 ### Bug Fixes
 
+* Fixed imported electricity cost statistics being inflated. The cost of each half hour was rounded to the nearest penny before being added to the running total, and across 48 slots a day those roundings compound — a day of 0.1 kWh slots at 26.42p works out at £1.27 but was imported as £1.44, around 13% too much. Costs are now accumulated at full precision and rounded only when the statistic is written. Reported by [@wildsurfer](https://github.com/wildsurfer) ([#30](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/30)). The same bug exists in the upstream Octopus integration ([BottlecapDave/HomeAssistant-OctopusEnergy#1852](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues/1852)).
+
+  This only affects data imported from now on. To correct figures already in your database, use the **Refresh previous consumption data** action against the affected sensor with a start date far enough back to cover the period you want rebuilt.
+
 * Home Assistant will no longer automatically enrol your account in Sunday Saver. EDF retired Sunday Saver and replaced it with Flextras, but left the old sign-up endpoint in place and now use it to capture "interest" in the new schemes. When EDF activated a new October interest campaign, the endpoint changed from quietly doing nothing to accepting registrations, so the automatic enrolment started firing for everyone who had it switched on — repeatedly, because the enrolment check can never report success while Sunday Saver is switched off. Worse, the registration was reported as successful without anything actually appearing on the account. The automatic enrolment is now switched off. The setting remains in the Reconfigure menu, marked inactive, so it can be brought back if EDF ever revive the scheme.
 
 ### Features
