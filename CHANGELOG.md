@@ -1,3 +1,11 @@
+## [19.2.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.1) (2026-09-18)
+
+
+### Bug Fixes
+
+* Fixed the `events` attribute of the free electricity session events entity being empty after a restart until the next hourly refresh, even though `free_electricity_windows` already listed the session. The coordinator fires its first event before the entity exists, and Home Assistant then restores the attributes it recorded before the restart, so a Power Perks session that arrived in between, or that the previous version could not know about, was missing from `events` for up to an hour. The entity now takes the current sessions from the coordinator as soon as it is added, so tools that read `events` see the session straight away. Reported by [@bigchriselmer-ui](https://github.com/bigchriselmer-ui) ([#33](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/33)).
+
+
 ## [19.2.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.0) (2026-09-18)
 
 
