@@ -1,8 +1,13 @@
 """Buttons for the Flextras actions the integration can perform.
 
-Only actions captured from the EDF mobile app are exposed here. Joining Flextras
-itself, and joining the Weekend Saver challenge, are deliberately absent - those
-endpoints are not known, and guessing them risks unintended account changes.
+Only actions captured from the EDF mobile app are exposed here. Joining the
+Weekend Saver challenge is deliberately absent - that endpoint is not known, and
+guessing it risks unintended account changes.
+
+Leaving Flextras is not exposed as a button: it is reversible, but it resets the
+registration date and is an unfortunate thing to press by accident on a
+dashboard. It is available as the edf_energy.join_flextras action's counterpart
+in the API client if ever needed.
 """
 import logging
 
@@ -121,4 +126,54 @@ class EDFEnergyFlextrasClaimBonusHours(CoordinatorEntity, ButtonEntity):
     result = await self._client.async_claim_flextras_bonus_hours(self._account_id, property_id)
     if result is None:
       _LOGGER.warning("Flextras bonus hours claim failed for %s", self._account_id)
+    await self.coordinator.async_request_refresh()
+
+
+class EDFEnergyFlextrasJoin(CoordinatorEntity, ButtonEntity):
+  """Join Flextras.
+
+  Only available while the account is not a member, so it disappears from use
+  once joined rather than offering a no-op.
+  """
+
+  def __init__(self, hass: HomeAssistant, coordinator, client, account_id: str):
+    CoordinatorEntity.__init__(self, coordinator)
+    self._hass = hass
+    self._client = client
+    self._account_id = account_id
+    self._available = False
+    self.entity_id = generate_entity_id("button.{}", self.unique_id, hass=hass)
+
+  @property
+  def unique_id(self):
+    return f"edf_energy_{self._account_id}_flextras_join"
+
+  @property
+  def name(self):
+    return f"Flextras Join ({self._account_id})"
+
+  @property
+  def icon(self):
+    return "mdi:star-plus-outline"
+
+  @property
+  def available(self):
+    return self._available
+
+  async def async_added_to_hass(self) -> None:
+    await super().async_added_to_hass()
+    self._handle_coordinator_update()
+
+  @callback
+  def _handle_coordinator_update(self) -> None:
+    result: FlextrasCoordinatorResult = self.coordinator.data if self.coordinator is not None else None
+    if result is not None:
+      # Never registered, or registered and since opted out.
+      self._available = not bool(result.registered) or bool(result.opted_out)
+    super()._handle_coordinator_update()
+
+  async def async_press(self) -> None:
+    result = await self._client.async_register_flextras(self._account_id)
+    if result is None:
+      _LOGGER.warning("Flextras join failed for %s", self._account_id)
     await self.coordinator.async_request_refresh()

@@ -4,6 +4,7 @@ from .flextras import async_remove_ineligible_entity
 from .flextras.button import (
   EDFEnergyFlextrasRegisterPowerPerks,
   EDFEnergyFlextrasClaimBonusHours,
+  EDFEnergyFlextrasJoin,
 )
 
 from .const import (
@@ -28,7 +29,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     client = hass.data[DOMAIN][account_id].get(DATA_CLIENT)
 
     if coordinator is not None and client is not None:
-      entities = [EDFEnergyFlextrasClaimBonusHours(hass, coordinator, client, account_id)]
+      entities = [
+        EDFEnergyFlextrasJoin(hass, coordinator, client, account_id),
+        EDFEnergyFlextrasClaimBonusHours(hass, coordinator, client, account_id),
+      ]
 
       # No Power Perks button for tariffs that cannot join (e.g. FreePhase, where
       # free electricity events are already part of the tariff).

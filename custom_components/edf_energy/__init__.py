@@ -108,6 +108,7 @@ from .const import (
   SERVICE_JOIN_SUNDAY_SAVER,
   SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS,
   SERVICE_REGISTER_POWER_PERKS,
+  SERVICE_JOIN_FLEXTRAS,
   DATA_FLEXTRAS_COORDINATOR,
   SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
   REPAIR_FREE_ELECTRICITY_EVENT_HISTORY,
@@ -755,6 +756,34 @@ def _async_register_services(hass):
     DOMAIN,
     SERVICE_REGISTER_POWER_PERKS,
     _handle_register_power_perks,
+    schema=vol.Schema({
+      vol.Optional("account_id"): cv.string,
+    }),
+  )
+
+  async def _handle_join_flextras(call):
+    account_id = call.data.get("account_id")
+    for entry in hass.config_entries.async_entries(DOMAIN):
+      if account_id is not None and entry.data.get(CONFIG_ACCOUNT_ID) != account_id:
+        continue
+      if entry.data.get(CONFIG_KIND) != CONFIG_KIND_ACCOUNT:
+        continue
+      entry_account_id = entry.data.get(CONFIG_ACCOUNT_ID)
+      client: EDFEnergyApiClient = hass.data.get(DOMAIN, {}).get(entry_account_id, {}).get(DATA_CLIENT)
+      if client is None:
+        continue
+      result = await client.async_register_flextras(entry_account_id)
+      if result is not None:
+        coordinator = hass.data.get(DOMAIN, {}).get(entry_account_id, {}).get(
+          DATA_FLEXTRAS_COORDINATOR.format(entry_account_id)
+        )
+        if coordinator is not None:
+          await coordinator.async_request_refresh()
+
+  hass.services.async_register(
+    DOMAIN,
+    SERVICE_JOIN_FLEXTRAS,
+    _handle_join_flextras,
     schema=vol.Schema({
       vol.Optional("account_id"): cv.string,
     }),
