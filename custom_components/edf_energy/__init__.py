@@ -448,6 +448,9 @@ async def async_setup_dependencies(hass, entry, config):
       hass.data[DOMAIN][account_id][DATA_AUTH_TOKEN_EXPIRY.format(account_id)] = stored_expiry
       _async_check_auth_expiry_for_repair(hass, entry, account_id, stored_expiry)
     client = EDFEnergyApiClient(config[CONFIG_MAIN_REFRESH_TOKEN], electricity_price_cap, gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates, on_token_refresh=_async_persist_refresh_token, on_refresh_expiry_update=_async_on_refresh_expiry_update)
+  # Lets the client price a tariff from the account's agreement when EDF hide its product
+  # from the public pricing API (see api_client/agreement_tariffs.py).
+  client.set_account_id(account_id)
   hass.data[DOMAIN][account_id][DATA_CLIENT] = client
 
   # Delete any issues that may have been previously raised
