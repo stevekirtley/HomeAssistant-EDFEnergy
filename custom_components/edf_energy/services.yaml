@@ -53,6 +53,36 @@ join_flextras:
       selector:
         text:
 
+register_power_perks_session:
+  name: Register Power Perks session
+  description: >-
+    Records a Power Perks free electricity session so it appears in the free electricity
+    calendar, sensors and events. Sessions are normally picked up automatically from the
+    Power Perks relay; use this when EDF's text could not be parsed, or if you are not
+    using the relay. Registering the same start time again replaces the earlier entry.
+  fields:
+    start:
+      name: Start
+      description: When the free electricity starts. Local time unless a timezone is given.
+      required: true
+      example: "2026-09-19 04:00:00"
+      selector:
+        datetime:
+    end:
+      name: End
+      description: When the free electricity ends.
+      required: true
+      example: "2026-09-19 16:00:00"
+      selector:
+        datetime:
+    account_id:
+      name: Account Id
+      description: The account to register the session against. If not specified, it is registered for all accounts.
+      required: false
+      example: A-XXXXXXXX
+      selector:
+        text:
+
 purge_invalid_external_statistic_ids:
   name: Purge invalid external statistics
   description: Removes external statistics for all meters that don't have an active tariff

@@ -103,6 +103,30 @@ If the account is already enrolled, the service exits silently without making an
 |---|---|---|
 | `data.account_id` | `yes` | The EDF Energy account number to enrol (e.g. `A-AAAA1111`). If omitted, all configured accounts are enrolled. |
 
+## Flextras
+
+### edf_energy.join_flextras
+
+Joins an account to Flextras, EDF's rewards scheme, without opening the mobile app. Safe to run on an account that has previously opted out: bonus hours, tastecard and Power Perks registration all survive, though the registration date resets to the day of rejoining. On success the Flextras coordinator is refreshed so the membership entities update straight away.
+
+| Attribute | Optional | Description |
+|---|---|---|
+| `data.account_id` | `yes` | The EDF Energy account number to join (e.g. `A-AAAA1111`). If omitted, all configured accounts are joined. |
+
+## Power Perks
+
+### edf_energy.register_power_perks_session
+
+Records a Flextras Power Perks free electricity session so it appears in the [free electricity calendar](./entities/free_electricity.md), the session sensors and the session events, exactly like a session picked up automatically.
+
+EDF announce Power Perks sessions by SMS the day before and nowhere else, so the integration normally learns about them from a relay that parses the text (see `tools/power_perks_relay` in the repository). Use this action when a text could not be parsed, or if you are not using the relay. Registering a session with the same start time again replaces the earlier one.
+
+| Attribute | Optional | Description |
+|---|---|---|
+| `data.start` | `no` | When the free electricity starts (e.g. `2026-09-19 04:00:00`). Local time unless a timezone offset is given. |
+| `data.end` | `no` | When the free electricity ends. Must be after `start` and within 24 hours of it. |
+| `data.account_id` | `yes` | The EDF Energy account number to register the session against. If omitted, it is registered for all configured accounts. |
+
 ## Miscellaneous
 
 ### edf_energy.purge_invalid_external_statistic_ids

@@ -13,6 +13,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
 from homeassistant.util.dt import (utcnow, now)
+from homeassistant.util import dt as dt_util
 from homeassistant.const import (
     EVENT_HOMEASSISTANT_STOP
 )
@@ -34,6 +35,7 @@ from .coordinators.sunday_saver import async_setup_sunday_saver_coordinator
 from .coordinators.flextras import async_setup_flextras_coordinator, get_property_id
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
 from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
+from .coordinators.power_perks import async_setup_power_perks_coordinator, register_manual_session
 from .statistics import get_statistic_ids_to_remove
 from .intelligent import get_intelligent_features, mock_intelligent_devices
 from .config.tariff_comparison import async_migrate_tariff_comparison_config
@@ -84,6 +86,7 @@ from .const import (
   DATA_SUNDAY_SAVER_COORDINATOR,
   DATA_AUTH_TOKEN_EXPIRY,
   DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
+  DATA_POWER_PERKS_COORDINATOR,
   DOMAIN,
 
   CONFIG_MAIN_API_KEY,
@@ -109,6 +112,7 @@ from .const import (
   SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS,
   SERVICE_REGISTER_POWER_PERKS,
   SERVICE_JOIN_FLEXTRAS,
+  SERVICE_REGISTER_POWER_PERKS_SESSION,
   DATA_FLEXTRAS_COORDINATOR,
   SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
   REPAIR_FREE_ELECTRICITY_EVENT_HISTORY,
@@ -560,6 +564,7 @@ async def async_setup_dependencies(hass, entry, config):
   await async_setup_sunday_saver_coordinator(hass, account_id, entry)
   await async_setup_flextras_coordinator(hass, account_id, entry)
   await async_setup_event_free_electricity_coordinator(hass, account_id)
+  await async_setup_power_perks_coordinator(hass, account_id, entry)
   await async_setup_free_electricity_sessions_coordinator(hass, account_id, entry)
 
   _async_register_services(hass)
@@ -631,6 +636,13 @@ def _async_check_auth_expiry_for_repair(hass, entry, account_id: str, expiry: da
     entry.async_start_reauth(hass)
   else:
     ir.async_delete_issue(hass, DOMAIN, repair_key)
+
+
+def _as_utc_datetime(value: datetime) -> datetime:
+  """A service datetime as UTC; a value without a timezone is Home Assistant's local time."""
+  if value.tzinfo is None:
+    value = value.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+  return dt_util.as_utc(value)
 
 
 def _async_register_services(hass):
@@ -785,6 +797,51 @@ def _async_register_services(hass):
     SERVICE_JOIN_FLEXTRAS,
     _handle_join_flextras,
     schema=vol.Schema({
+      vol.Optional("account_id"): cv.string,
+    }),
+  )
+
+  async def _handle_register_power_perks_session(call):
+    """Register a Power Perks free electricity session by hand.
+
+    For a text the relay could not parse, or for anyone not using the relay at all. The
+    session goes into the same feed as the relayed ones, so the calendar, sensors and
+    events all pick it up. Times without a timezone are taken as Home Assistant's local time.
+    """
+    account_id = call.data.get("account_id")
+    start = _as_utc_datetime(call.data["start"])
+    end = _as_utc_datetime(call.data["end"])
+    if end <= start:
+      raise vol.Invalid("end must be after start")
+    if end - start > timedelta(hours=24):
+      raise vol.Invalid("a session cannot be longer than 24 hours")
+
+    for entry in hass.config_entries.async_entries(DOMAIN):
+      if account_id is not None and entry.data.get(CONFIG_ACCOUNT_ID) != account_id:
+        continue
+      if entry.data.get(CONFIG_KIND) != CONFIG_KIND_ACCOUNT:
+        continue
+      entry_account_id = entry.data.get(CONFIG_ACCOUNT_ID)
+      account_data = hass.data.get(DOMAIN, {}).get(entry_account_id)
+      if account_data is None:
+        continue
+      session = register_manual_session(hass, entry_account_id, start, end)
+      _LOGGER.info("Registered Power Perks session %s for %s", session.code, entry_account_id)
+      for coordinator_key in (
+        DATA_POWER_PERKS_COORDINATOR.format(entry_account_id),
+        DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR.format(entry_account_id),
+      ):
+        coordinator = account_data.get(coordinator_key)
+        if coordinator is not None:
+          await coordinator.async_request_refresh()
+
+  hass.services.async_register(
+    DOMAIN,
+    SERVICE_REGISTER_POWER_PERKS_SESSION,
+    _handle_register_power_perks_session,
+    schema=vol.Schema({
+      vol.Required("start"): cv.datetime,
+      vol.Required("end"): cv.datetime,
       vol.Optional("account_id"): cv.string,
     }),
   )
