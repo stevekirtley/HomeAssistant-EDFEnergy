@@ -1,3 +1,16 @@
+## [19.2.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.0) (2026-09-18)
+
+
+### Features
+
+* Added support for **Power Perks free electricity sessions**. EDF announce these by SMS the day before and nowhere else — not in the Kraken API, not in their website APIs, and not in the mobile app, whose Power Perks screen is a fixed "free electricity is auto-applied when available" banner. The integration now polls a small relay that receives the text from the phone holding the registered mobile number, parses out the date and window, and publishes the sessions. They then appear in the free electricity calendar, the session sensors and the session events alongside Sunday Saver, with the source `power_perks`, and drive the same automations. If the relay is unreachable the last known sessions are kept, and a session already seen stays in the day's feed from the persisted history. A session that has not yet started is withdrawn again if the relay stops publishing it, so a cancelled or misread event cannot leave a phantom free window behind. The relay and its parser tests are in `tools/power_perks_relay`.
+* Added a `edf_energy.register_power_perks_session` action for recording a Power Perks session by hand, for a text the relay could not parse or for anyone not using the relay.
+* The EDF Energy panel labels Power Perks sessions in the free electricity history.
+* Added **Next Free Electricity Session Start** and **End** sensors. They report the current or next free electricity session from any source — Sunday Saver, Power Perks or a one-off event — so an automation that prepares for a free window no longer has to know which scheme is running it, or fall back from one scheme's sensors to another's. See [the entity docs](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/free_electricity/).
+* Added a **Join Flextras** button and a matching `edf_energy.join_flextras` action, so joining no longer needs the EDF mobile app. The button is only available while the account is not a member. Rejoining after opting out is safe — bonus hours, tastecard and Power Perks registration all survive — but it resets the registration date, so the panel says so before you press it.
+* The Flextras card on the EDF Energy panel now offers to join, or rejoin, straight from the card.
+
+
 ## [19.1.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.1.0) (2026-09-07)
 
 
