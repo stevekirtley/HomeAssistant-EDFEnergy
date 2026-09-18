@@ -886,6 +886,51 @@ class EDFEnergyApiClient:
       f'Weekend Saver challenges for {account_id}/{property_id}',
     )
 
+  async def _async_flextras_membership(self, account_id: str, action: str):
+    """POST a Flextras membership change ('register' or 'opt-out').
+
+    Both endpoints take no body - the account number in the path is the whole
+    input - and answer in bulk form, e.g. {"registered": ["A-..."], "failed": []}.
+    """
+    try:
+      await self.async_refresh_token()
+      url = f'https://edfenergy.com/support/cus-event/api/flextras/{action}/{account_id}'
+      headers = {
+        'Authorization': self._graphql_token,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+      client = self._create_client_session()
+      async with client.post(url, headers=headers) as response:
+        if response.status in (200, 201):
+          data = await response.json(content_type=None)
+          if account_id in (data.get('failed') or []):
+            _LOGGER.warning("Flextras %s reported failure for %s: %s", action, account_id, data)
+            return None
+          _LOGGER.info("Flextras %s succeeded for %s (%s)", action, account_id, str(data)[:200])
+          return data
+        body = await response.text()
+        _LOGGER.warning(
+          "Flextras %s returned HTTP %s for %s. Body: %s", action, response.status, account_id, body[:500]
+        )
+        return None
+    except Exception as e:
+      _LOGGER.warning("Flextras %s failed for %s: %s (%s)", action, account_id, e, type(e).__name__)
+      return None
+
+  async def async_register_flextras(self, account_id: str):
+    """Join Flextras.
+
+    Rejoining after opting out is permitted and non-destructive: bonus hours,
+    tastecard and Power Perks registration all survive, though registrationDate
+    resets to the day of rejoining.
+    """
+    return await self._async_flextras_membership(account_id, 'register')
+
+  async def async_opt_out_flextras(self, account_id: str):
+    """Leave Flextras. Reversible - see async_register_flextras."""
+    return await self._async_flextras_membership(account_id, 'opt-out')
+
   async def async_register_power_perks(self, account_id: str):
     """Register the account for Power Perks.
 

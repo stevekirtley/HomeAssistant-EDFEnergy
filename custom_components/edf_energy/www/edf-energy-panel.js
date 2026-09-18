@@ -824,10 +824,19 @@
           </div>`);
       }
 
+      // Joining is a plain no-body POST, so it can be done from here rather than
+      // sending people to the app. Rejoining after opting out is non-destructive,
+      // but it does reset the registration date, so the copy differs.
       const banner = registered ? '' : `
         <div class="wc-banner">
-          Flextras can only be joined in the EDF mobile app. Once joined, its status
-          and rewards appear here.
+          ${optedOut
+            ? 'You have opted out of Flextras. Rejoining keeps your bonus hours, tastecard and Power Perks, but resets your registration date to today.'
+            : 'Join Flextras for monthly challenges, free energy events and exclusive benefits.'}
+          <div style="margin-top:8px">
+            <button class="btn-apply" data-action="join-flextras">
+              ${optedOut ? 'Rejoin Flextras' : 'Join Flextras'}
+            </button>
+          </div>
         </div>`;
 
       return `
@@ -1281,6 +1290,13 @@
       root.querySelector('[data-action="set-target-time"]')?.addEventListener('click', () => {
         const val = root.getElementById('select-target-time')?.value;
         if (val && ids.targetTime) this._callTime(ids.targetTime, val);
+      });
+
+      root.querySelector('[data-action="join-flextras"]')?.addEventListener('click', e => {
+        // Guard against a double-tap firing two registrations.
+        e.target.disabled = true;
+        e.target.textContent = 'Joining…';
+        this._hass.callService('edf_energy', 'join_flextras', {});
       });
     }
   }

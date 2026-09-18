@@ -175,6 +175,7 @@ SERVICE_SET_FOOTBALL_FREE_ELECTRICITY = "set_football_free_electricity"
 SERVICE_JOIN_SUNDAY_SAVER = "join_sunday_saver"
 SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS = "claim_flextras_bonus_hours"
 SERVICE_REGISTER_POWER_PERKS = "register_power_perks"
+SERVICE_JOIN_FLEXTRAS = "join_flextras"
 SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY = "purge_free_electricity_event_history"
 
 REPAIR_UNIQUE_RATES_CHANGED_KEY = "electricity_unique_rates_updated_{}"

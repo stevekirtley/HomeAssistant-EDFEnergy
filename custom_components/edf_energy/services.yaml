@@ -38,6 +38,21 @@ register_power_perks:
       selector:
         text:
 
+join_flextras:
+  name: Join Flextras
+  description: >-
+    Joins the account to Flextras, EDF's rewards scheme. Safe to run on an account
+    that has previously opted out - bonus hours, tastecard and Power Perks
+    registration all survive, though the registration date resets to today.
+  fields:
+    account_id:
+      name: Account Id
+      description: The id of the account to join. If not specified, all accounts are joined.
+      required: false
+      example: A-XXXXXXXX
+      selector:
+        text:
+
 purge_invalid_external_statistic_ids:
   name: Purge invalid external statistics
   description: Removes external statistics for all meters that don't have an active tariff
