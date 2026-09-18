@@ -48,7 +48,21 @@ curl https://apirelay.sitetest.org.uk/power_perks.php?action=health
 The token goes in an `X-Token` header or a `token` query parameter.
 
 The sessions feed is served only to requests whose `User-Agent` starts with
-`stevekirtley-ha-edf-energy/` (the integration's), or that carry the token. The
+`stevekirtley-ha-edf-energy/` (the integration's), or that carry the ingest token, or
+that carry one of the named read tokens in `config.php`:
+
+```php
+<?php
+return [
+    'ingest_token' => 'long-random-string',
+    'read_tokens' => [
+        'friendly-app' => 'another-long-random-string',
+    ],
+];
+```
+
+A read token only grants the sessions feed, is revoked by deleting its line, and every
+fetch made with one is logged to `cache/feed_access.log` with the consumer's name. The
 integration is open source so this is a deterrent, not a lock, but it keeps the feed out
 of casual scrapers and other projects. A per-address rate limit (30 requests per 5
 minutes by default) keeps any copying cheap. Both are adjustable in `config.php` via
@@ -103,6 +117,21 @@ the integration's user agent:
 ```
 curl -A "stevekirtley-ha-edf-energy/test" "https://apirelay.sitetest.org.uk/power_perks.php?action=sessions"
 ```
+
+## Giving someone else read access
+
+Add a named entry to `read_tokens` in `config.php` on the server (`openssl rand -hex 24`
+makes a good token) and give them the token, the URL and this contract:
+
+- `GET https://apirelay.sitetest.org.uk/power_perks.php?action=sessions` with header
+  `X-Token: <their token>` (or `&token=`).
+- Response: `{generated_at, source, sessions: [{code, start, end, source, received_at, text}]}`,
+  timestamps ISO 8601 with the UK offset, sessions from the last 60 days onward sorted by start.
+- Poll every 15 minutes or so; sessions arrive the day before, occasionally the same morning.
+- 30 requests per 5 minutes per address. An app with many users should fetch through its own
+  backend and cache there, which also keeps the token off end-user devices.
+- A session that disappears before it starts has been retracted (corrected or cancelled).
+- Best effort, from one phone, no SLA.
 
 Message automations only run while the phone is on and connected, so if a text arrives
 while the phone is off it is ingested when the phone wakes, and the integration picks it
