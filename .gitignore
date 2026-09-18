@@ -14,3 +14,7 @@ _docs/tools/snapshots/
 
 # Reverse-engineering notes: kept local, not published
 _docs/flextras_api.md
+
+# Power Perks relay secrets and runtime state live on the server, never here
+tools/power_perks_relay/config.php
+tools/power_perks_relay/cache/
