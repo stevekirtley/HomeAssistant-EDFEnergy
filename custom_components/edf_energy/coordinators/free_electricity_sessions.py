@@ -267,16 +267,8 @@ def refresh_free_electricity_sessions(
         "account_id": account_id,
         "football_free_electricity_enabled": football_enabled,
         "football_enrollment_auto_detected": football_enrollment_auto_detected,
-        "events": [
-          {
-            "code": ev.code,
-            "source": ev.source,
-            "start": as_local(ev.start),
-            "end": as_local(ev.end),
-            "duration_in_minutes": ev.duration_in_minutes,
-          }
-          for ev in events
-        ],
+        # Same shape as free_electricity_windows, so a consumer can read either.
+        "events": [session_to_window(ev) for ev in events],
         # The full retained history (up to 60 days) drives the panel's free electricity history card.
         "free_electricity_windows": [session_to_window(s) for s in history],
       })

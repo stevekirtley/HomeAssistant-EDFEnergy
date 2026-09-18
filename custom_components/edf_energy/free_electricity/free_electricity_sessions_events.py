@@ -24,6 +24,10 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
   The `events` attribute carries `{code, source, start, end, duration_in_minutes}` entries,
   matching the shape of octopus_energy's free electricity session events sensor so that
   Predbat and other consumers work without special-casing.
+
+  `events` and `free_electricity_windows` are held on the entity and exposed as extra state
+  attributes, seeded from the coordinator on add, rather than left to whatever the event
+  platform restores from the recorder - see async_added_to_hass.
   """
 
   _attr_translation_key = "free_electricity_sessions"
@@ -34,6 +38,7 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
     self._hass = hass
     self._football_enabled = False
     self._football_enrollment_auto_detected = False
+    self._events = []
     self._free_electricity_windows = []
     self._attr_event_types = [EVENT_ALL_FREE_ELECTRICITY_SESSIONS]
     self.entity_id = generate_entity_id("event.{}", self.unique_id, hass=hass)
@@ -51,6 +56,7 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
     return {
       "football_free_electricity_enabled": self._football_enabled,
       "football_enrollment_auto_detected": self._football_enrollment_auto_detected,
+      "events": self._events,
       "free_electricity_windows": self._free_electricity_windows,
     }
 
@@ -61,13 +67,17 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
   async def async_added_to_hass(self):
     await super().async_added_to_hass()
     # Seed from the coordinator result already in hass.data — the coordinator fires its
-    # first event before entity registration, so we'd otherwise miss it permanently.
+    # first event before entity registration, so we'd otherwise miss it permanently. The
+    # events feed is seeded too: the restored last-event attributes predate the restart, so
+    # a session that arrived while Home Assistant was down, or that this version supports
+    # and the previous one did not, would be missing from `events` until the next heartbeat.
     existing = self._hass.data.get(DOMAIN, {}).get(self._account_id, {}).get(
       DATA_FREE_ELECTRICITY_SESSIONS.format(self._account_id)
     )
     if existing is not None:
       self._football_enabled = existing.football_enabled
       self._football_enrollment_auto_detected = existing.football_enrollment_auto_detected
+      self._events = [session_to_window(s) for s in existing.events]
     # Seed the history-card windows from the restored session history, so the panel is populated
     # before the coordinator fires its next event.
     history = self._hass.data.get(DOMAIN, {}).get(self._account_id, {}).get(
@@ -79,6 +89,8 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
 
   async def async_get_last_event_data(self):
     data = await super().async_get_last_event_data()
+    if data is None:
+      return None
     return EventExtraStoredData.from_dict({
       "last_event_type": data.last_event_type,
       "last_event_attributes": dict_to_typed_dict(data.last_event_attributes),
@@ -89,6 +101,7 @@ class EDFEnergyFreeElectricitySessionEvents(EDFEnergyFreeElectricitySensor, Even
     if event.data is not None and event.data.get("account_id") == self._account_id:
       self._football_enabled = event.data.get("football_free_electricity_enabled", False)
       self._football_enrollment_auto_detected = event.data.get("football_enrollment_auto_detected", False)
+      self._events = event.data.get("events", []) or []
       self._free_electricity_windows = event.data.get("free_electricity_windows", []) or []
       self._trigger_event(event.event_type, event.data)
       self.async_write_ha_state()
