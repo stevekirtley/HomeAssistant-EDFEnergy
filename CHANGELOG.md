@@ -1,16 +1,9 @@
-## Unreleased
-
-
-### Bug Fixes
-
-* Fixed rates and standing charges showing as unknown when EDF hide your product from their pricing API. EDF withdraw a product version whenever the next one launches and hide it for a couple of weeks while comparison sites finish their sign-ups, so everything under the pricing API answers "not found" even though you are still on the tariff. The integration now reads the rates and standing charge from your account's agreement instead, which EDF's own app uses and which is never hidden, so the entities keep working throughout. Single rate, half-hourly and Economy 7 tariffs are covered; three-rate tariffs still wait for the pricing API because the agreement carries their prices but not their time bands. Reported by [@adamdridi](https://github.com/adamdridi) ([#32](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/32)).
-
-
 ## [19.2.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.1) (2026-09-18)
 
 
 ### Bug Fixes
 
+* Fixed rates and standing charges showing as unknown when EDF hide your product from their pricing API. EDF withdraw a product version whenever the next one launches and hide it for a couple of weeks while comparison sites finish their sign-ups, so everything under the pricing API answers "not found" even though you are still on the tariff. The integration now reads the rates and standing charge from your account's agreement instead, which EDF's own app uses and which is never hidden, so the entities keep working throughout. Single rate, half-hourly and Economy 7 tariffs are covered; three-rate tariffs still wait for the pricing API because the agreement carries their prices but not their time bands. Reported by [@adamdridi](https://github.com/adamdridi) ([#32](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/32)).
 * Fixed the `events` attribute of the free electricity session events entity being empty after a restart until the next hourly refresh, even though `free_electricity_windows` already listed the session. The coordinator fires its first event before the entity exists, and Home Assistant then restores the attributes it recorded before the restart, so a Power Perks session that arrived in between, or that the previous version could not know about, was missing from `events` for up to an hour. The entity now takes the current sessions from the coordinator as soon as it is added, so tools that read `events` see the session straight away. Reported by [@bigchriselmer-ui](https://github.com/bigchriselmer-ui) ([#33](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/33)).
 
 
