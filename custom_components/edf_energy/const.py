@@ -11,6 +11,9 @@ REFRESH_RATE_IN_MINUTES_SUNDAY_SAVER = 60
 REFRESH_RATE_IN_MINUTES_FLEXTRAS = 60
 REFRESH_RATE_IN_MINUTES_EVENT_FREE_ELECTRICITY = 240
 REFRESH_RATE_IN_MINUTES_FREE_ELECTRICITY_SESSIONS = 60
+# EDF text Power Perks sessions the day before, occasionally the same day, so the relay is
+# polled often enough that a same-day text still lands well ahead of the window.
+REFRESH_RATE_IN_MINUTES_POWER_PERKS = 15
 
 # How much completed dispatch history the dispatches store (and therefore the panel) keeps.
 INTELLIGENT_DISPATCH_RETENTION_IN_DAYS = 60
@@ -111,6 +114,14 @@ DATA_EVENT_FREE_ELECTRICITY_COORDINATOR = "EVENT_FREE_ELECTRICITY_COORDINATOR_{}
 # is unreachable the free window simply stays at the standard 2 hours.
 EXTRA_TIME_RELAY_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=status"
 RELAY_FIXTURES_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=fixtures"
+
+# Power Perks free electricity sessions. EDF announce these by SMS only, so the text is
+# relayed to this endpoint (see tools/power_perks_relay) which parses it and publishes
+# the sessions. If it is unreachable the last known sessions are kept.
+POWER_PERKS_FEED_URL = "https://apirelay.sitetest.org.uk/power_perks.php?action=sessions"
+DATA_POWER_PERKS = "POWER_PERKS_{}"
+DATA_POWER_PERKS_COORDINATOR = "POWER_PERKS_COORDINATOR_{}"
+DATA_POWER_PERKS_MANUAL_SESSIONS = "POWER_PERKS_MANUAL_SESSIONS_{}"
 DATA_FREE_ELECTRICITY_SESSIONS = "FREE_ELECTRICITY_SESSIONS_{}"
 DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR = "FREE_ELECTRICITY_SESSIONS_COORDINATOR_{}"
 DATA_FREE_ELECTRICITY_SESSIONS_HISTORY = "FREE_ELECTRICITY_SESSIONS_HISTORY_{}"
@@ -176,6 +187,7 @@ SERVICE_JOIN_SUNDAY_SAVER = "join_sunday_saver"
 SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS = "claim_flextras_bonus_hours"
 SERVICE_REGISTER_POWER_PERKS = "register_power_perks"
 SERVICE_JOIN_FLEXTRAS = "join_flextras"
+SERVICE_REGISTER_POWER_PERKS_SESSION = "register_power_perks_session"
 SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY = "purge_free_electricity_event_history"
 
 REPAIR_UNIQUE_RATES_CHANGED_KEY = "electricity_unique_rates_updated_{}"

@@ -89,7 +89,7 @@
   const DISPATCH_LABEL  = { completed: 'Completed', active: 'Active',    planned: 'Planned',   cancelled: 'Cancelled' };
 
   // Friendly labels for free electricity session sources (Sunday Saver has its own dedicated card).
-  const FREE_SESSION_SOURCE_LABEL = { football: 'World Cup', football_et: 'World Cup (extra time)' };
+  const FREE_SESSION_SOURCE_LABEL = { football: 'World Cup', football_et: 'World Cup (extra time)', power_perks: 'Power Perks' };
   function freeSessionSourceLabel(source) {
     if (FREE_SESSION_SOURCE_LABEL[source]) return FREE_SESSION_SOURCE_LABEL[source];
     if (!source) return 'Free electricity';

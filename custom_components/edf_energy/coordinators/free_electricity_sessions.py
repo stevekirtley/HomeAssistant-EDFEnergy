@@ -14,6 +14,7 @@ from ..const import (
   DATA_FREE_ELECTRICITY_SESSIONS,
   DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
+  DATA_POWER_PERKS,
   DATA_SUNDAY_SAVER,
   DOMAIN,
   EVENT_ALL_FREE_ELECTRICITY_SESSIONS,
@@ -23,6 +24,7 @@ from ..const import (
 from . import BaseCoordinatorResult
 from .sunday_saver import SundaySaverCoordinatorResult
 from .event_free_electricity import EventFreeElectricityCoordinatorResult
+from .power_perks import PowerPerksCoordinatorResult
 from ..api_client.free_electricity_sessions import FreeElectricitySession
 from ..api_client import EDFEnergyApiClient
 from ..storage.free_electricity_sessions_history import (
@@ -40,6 +42,9 @@ _LOGGER = logging.getLogger(__name__)
 #   - "football": free windows tied to England/Scotland World Cup matches, derived from
 #     an external schedule. Requires user opt-in because EDF does not confirm these
 #     via their API — we infer them from the public match schedule.
+#   - "power_perks": Flextras Power Perks sessions. EDF announce these by SMS only, so they
+#     come from a relay that parses the text (see coordinators/power_perks.py), plus any
+#     registered by hand with the register_power_perks_session action.
 # Adding a future source is a one-line change: write a normaliser and append to _ALWAYS_ON_PROVIDERS
 # (for EDF-confirmed sources) or wire it with a separate opt-in flag.
 
@@ -62,8 +67,38 @@ def _normalise_football(result: EventFreeElectricityCoordinatorResult | None) ->
   return sessions
 
 
+def _normalise_power_perks(result: PowerPerksCoordinatorResult | None) -> list[FreeElectricitySession]:
+  if result is None:
+    return []
+  return list(result.all_sessions)
+
+
+def _retract_withdrawn_power_perks(
+  history: list[FreeElectricitySession],
+  power_perks: PowerPerksCoordinatorResult | None,
+  current: datetime,
+) -> list[FreeElectricitySession]:
+  """Drop future Power Perks sessions the relay no longer publishes.
+
+  History normally only grows, so that a finished session stays in the day's feed. But a
+  Power Perks session can be withdrawn - EDF cancel an event, or the relay corrects a text
+  it misread - and a session that has not started yet must follow the feed, or a phantom
+  free window would drive the battery for the whole day. Only sessions that have not begun
+  are dropped, and only when the feed was actually reachable this tick, so an outage never
+  deletes anything. Sessions registered by hand are part of the feed's view and survive.
+  """
+  if power_perks is None or not power_perks.feed_available:
+    return history
+  published = {s.code for s in power_perks.all_sessions}
+  return [
+    s for s in history
+    if s.source != "power_perks" or s.start <= current or s.code in published
+  ]
+
+
 _ALWAYS_ON_PROVIDERS: list[tuple[str, Callable[[Any], list[FreeElectricitySession]]]] = [
   (DATA_SUNDAY_SAVER, _normalise_sunday_saver),
+  (DATA_POWER_PERKS, _normalise_power_perks),
 ]
 
 # ARCHIVED — World Cup 2026 ended 2026-07-19. Football provider is dormant.
@@ -191,6 +226,9 @@ def refresh_free_electricity_sessions(
   history_key = DATA_FREE_ELECTRICITY_SESSIONS_HISTORY.format(account_id)
   existing_history = hass.data[DOMAIN][account_id].get(history_key) or []
   history = merge_free_electricity_sessions(existing_history, live_sessions, current)
+  history = _retract_withdrawn_power_perks(
+    history, hass.data[DOMAIN][account_id].get(DATA_POWER_PERKS.format(account_id)), current
+  )
   hass.data[DOMAIN][account_id][history_key] = history
 
   events = _todays_sessions(history, current)
