@@ -22,7 +22,11 @@
  * Ingest is disabled until a token is configured.
  *
  * The sessions feed is served to the HomeAssistant-EDFEnergy integration, identified by
- * its User-Agent, and to anyone holding the token. That is a deterrent rather than a lock -
+ * its User-Agent, to anyone holding the ingest token, and to named consumers holding one of
+ * the read tokens in config.php:
+ *   'read_tokens' => ['friendly-app' => 'long-random-string', ...]
+ * A read token only grants the sessions feed; every fetch with one is logged to
+ * cache/feed_access.log with the consumer's name. That is a deterrent rather than a lock -
  * the integration is open source, so the user agent is no secret - but it keeps the feed
  * out of casual scrapers and other projects, and a per-address rate limit keeps the cost
  * of anyone who does copy it negligible.
@@ -403,6 +407,8 @@ function load_config(): array
 {
     $defaults = [
         'ingest_token' => '',
+        // Named read-only tokens for other consumers of the sessions feed: name => token.
+        'read_tokens' => [],
         // Prefix of the User-Agent the sessions feed is served to. Empty serves everyone.
         'feed_user_agent_prefix' => 'stevekirtley-ha-edf-energy/',
         // Requests per address per window for the public actions.
@@ -419,20 +425,46 @@ function load_config(): array
     return $defaults;
 }
 
-/** Whether this request may read the sessions feed: the integration's user agent, or the token. */
-function feed_access_allowed(array $config): bool
+/**
+ * Who may read the sessions feed: 'integration' (by user agent), 'owner' (ingest token),
+ * a named read-token holder, or null for nobody.
+ */
+function feed_consumer(array $config): ?string
 {
     $prefix = (string)$config['feed_user_agent_prefix'];
     if ($prefix === '') {
-        return true;
+        return 'anyone';
     }
     $agent = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
     if (strncmp($agent, $prefix, strlen($prefix)) === 0) {
-        return true;
+        return 'integration';
+    }
+    $given = (string)($_SERVER['HTTP_X_TOKEN'] ?? $_GET['token'] ?? '');
+    if ($given === '') {
+        return null;
     }
     $expected = (string)$config['ingest_token'];
-    $given = (string)($_SERVER['HTTP_X_TOKEN'] ?? $_GET['token'] ?? '');
-    return $expected !== '' && hash_equals($expected, $given);
+    if ($expected !== '' && hash_equals($expected, $given)) {
+        return 'owner';
+    }
+    foreach ((array)($config['read_tokens'] ?? []) as $name => $token) {
+        if (is_string($token) && $token !== '' && hash_equals($token, $given)) {
+            return (string)$name;
+        }
+    }
+    return null;
+}
+
+/** Append one line per read-token fetch so token use is visible. Never fails the request. */
+function log_feed_access(string $consumer): void
+{
+    try {
+        $line = date(DATE_ATOM) . ' ' . $consumer . ' ' . (string)($_SERVER['REMOTE_ADDR'] ?? '?')
+            . ' ' . substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 80) . "\n";
+        file_put_contents(cache_dir() . '/feed_access.log', $line, FILE_APPEND | LOCK_EX);
+    } catch (Throwable $e) {
+        // Logging is a courtesy.
+    }
 }
 
 /** A fixed-window per-address rate limit; returns false once the window is exhausted. */
@@ -527,12 +559,16 @@ function main(): void
             if (!within_rate_limit($config)) {
                 respond(429, ['ok' => false, 'error' => 'rate limited']);
             }
-            if (!feed_access_allowed($config)) {
+            $consumer = feed_consumer($config);
+            if ($consumer === null) {
                 respond(403, [
                     'ok' => false,
                     'error' => 'This feed is provided for the HomeAssistant-EDFEnergy integration '
                         . '(https://github.com/stevekirtley/HomeAssistant-EDFEnergy).',
                 ]);
+            }
+            if ($consumer !== 'integration' && $consumer !== 'anyone') {
+                log_feed_access($consumer);
             }
             respond(200, [
                 'generated_at' => $now->format(DATE_ATOM),
