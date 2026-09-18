@@ -520,6 +520,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../entities/free_electricity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Free Electricity Sessions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../entities/diagnostics/" class="md-nav__link">
         
   
@@ -784,6 +805,54 @@
   <a href="#edf_energyjoin_sunday_saver" class="md-nav__link">
     <span class="md-ellipsis">
       edf_energy.join_sunday_saver
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flextras" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flextras
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flextras">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edf_energyjoin_flextras" class="md-nav__link">
+    <span class="md-ellipsis">
+      edf_energy.join_flextras
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#power-perks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Power Perks
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Power Perks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edf_energyregister_power_perks_session" class="md-nav__link">
+    <span class="md-ellipsis">
+      edf_energy.register_power_perks_session
     </span>
   </a>
   
@@ -1333,6 +1402,54 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#flextras" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flextras
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flextras">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edf_energyjoin_flextras" class="md-nav__link">
+    <span class="md-ellipsis">
+      edf_energy.join_flextras
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#power-perks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Power Perks
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Power Perks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edf_energyregister_power_perks_session" class="md-nav__link">
+    <span class="md-ellipsis">
+      edf_energy.register_power_perks_session
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#miscellaneous" class="md-nav__link">
     <span class="md-ellipsis">
       Miscellaneous
@@ -1572,6 +1689,55 @@
 </tr>
 </tbody>
 </table>
+<h2 id="flextras">Flextras<a class="headerlink" href="#flextras" title="Permanent link">#</a></h2>
+<h3 id="edf_energyjoin_flextras">edf_energy.join_flextras<a class="headerlink" href="#edf_energyjoin_flextras" title="Permanent link">#</a></h3>
+<p>Joins an account to Flextras, EDF's rewards scheme, without opening the mobile app. Safe to run on an account that has previously opted out: bonus hours, tastecard and Power Perks registration all survive, though the registration date resets to the day of rejoining. On success the Flextras coordinator is refreshed so the membership entities update straight away.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Optional</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data.account_id</code></td>
+<td><code>yes</code></td>
+<td>The EDF Energy account number to join (e.g. <code>A-AAAA1111</code>). If omitted, all configured accounts are joined.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="power-perks">Power Perks<a class="headerlink" href="#power-perks" title="Permanent link">#</a></h2>
+<h3 id="edf_energyregister_power_perks_session">edf_energy.register_power_perks_session<a class="headerlink" href="#edf_energyregister_power_perks_session" title="Permanent link">#</a></h3>
+<p>Records a Flextras Power Perks free electricity session so it appears in the <a href="../entities/free_electricity/">free electricity calendar</a>, the session sensors and the session events, exactly like a session picked up automatically.</p>
+<p>EDF announce Power Perks sessions by SMS the day before and nowhere else, so the integration normally learns about them from a relay that parses the text (see <code>tools/power_perks_relay</code> in the repository). Use this action when a text could not be parsed, or if you are not using the relay. Registering a session with the same start time again replaces the earlier one.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Optional</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data.start</code></td>
+<td><code>no</code></td>
+<td>When the free electricity starts (e.g. <code>2026-09-19 04:00:00</code>). Local time unless a timezone offset is given.</td>
+</tr>
+<tr>
+<td><code>data.end</code></td>
+<td><code>no</code></td>
+<td>When the free electricity ends. Must be after <code>start</code> and within 24 hours of it.</td>
+</tr>
+<tr>
+<td><code>data.account_id</code></td>
+<td><code>yes</code></td>
+<td>The EDF Energy account number to register the session against. If omitted, it is registered for all configured accounts.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="miscellaneous">Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permanent link">#</a></h2>
 <h3 id="edf_energypurge_invalid_external_statistic_ids">edf_energy.purge_invalid_external_statistic_ids<a class="headerlink" href="#edf_energypurge_invalid_external_statistic_ids" title="Permanent link">#</a></h3>
 <p>For removing all external statistics that are associated with meters that don't have an active tariff. This is useful if you've been using the integration and obtained new smart meters.</p>
@@ -1611,7 +1777,7 @@
       
     </span>
     <nav>
-      BottlecapDave, stevekirtley
+      BottlecapDave, stevekirtley, stevekirtley
     </nav>
   </span>
 

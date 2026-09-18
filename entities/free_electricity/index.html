@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/migrations/target_timeframes/">
+        <link rel="canonical" href="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/free_electricity/">
       
       
-        <link rel="prev" href="../../entities/diagnostics/">
+        <link rel="prev" href="../sunday_saver/">
       
       
-        <link rel="next" href="../../services/">
+        <link rel="next" href="../diagnostics/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Migrating Target Rate Sensors To Target Timeframes - Home Assistant EDF Energy</title>
+        <title>Free Electricity Sessions - Home Assistant EDF Energy</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#migrating-target-rate-sensors-to-target-timeframes" class="md-skip">
+        <a href="#free-electricity-sessions" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Migrating Target Rate Sensors To Target Timeframes
+              Free Electricity Sessions
             
           </span>
         </div>
@@ -398,17 +398,19 @@
       
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -422,7 +424,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Entities
@@ -436,7 +438,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../entities/electricity/" class="md-nav__link">
+      <a href="../electricity/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -457,7 +459,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../entities/gas/" class="md-nav__link">
+      <a href="../gas/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -478,7 +480,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../entities/intelligent/" class="md-nav__link">
+      <a href="../intelligent/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -499,7 +501,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../entities/sunday_saver/" class="md-nav__link">
+      <a href="../sunday_saver/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -517,10 +519,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../entities/free_electricity/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Free Electricity Sessions
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -529,6 +551,62 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#next-free-electricity-session-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Free Electricity Session Start
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-free-electricity-session-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Free Electricity Session End
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#free-electricity-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      Free Electricity Session
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#free-electricity-session-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      Free Electricity Session Events
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -541,7 +619,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../entities/diagnostics/" class="md-nav__link">
+      <a href="../diagnostics/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -566,19 +644,17 @@
       
   
   
-    
   
   
-  
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
@@ -592,7 +668,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Migrations
@@ -603,30 +679,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Migrating Target Rate Sensors To Target Timeframes
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../migrations/target_timeframes/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -635,101 +691,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installing-the-integration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installing the integration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setting-up-data-sources" class="md-nav__link">
-    <span class="md-ellipsis">
-      Setting up data sources
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setting up data sources">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#i-just-want-edf-energy-rate-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      I just want EDF Energy rate data
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#i-want-edf-energy-rate-data-as-well-as-other-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      I want EDF Energy rate data as well as other data
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="I want EDF Energy rate data as well as other data">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#configuring-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuring data
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setting-up-target-rate-sensors" class="md-nav__link">
-    <span class="md-ellipsis">
-      Setting up Target Rate sensors
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#available-services" class="md-nav__link">
-    <span class="md-ellipsis">
-      Available services
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1122,75 +1083,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installing-the-integration" class="md-nav__link">
+  <a href="#next-free-electricity-session-start" class="md-nav__link">
     <span class="md-ellipsis">
-      Installing the integration
+      Next Free Electricity Session Start
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#setting-up-data-sources" class="md-nav__link">
+  <a href="#next-free-electricity-session-end" class="md-nav__link">
     <span class="md-ellipsis">
-      Setting up data sources
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setting up data sources">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#i-just-want-edf-energy-rate-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      I just want EDF Energy rate data
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#i-want-edf-energy-rate-data-as-well-as-other-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      I want EDF Energy rate data as well as other data
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="I want EDF Energy rate data as well as other data">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#configuring-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuring data
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setting-up-target-rate-sensors" class="md-nav__link">
-    <span class="md-ellipsis">
-      Setting up Target Rate sensors
+      Next Free Electricity Session End
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#available-services" class="md-nav__link">
+  <a href="#free-electricity-session" class="md-nav__link">
     <span class="md-ellipsis">
-      Available services
+      Free Electricity Session
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#free-electricity-session-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      Free Electricity Session Events
     </span>
   </a>
   
@@ -1214,76 +1136,63 @@
   
 
 
-<h1 id="migrating-target-rate-sensors-to-target-timeframes">Migrating Target Rate Sensors To Target Timeframes<a class="headerlink" href="#migrating-target-rate-sensors-to-target-timeframes" title="Permanent link">#</a></h1>
-<p>The target rate feature of the upstream integration has been deprecated and removed in favour of a new external integration, <a href="https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/">Target Timeframes</a>. The full reasoning can be found in the <a href="https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/discussions/1305">upstream proposal</a>.</p>
-<p>This guide explains how to migrate your target rate sensors to the new integration.</p>
-<h2 id="installing-the-integration">Installing the integration<a class="headerlink" href="#installing-the-integration" title="Permanent link">#</a></h2>
-<p>The first thing you need to do is install the new integration. Full instructions can be found on <a href="https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/#how-to-install">the website</a>.</p>
-<h2 id="setting-up-data-sources">Setting up data sources<a class="headerlink" href="#setting-up-data-sources" title="Permanent link">#</a></h2>
-<p>Once installed, you'll need to configure the integration by setting up a data source that represents data coming from this integration. This can be done by <a href="https://my.home-assistant.io/redirect/config_flow_start/?domain=target_timeframes">following the link</a> or navigating to your integrations view, clicking 'Add integration' and searching for 'Target Timeframes'. You'll need a data source for each of your meters you want to create target rate sensors for (e.g. one for import and one for export).</p>
-<p>The recommended name is <code>EDF Energy Import</code>.</p>
-<p>The recommended source id will depend on if you're wanting to just consume the rates straight from this integration, or if you want the target timeframe sensors to also include other additional/external data (e.g. carbon intensity).</p>
-<h3 id="i-just-want-edf-energy-rate-data">I just want EDF Energy rate data<a class="headerlink" href="#i-just-want-edf-energy-rate-data" title="Permanent link">#</a></h3>
-<p>The source id should follow the following format <code>edf_energy_&lt;&lt;METER MPAN OR MPRN&gt;&gt;_&lt;&lt;METER SERIAL NUMBER&gt;&gt;</code>, depending on which meter you want the rate information to come from. For example if you want your target timeframes to be powered by your import meter with an MPAN of <code>123</code> and serial number of <code>ABC</code>, then your data source id should be equal to <code>edf_energy_123_ABC</code>. </p>
-<p>Once rate information is retrieved by this integration, data should flow automatically into this data source. You can confirm this by looking at the <a href="https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/setup/data_source/#data-source-last-updated">Data Source Last Updated entity</a>.</p>
-<h3 id="i-want-edf-energy-rate-data-as-well-as-other-data">I want EDF Energy rate data as well as other data<a class="headerlink" href="#i-want-edf-energy-rate-data-as-well-as-other-data" title="Permanent link">#</a></h3>
-<p>The recommended source id is <code>edf_energy_import</code>, but you can pick whatever you want as long as it's unique within the integration and not equal to <code>edf_energy_&lt;&lt;METER MPAN OR MPRN&gt;&gt;_&lt;&lt;METER SERIAL NUMBER&gt;&gt;</code></p>
-<p><img alt="Data Source window" src="../../assets/target_timeframes_data_source.png" /></p>
-<h4 id="configuring-data">Configuring data<a class="headerlink" href="#configuring-data" title="Permanent link">#</a></h4>
-<p>Next, we'll need to get data from the EDF Energy integration into the Target Timeframes integration. The recommended approach is an automation based on one of the available blueprints from the <a href="https://github.com/BottlecapDave/HomeAssistant-TargetTimeframes">Target Timeframes integration</a>.</p>
-<p>There are different blueprints available depending upon whether you want your target rate sensors to take account of just carbon intensity, just EDF Energy rates, or both.</p>
-<p>Select the blueprint you want to use and click 'Install blueprint'. You will get a prompt to open a page in Home Assistant, click 'Open link', you'll get a second prompt to confirm you want to import the blueprint, click 'Preview blueprint' then 'Import blueprint' and the blueprint will be installed in your Home Assistant.</p>
-<p>Next you need to create an automation using the blueprint you just imported. The automation will track when the rate entities within the EDF Energy integration are updated and will then transform the rate data into the shape required by Target Timeframes and use the available service to add the rate data with the data source we just created. Each <code>value</code> in Target Timeframes will represent our rate in pounds/pence.</p>
-<p>Click the name of the blueprint you just imported. You'll be prompted to configure the blueprint with the names of your EDF Energy Integration sensors. Use the dropdowns to select the appropriate Home Assistant sensor or event name:</p>
-<p><img alt="Blueprint configuration" src="../../assets/target_timeframes_blueprint.png" /></p>
-<p>Make sure you select the right EDF Energy Integration events for your target timeframe data source sensor, e.g. 'previous day rates' for an import sensor, not 'previous day rates export'.</p>
-<p>Once you have completed the blueprint configuration click Save and this will create the automation for you, fully populated with the sensor and event names you configured.  You have the option to rename the automation, add a description, category, etc if you want to.</p>
-<p>Having setup the automation you'll need to then wait for one of the EDF Energy integration events to update (when the automation will then automatically run), or manually run the automation to populate the data source.</p>
-<h2 id="setting-up-target-rate-sensors">Setting up Target Rate sensors<a class="headerlink" href="#setting-up-target-rate-sensors" title="Permanent link">#</a></h2>
-<p>Now we have our data source representing EDF Energy and data coming from this integration into Target Timeframes, it's time to now port across our target rate and rolling target rate sensors. Each type of sensor are added as a sub entry to our data source. Either click the appropriate Add button, or the three dots and choose the add option.</p>
-<p><img alt="Integration sub menu" src="../../assets/target_timeframes_sub_menu.png" /></p>
-<p>For porting a <code>target rate sensor</code>, you would select <a href="https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/setup/target_timeframe/">target timeframe</a> and for porting a <code>rolling target rate sensor</code>, you would select <a href="https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/setup/rolling_target_timeframe/">rolling target timeframe</a>.</p>
-<p>All options within the sensors should feel familiar, as they represent what's available within this integration. Below are some noticeable differences</p>
-<ul>
-<li>
-<p><code>Invert targeted rates</code> in the EDF Energy integration is represented by <code>Find highest values</code> in Target Timeframes. If <code>Invert targeted rates</code> is checked, for sensors using data sources targeting import meters, <code>Find highest values</code> should be checked. If <code>Invert targeted rates</code> is checked, for sensors using data sources targeting export meters, <code>Find highest values</code> should be checked.</p>
-</li>
-<li>
-<p>Note that the <code>cost</code> attributes of the EDF Energy Integration target rate binary sensors are renamed as <code>value</code> attributes in the Target Timeframes integration target rate binary sensors.  So <code>overall min cost</code> is now <code>overall min value</code>, <code>next average cost</code> is now <code>next average value</code>, etc.  If you display any of these attributes on a dashboard or use them in your own automation you will need to adjust accordingly.</p>
-</li>
-</ul>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>There is currently a bug in HA where you'll need to reload the data source when a target rate sensor is added/updated in order to see the new target rate sensor.</p>
-</div>
-<div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>If you are wanting to minimise updates of automations, once the target timeframe sensor has been created and you delete the old sensor from the EDF Energy integration, you can rename the entity id to have the name of the old sensor. For example, if you have a target sensor with the entity id of <code>sensor.target_timeframe_edf_energy_import_dishwasher</code>, your could rename it to <code>sensor.edf_energy_target_dishwasher</code>.</p>
-</div>
-<h2 id="available-services">Available services<a class="headerlink" href="#available-services" title="Permanent link">#</a></h2>
-<p>The following list of related services and their counterparts.</p>
+<h1 id="free-electricity-sessions">Free Electricity Sessions<a class="headerlink" href="#free-electricity-sessions" title="Permanent link">#</a></h1>
+<p>Free electricity sessions reach EDF customers through several schemes - Sunday Saver, Power Perks, and one-off events such as the World Cup windows. The entities on this page are the merged view: every session, whatever its source, in one place. Each session carries a <code>source</code> of <code>sunday_saver</code>, <code>power_perks</code>, <code>football</code> or <code>football_et</code>.</p>
+<p>Power Perks sessions come from a relay that parses EDF's announcement text, because EDF publish them nowhere else; see the <code>register_power_perks_session</code> action in <a href="../../services/#power-perks">services</a> for adding one by hand.</p>
+<h2 id="next-free-electricity-session-start">Next Free Electricity Session Start<a class="headerlink" href="#next-free-electricity-session-start" title="Permanent link">#</a></h2>
+<p><code>sensor.edf_energy_{{ACCOUNT_ID}}_next_free_electricity_session_start</code></p>
+<p>When the current or next free electricity session starts, from any source. While a session is in progress this is that session's start; otherwise it is the start of the next one to come. <code>unknown</code> when nothing is scheduled.</p>
+<p>This is the sensor to build automations on when you want to prepare for a free window without caring which scheme is running it - for example, skipping an overnight paid charge when a free window starts within the next 24 hours.</p>
 <table>
 <thead>
 <tr>
-<th>EDF Energy Service</th>
-<th>Target Timeframes Service</th>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>edf_energy.update_target_config</td>
-<td><a href="https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/services/#target_timeframesupdate_target_timeframe_config">target_timeframes.update_target_timeframe_config</a></td>
+<td><code>code</code></td>
+<td><code>string</code></td>
+<td>The session's unique code</td>
 </tr>
 <tr>
-<td>edf_energy.update_rolling_target_config</td>
-<td><a href="https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/services/#target_timeframesupdate_rolling_target_timeframe_config">target_timeframes.update_rolling_target_timeframe_config</a></td>
+<td><code>source</code></td>
+<td><code>string</code></td>
+<td>Which scheme the session belongs to</td>
 </tr>
 <tr>
-<td>edf_energy.register_rate_weightings</td>
-<td>Data is now loaded as part of <a href="https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/services/#target_timeframesupdate_target_timeframe_data_source">target_timeframes.update_target_timeframe_data_source</a>. Therefore data can be manipulated before this service is called. A <a href="https://bottlecapdave.github.io/HomeAssistant-TargetTimeframes/blueprints/#edf-energy-and-carbon-intensity">blueprint</a> is available as an example.</td>
+<td><code>start</code></td>
+<td><code>datetime</code></td>
+<td>When the session starts</td>
+</tr>
+<tr>
+<td><code>end</code></td>
+<td><code>datetime</code></td>
+<td>When the session ends</td>
+</tr>
+<tr>
+<td><code>duration_in_minutes</code></td>
+<td><code>float</code></td>
+<td>The length of the session</td>
+</tr>
+<tr>
+<td><code>is_active</code></td>
+<td><code>boolean</code></td>
+<td>Whether the session is in progress now</td>
 </tr>
 </tbody>
 </table>
+<h2 id="next-free-electricity-session-end">Next Free Electricity Session End<a class="headerlink" href="#next-free-electricity-session-end" title="Permanent link">#</a></h2>
+<p><code>sensor.edf_energy_{{ACCOUNT_ID}}_next_free_electricity_session_end</code></p>
+<p>When the current or next free electricity session ends. Same selection rule and attributes as the start sensor.</p>
+<h2 id="free-electricity-session">Free Electricity Session<a class="headerlink" href="#free-electricity-session" title="Permanent link">#</a></h2>
+<p><code>calendar.edf_energy_{{ACCOUNT_ID}}_free_electricity_session</code></p>
+<p>A calendar of every known session, on while one is in progress. Sessions already finished today stay on the calendar until the day rolls over.</p>
+<h2 id="free-electricity-session-events">Free Electricity Session Events<a class="headerlink" href="#free-electricity-session-events" title="Permanent link">#</a></h2>
+<p><code>event.edf_energy_{{ACCOUNT_ID}}_free_electricity_session_events</code></p>
+<p>Fires whenever the set of sessions changes, and hourly as a heartbeat. Its <code>events</code> attribute lists today's and upcoming sessions in the same shape as the upstream Octopus Energy integration, so tools built for that, such as Predbat, work unchanged. <code>free_electricity_windows</code> carries the last 60 days of history for the panel.</p>
 
 
 
@@ -1301,11 +1210,11 @@
   <span class="md-source-file__fact">
     <span class="md-icon" title="Contributors">
       
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5.5A3.5 3.5 0 0 1 15.5 9a3.5 3.5 0 0 1-3.5 3.5A3.5 3.5 0 0 1 8.5 9 3.5 3.5 0 0 1 12 5.5M5 8c.56 0 1.08.15 1.53.42-.15 1.43.27 2.85 1.13 3.96C7.16 13.34 6.16 14 5 14a3 3 0 0 1-3-3 3 3 0 0 1 3-3m14 0a3 3 0 0 1 3 3 3 3 0 0 1-3 3c-1.16 0-2.16-.66-2.66-1.62a5.54 5.54 0 0 0 1.13-3.96c.45-.27.97-.42 1.53-.42M5.5 18.25c0-2.07 2.91-3.75 6.5-3.75s6.5 1.68 6.5 3.75V20h-13zM0 20v-1.5c0-1.39 1.89-2.56 4.45-2.9-.59.68-.95 1.62-.95 2.65V20zm24 0h-3.5v-1.75c0-1.03-.36-1.97-.95-2.65 2.56.34 4.45 1.51 4.45 2.9z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4"/></svg>
       
     </span>
     <nav>
-      BottlecapDave, Geoffrey Coan, stevekirtley
+      stevekirtley
     </nav>
   </span>
 
