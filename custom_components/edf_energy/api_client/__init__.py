@@ -16,6 +16,13 @@ from ..utils import (
 )
 
 from .intelligent_device import IntelligentDevice
+from .agreement_tariffs import (
+  agreement_tariffs_query,
+  parse_agreement_tariffs,
+  agreement_rates_to_results,
+  agreement_standing_charge,
+  DAY_NIGHT as AGREEMENT_DAY_NIGHT,
+)
 from .intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches
 from .intelligent_device_settings import IntelligentDeviceSettingPreferenceSchedule, IntelligentDeviceSettings
 
@@ -522,6 +529,11 @@ class EDFEnergyApiClient:
     self._on_refresh_expiry_update = on_refresh_expiry_update
 
     self._product_tracker_cache = dict()
+
+    # Set once the account is known; lets a hidden product be priced from the agreement.
+    self._account_id = None
+    self._agreement_tariffs_cache: tuple[datetime, dict] | None = None
+    self._hidden_products_logged: set[str] = set()
 
     self._electricity_price_cap = electricity_price_cap
     self._gas_price_cap = gas_price_cap
@@ -1269,6 +1281,92 @@ class EDFEnergyApiClient:
 
     return None
 
+  # ── Hidden product fallback ─────────────────────────────────────────────────
+  # EDF hide a withdrawn product version from the public pricing API for a couple of weeks
+  # while comparison sites finish their sign-ups, so everything under /v1/products answers
+  # 404 for it even though customers are still on it. The account's agreement still knows
+  # the tariff and its prices, so when a pricing call gets a 404 we price from that instead.
+
+  _AGREEMENT_TARIFFS_CACHE_SECONDS = 15 * 60
+
+  def set_account_id(self, account_id: str):
+    self._account_id = account_id
+
+  async def async_get_agreement_tariffs(self) -> dict[str, dict] | None:
+    """The account's active agreements indexed by tariff code, cached for 15 minutes."""
+    if self._account_id is None:
+      return None
+
+    current = now()
+    if self._agreement_tariffs_cache is not None:
+      fetched_at, tariffs = self._agreement_tariffs_cache
+      if (current - fetched_at).total_seconds() < self._AGREEMENT_TARIFFS_CACHE_SECONDS:
+        return tariffs
+
+    await self.async_refresh_token()
+    try:
+      request_context = "agreement-tariffs"
+      client = self._create_client_session()
+      url = f'{self._base_url}/v1/graphql/'
+      payload = { "query": agreement_tariffs_query.format(account_id=self._account_id) }
+      headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
+      async with client.post(url, json=payload, headers=headers) as response:
+        response_body = await self.__async_read_response__(response, url)
+    except TimeoutError:
+      _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
+      raise TimeoutException()
+
+    tariffs = parse_agreement_tariffs(response_body)
+    self._agreement_tariffs_cache = (current, tariffs)
+    return tariffs
+
+  def _log_hidden_product(self, product_code: str, tariff_code: str, priced: bool, reason: str = ""):
+    """Say once per product that the pricing API has hidden it and what we did about it."""
+    key = f"{product_code}:{priced}"
+    if key in self._hidden_products_logged:
+      return
+    self._hidden_products_logged.add(key)
+    if priced:
+      _LOGGER.warning(
+        f"Product '{product_code}' is not available from the EDF pricing API (EDF hide recently withdrawn "
+        f"products for a while). Pricing tariff '{tariff_code}' from your account's agreement instead."
+      )
+    else:
+      _LOGGER.warning(
+        f"Product '{product_code}' is not available from the EDF pricing API and tariff '{tariff_code}' "
+        f"could not be priced from your account's agreement{reason}. Rates will be unavailable until EDF "
+        f"restore the product, usually within a couple of weeks of a new version launching."
+      )
+
+  async def _async_rates_from_agreement(self, product_code: str, tariff_code: str, period_from: datetime, period_to: datetime, is_smart_meter: bool, price_cap: float | None) -> list:
+    """Rates for a hidden product from the account's agreement, or [] if that is not possible."""
+    tariffs = await self.async_get_agreement_tariffs()
+    info = (tariffs or {}).get(tariff_code)
+    if info is None:
+      self._log_hidden_product(product_code, tariff_code, False, " (no active agreement with that tariff code)")
+      return []
+
+    is_night_rate = (lambda rate: self.__is_night_rate(rate, is_smart_meter)) if info.get("type") == AGREEMENT_DAY_NIGHT else None
+    rates = agreement_rates_to_results(info, period_from, period_to, price_cap, is_night_rate)
+    if rates is None:
+      self._log_hidden_product(product_code, tariff_code, False, f" (tariff type {info.get('type')} needs time bands the agreement does not carry)")
+      return []
+
+    self._log_hidden_product(product_code, tariff_code, True)
+    rates.sort(key=get_start)
+    return rates
+
+  async def _async_standing_charge_from_agreement(self, product_code: str, tariff_code: str):
+    """Standing charge for a hidden product from the account's agreement, or None."""
+    tariffs = await self.async_get_agreement_tariffs()
+    info = (tariffs or {}).get(tariff_code)
+    charge = agreement_standing_charge(info)
+    if charge is None:
+      self._log_hidden_product(product_code, tariff_code, False, " (no active agreement with that tariff code)")
+      return None
+    self._log_hidden_product(product_code, tariff_code, True)
+    return charge
+
   async def async_get_electricity_standard_rates(self, product_code: str, tariff_code: str, period_from: datetime, period_to: datetime):
     """Get the current standard rates"""
     results = []
@@ -1285,7 +1383,7 @@ class EDFEnergyApiClient:
         async with client.get(url, auth=auth, headers=headers) as response:
           data = await self.__async_read_response__(response, url)
           if data is None:
-            return []
+            return await self._async_rates_from_agreement(product_code, tariff_code, period_from, period_to, False, self._electricity_price_cap)
           else:
             results = results + rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._electricity_price_cap, self._favour_direct_debit_rates)
             has_more_rates = "next" in data and data["next"] is not None
@@ -1312,7 +1410,7 @@ class EDFEnergyApiClient:
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if data is None:
-          return []
+          return await self._async_rates_from_agreement(product_code, tariff_code, period_from, period_to, is_smart_meter, self._electricity_price_cap)
         else:
           # Normalise the rates to be in 30 minute increments and remove any rates that fall outside of our day period
           day_rates = rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._electricity_price_cap, self._favour_direct_debit_rates)
@@ -1324,7 +1422,7 @@ class EDFEnergyApiClient:
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if data is None:
-          return []
+          return await self._async_rates_from_agreement(product_code, tariff_code, period_from, period_to, is_smart_meter, self._electricity_price_cap)
 
         # Normalise the rates to be in 30 minute increments and remove any rates that fall outside of our night period
         night_rates = rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._electricity_price_cap, self._favour_direct_debit_rates)
@@ -1407,7 +1505,7 @@ class EDFEnergyApiClient:
       async with client.get(url, auth=auth, headers=headers) as response:
         data = await self.__async_read_response__(response, url)
         if data is None:
-          return None
+          return await self._async_rates_from_agreement(product_code, tariff_code, period_from, period_to, False, self._gas_price_cap)
         else:
           results = rates_to_thirty_minute_increments(data, period_from, period_to, tariff_code, self._gas_price_cap, self._favour_direct_debit_rates)
 
@@ -1491,6 +1589,9 @@ class EDFEnergyApiClient:
         if (data is not None and "results" in data and len(data["results"]) > 0):
           result = get_standing_charge(data["results"], tariff_code, self._favour_direct_debit_rates)
 
+      if data is None:
+        result = await self._async_standing_charge_from_agreement(product_code, tariff_code)
+
       return result
     except TimeoutError:
         _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
@@ -1510,6 +1611,9 @@ class EDFEnergyApiClient:
         data = await self.__async_read_response__(response, url)
         if (data is not None and "results" in data and len(data["results"]) > 0):
           result = get_standing_charge(data["results"], tariff_code, self._favour_direct_debit_rates)
+
+      if data is None:
+        result = await self._async_standing_charge_from_agreement(product_code, tariff_code)
 
       return result
     except TimeoutError:

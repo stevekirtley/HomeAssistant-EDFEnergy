@@ -180,6 +180,14 @@ The first thing to do is make sure the correct tariff has been picked up. This c
 
 If the correct tariff is present, it might be that you're on a tariff that has different rates depending on if you pay by direct debit or not. This can be configured via your [account configuration](./setup/account.md#favour-direct-debit-rates).
 
+## My tariff has vanished from the API and my rates show as unknown. What's going on?
+
+EDF withdraw a product version whenever the next one launches, and set the old one to a restricted status for a couple of weeks while comparison sites complete their last sign-ups. While restricted, the product is hidden from EDF's public pricing API: it is missing from the product list and its rates and standing charges all return "not found", even though you are still on it. EDF have confirmed this is by design rather than a fault, and the product becomes retrievable again once the restriction lifts.
+
+Since 19.2.1 the integration handles this itself. When the pricing API cannot find your product, your rates and standing charge are read from your account's agreement instead, which EDF's own app uses and which is never hidden. You will see a single warning in the log saying so. Single rate, half-hourly and Economy 7 tariffs are covered; three-rate tariffs still wait for the pricing API, because the agreement carries their prices but not their time bands.
+
+Historical cost statistics for days inside a hidden period may have gaps, because the agreement only carries rates for the current day or two. Once the product reappears, use the **Refresh previous consumption data** action to rebuild them.
+
 ## How are costs sensors calculated?
 
 Cost sensors are calculated by multiplying the consumption by the rate for each half hour block, which are then all added together.
