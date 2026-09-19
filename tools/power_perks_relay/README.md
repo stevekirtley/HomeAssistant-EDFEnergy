@@ -80,7 +80,10 @@ EDF reword their messages, so the parser keys on three things only:
   am/pm on one side is inferred from the other (`4-4pm` is 04:00-16:00).
 
 A text without all three is stored with a `parse_error` and produces no session. Times
-are UK local and published with their offset. Run the tests with `php tests.php`.
+are UK local and published with their offset. A window that crosses local midnight is
+published as two sessions, one either side of it, because some consumers (Predbat among
+them) drop a session whose start is before today's midnight; the halves are contiguous, so
+a calendar shows them as one window. Run the tests with `php tests.php`.
 
 If the parser misses or misreads a text, fix it without a code change by editing
 `cache/power_perks_overrides.json` on the server:
@@ -131,6 +134,7 @@ makes a good token) and give them the token, the URL and this contract:
 - 30 requests per 5 minutes per address. An app with many users should fetch through its own
   backend and cache there, which also keeps the token off end-user devices.
 - A session that disappears before it starts has been retracted (corrected or cancelled).
+- Sessions never span local midnight; an overnight window arrives as two contiguous sessions.
 - Best effort, from one phone, no SLA.
 
 Message automations only run while the phone is on and connected, so if a text arrives

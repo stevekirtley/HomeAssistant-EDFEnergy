@@ -68,7 +68,8 @@ const WEEKDAYS = ['mon' => 1, 'tue' => 2, 'wed' => 3, 'thu' => 4, 'fri' => 5, 's
  * A text can announce several windows over more than one day ("tonight, 19 September and
  * tomorrow. Your free hours are 11pm-6am, 9am-2pm and 3pm-4pm"). Windows are taken in the
  * order written, starting on the first date named; a window that would begin before the
- * previous one ended belongs to the following day.
+ * previous one ended belongs to the following day. A window that crosses local midnight
+ * is published as two sessions, one either side of it (see split_at_midnight).
  */
 function parse_power_perks_message(string $text, DateTimeImmutable $received): array
 {
@@ -104,15 +105,41 @@ function parse_power_perks_message(string $text, DateTimeImmutable $received): a
             // A window that runs past midnight (e.g. 11pm-6am).
             $end = $end->modify('+1 day');
         }
-        $sessions[] = [
-            'start' => $start,
-            'end' => $end,
-            'code' => 'power_perks_' . $start->format('YmdHi'),
-        ];
+        foreach (split_at_midnight($start, $end) as [$partStart, $partEnd]) {
+            $sessions[] = [
+                'start' => $partStart,
+                'end' => $partEnd,
+                'code' => 'power_perks_' . $partStart->format('YmdHi'),
+            ];
+        }
         $previousEnd = $end;
     }
 
     return ['sessions' => $sessions];
+}
+
+/**
+ * Cut a window at each local midnight it crosses, so no published session spans two days.
+ *
+ * Some consumers (Predbat among them) work in minutes from today's midnight and drop a
+ * session whose start is before that, which loses an overnight window the moment the day
+ * rolls over. Publishing 23:00-00:00 and 00:00-06:00 instead keeps both halves usable, and
+ * they are contiguous so a calendar shows them as one continuous window.
+ *
+ * @return array<int, array{0: DateTimeImmutable, 1: DateTimeImmutable}>
+ */
+function split_at_midnight(DateTimeImmutable $start, DateTimeImmutable $end): array
+{
+    $parts = [];
+    while (true) {
+        $midnight = $start->modify('tomorrow')->setTime(0, 0);
+        if ($end <= $midnight) {
+            $parts[] = [$start, $end];
+            return $parts;
+        }
+        $parts[] = [$start, $midnight];
+        $start = $midnight;
+    }
 }
 
 /** The calendar date the text refers to, at midnight local time, or null. */

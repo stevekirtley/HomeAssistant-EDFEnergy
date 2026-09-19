@@ -33,7 +33,6 @@ $cases = [
     ['Power Perks tomorrow 11.30am to 2.30pm', '2026-09-19 11:30', '2026-09-19 14:30'],
     ['Power Perks tomorrow midday-3pm', '2026-09-19 12:00', '2026-09-19 15:00'],
     ['Power Perks tomorrow noon to 4pm', '2026-09-19 12:00', '2026-09-19 16:00'],
-    ['Power Perks tomorrow 10pm-2am', '2026-09-19 22:00', '2026-09-20 02:00'],
     ['Power Perks tomorrow 12am-4am', '2026-09-19 00:00', '2026-09-19 04:00'],
     ['Power Perks tomorrow 12pm-4pm', '2026-09-19 12:00', '2026-09-19 16:00'],
     // Explicit date takes priority over "tomorrow", and the year rolls over sensibly.
@@ -96,7 +95,12 @@ foreach ($rejected as $text) {
 // Several windows over two days, as EDF actually sent on 19 September 2026.
 $multi = [
     ["Great news, you've got Power Perks free electricity tonight, 19 September and tomorrow. Your free hours are 11pm-6am, 9am-2pm and 3pm-4pm. Enjoy.", '2026-09-19 10:40:00',
-        [['2026-09-19 23:00', '2026-09-20 06:00'], ['2026-09-20 09:00', '2026-09-20 14:00'], ['2026-09-20 15:00', '2026-09-20 16:00']]],
+        [['2026-09-19 23:00', '2026-09-20 00:00'], ['2026-09-20 00:00', '2026-09-20 06:00'], ['2026-09-20 09:00', '2026-09-20 14:00'], ['2026-09-20 15:00', '2026-09-20 16:00']]],
+    // A window over midnight is split there; the day-ordering still uses the true end.
+    ['Power Perks tomorrow 10pm-2am', '2026-09-18 10:00:00',
+        [['2026-09-19 22:00', '2026-09-20 00:00'], ['2026-09-20 00:00', '2026-09-20 02:00']]],
+    ['Power Perks tonight 10pm-2am and 9am-11am', '2026-09-19 10:00:00',
+        [['2026-09-19 22:00', '2026-09-20 00:00'], ['2026-09-20 00:00', '2026-09-20 02:00'], ['2026-09-20 09:00', '2026-09-20 11:00']]],
     ['Power Perks tomorrow: 4am-8am and 1pm-4pm', '2026-09-18 10:00:00',
         [['2026-09-19 04:00', '2026-09-19 08:00'], ['2026-09-19 13:00', '2026-09-19 16:00']]],
     // Same-day windows written with "between ... and" for the first one.
