@@ -12,11 +12,6 @@
 * The Power Perks relay now understands a single text that announces several windows, including across two days, as EDF sent for 19 and 20 September. It also accepts named read-only tokens so other tools can use the sessions feed, and has a `reparse` action for re-running the parser over stored texts after a change.
 
 
-### Changes
-
-* The Power Perks relay now understands a single text that announces several windows, including across two days, as EDF sent for 19 and 20 September. It also accepts named read-only tokens so other tools can use the sessions feed, and has a `reparse` action for re-running the parser over stored texts after a change.
-
-
 ## [19.2.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.1) (2026-09-18)
 
 
