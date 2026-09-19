@@ -39,6 +39,10 @@ $cases = [
     // Explicit date takes priority over "tomorrow", and the year rolls over sensibly.
     ['Power Perks: free electricity tomorrow, 2 January, 4am-4pm', '2027-01-02 04:00', '2027-01-02 16:00', '2026-12-31 09:00:00'],
     ['Power Perks 19 September 2026 4am-4pm', '2026-09-19 04:00', '2026-09-19 16:00'],
+    // 24 hour clock windows must not be mistaken for numeric dates ("00-06" in 00:00-06:00).
+    ['Power Perks Today 00:00-06:00', '2026-09-20 00:00', '2026-09-20 06:00', '2026-09-20 00:49:34'],
+    ['Power Perks tomorrow 09:30-14:00', '2026-09-19 09:30', '2026-09-19 14:00'],
+    ['Power Perks on 20/09 from 00:00 to 06:00', '2026-09-20 00:00', '2026-09-20 06:00'],
     // Unicode dashes and messy spacing.
     ["Power Perks\n\nTomorrow 19 September\n4am — 4pm", '2026-09-19 04:00', '2026-09-19 16:00'],
 ];
