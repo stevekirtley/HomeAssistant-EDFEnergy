@@ -1,3 +1,17 @@
+## [19.2.2](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.2) (2026-09-19)
+
+
+### Bug Fixes
+
+* Fixed Power Perks sessions only being picked up when Home Assistant starts. The feed was polled once at startup and never again, because the coordinator behind it has no entities of its own and Home Assistant only schedules refreshes for coordinators something is listening to. It is now refreshed alongside the free electricity sessions, so a session announced during the day reaches the calendar within 15 minutes. Anyone on 19.2.0 or 19.2.1 needs this: without it, new sessions only appear after a restart.
+* The history day view no longer shows an empty "Sunday Saver Windows" card on every Sunday. It appears only for days that actually had a Sunday Saver session.
+
+
+### Changes
+
+* The Power Perks relay now understands a single text that announces several windows, including across two days, as EDF sent for 19 and 20 September. It also accepts named read-only tokens so other tools can use the sessions feed, and has a `reparse` action for re-running the parser over stored texts after a change.
+
+
 ## [19.2.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.1) (2026-09-18)
 
 
