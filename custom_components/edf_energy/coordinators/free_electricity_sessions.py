@@ -15,6 +15,7 @@ from ..const import (
   DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
   DATA_POWER_PERKS,
+  DATA_POWER_PERKS_COORDINATOR,
   DATA_SUNDAY_SAVER,
   DOMAIN,
   EVENT_ALL_FREE_ELECTRICITY_SESSIONS,
@@ -284,6 +285,15 @@ def refresh_free_electricity_sessions(
 async def async_setup_free_electricity_sessions_coordinator(hass, account_id: str, entry):
   async def async_update_free_electricity_sessions():
     current = now()
+
+    # The Power Perks coordinator has no entities of its own, and a coordinator with no
+    # listeners never polls after its first refresh. This coordinator is its only consumer,
+    # so it pulls the feed refresh along with its own tick; the Power Perks result caps how
+    # often the relay is actually called.
+    power_perks_coordinator = hass.data[DOMAIN][account_id].get(DATA_POWER_PERKS_COORDINATOR.format(account_id))
+    if power_perks_coordinator is not None:
+      await power_perks_coordinator.async_refresh()
+
     existing_result = hass.data[DOMAIN][account_id].get(DATA_FREE_ELECTRICITY_SESSIONS.format(account_id))
 
     # Try to auto-detect enrollment from the EDF website API; fall back to manual toggle if unavailable.
