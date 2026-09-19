@@ -1123,7 +1123,7 @@
                 }
               </div>
 
-              ${se && this._selectedDateKey && (([y,m,d]) => new Date(+y,+m-1,+d).getDay() === 0)(this._selectedDateKey.split('-')) ? `<div class="card">
+              ${se && daySundaySaver.length > 0 ? `<div class="card">
                 <div class="section-title">Sunday Saver Windows</div>
                 ${daySundaySaver.length === 0
                   ? `<div class="empty">No Sunday Saver events recorded for this date.</div>`
