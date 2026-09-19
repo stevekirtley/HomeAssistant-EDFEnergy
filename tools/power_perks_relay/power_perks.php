@@ -128,13 +128,20 @@ function extract_date(string $text, DateTimeImmutable $received): ?DateTimeImmut
     if (preg_match("/\\b($months)[a-z]*\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b(?:,?\\s+(\\d{4}))?/i", $text, $m)) {
         return resolve_explicit_date((int)$m[2], MONTHS[strtolower(substr($m[1], 0, 3))], $m[3] ?? '', $today);
     }
-    // "19/09", "19/09/2026", "19-09-26"
-    if (preg_match('/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/', $text, $m)) {
+    // "19/09", "19/09/2026", "19-09-26". Not part of a clock time or a window: "00:00-06:00"
+    // contains "00-06" and "4-4pm" contains "4-4", so a colon or digit on either side, or a
+    // letter straight after (am/pm), rules it out. A
+    // numeric date that does not resolve (day 0, month 13) falls through to the relative
+    // words rather than blocking them.
+    if (preg_match('/(?<![:\d])(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?(?![:\dA-Za-z])/', $text, $m)) {
         $year = $m[3] ?? '';
         if (strlen($year) === 2) {
             $year = '20' . $year;
         }
-        return resolve_explicit_date((int)$m[1], (int)$m[2], $year, $today);
+        $numeric = resolve_explicit_date((int)$m[1], (int)$m[2], $year, $today);
+        if ($numeric !== null) {
+            return $numeric;
+        }
     }
 
     if (preg_match('/\btomorrow\b/i', $text)) {
