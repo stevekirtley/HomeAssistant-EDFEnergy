@@ -67,14 +67,15 @@ foreach ($cases as $case) {
         echo "FAIL  {$text}\n      expected {$expectedStart} -> {$expectedEnd}, got error: {$result['error']}\n";
         continue;
     }
-    $gotStart = $result['start']->format('Y-m-d H:i');
-    $gotEnd = $result['end']->format('Y-m-d H:i');
-    if ($gotStart !== $expectedStart || $gotEnd !== $expectedEnd) {
+    $first = $result['sessions'][0];
+    $gotStart = $first['start']->format('Y-m-d H:i');
+    $gotEnd = $first['end']->format('Y-m-d H:i');
+    if ($gotStart !== $expectedStart || $gotEnd !== $expectedEnd || count($result['sessions']) !== 1) {
         $failures++;
-        echo "FAIL  {$text}\n      expected {$expectedStart} -> {$expectedEnd}, got {$gotStart} -> {$gotEnd}\n";
+        echo "FAIL  {$text}\n      expected {$expectedStart} -> {$expectedEnd} (1 session), got {$gotStart} -> {$gotEnd} (" . count($result['sessions']) . ")\n";
         continue;
     }
-    echo "ok    {$gotStart} -> {$gotEnd}  {$result['code']}\n";
+    echo "ok    {$gotStart} -> {$gotEnd}  {$first['code']}\n";
 }
 
 foreach ($rejected as $text) {
@@ -82,16 +83,38 @@ foreach ($rejected as $text) {
     $result = parse_power_perks_message($text, $received);
     if (!isset($result['error'])) {
         $failures++;
-        echo "FAIL  should have been rejected: {$text}\n      got {$result['start']->format('Y-m-d H:i')} -> {$result['end']->format('Y-m-d H:i')}\n";
+        echo "FAIL  should have been rejected: {$text}\n      got " . count($result['sessions']) . " session(s)\n";
         continue;
     }
     echo "ok    rejected ({$result['error']}): " . substr($text, 0, 60) . "\n";
 }
 
+// Several windows over two days, as EDF actually sent on 19 September 2026.
+$multi = [
+    ["Great news, you've got Power Perks free electricity tonight, 19 September and tomorrow. Your free hours are 11pm-6am, 9am-2pm and 3pm-4pm. Enjoy.", '2026-09-19 10:40:00',
+        [['2026-09-19 23:00', '2026-09-20 06:00'], ['2026-09-20 09:00', '2026-09-20 14:00'], ['2026-09-20 15:00', '2026-09-20 16:00']]],
+    ['Power Perks tomorrow: 4am-8am and 1pm-4pm', '2026-09-18 10:00:00',
+        [['2026-09-19 04:00', '2026-09-19 08:00'], ['2026-09-19 13:00', '2026-09-19 16:00']]],
+    // Same-day windows written with "between ... and" for the first one.
+    ['Power Perks today between 9am and 11am, then 2pm to 4pm', '2026-09-19 08:00:00',
+        [['2026-09-19 09:00', '2026-09-19 11:00'], ['2026-09-19 14:00', '2026-09-19 16:00']]],
+];
+foreach ($multi as [$text, $at, $expected]) {
+    $total++;
+    $result = parse_power_perks_message($text, new DateTimeImmutable($at, $tz));
+    $got = isset($result['error']) ? [] : array_map(fn($s) => [$s['start']->format('Y-m-d H:i'), $s['end']->format('Y-m-d H:i')], $result['sessions']);
+    if ($got !== $expected) {
+        $failures++;
+        echo "FAIL  {$text}\n      expected " . json_encode($expected) . "\n      got      " . json_encode($got) . (isset($result['error']) ? " ({$result['error']})" : '') . "\n";
+        continue;
+    }
+    echo "ok    " . count($got) . " sessions: " . json_encode($got) . "\n";
+}
+
 // Timezone: the session is published with the UK offset, so 4am in BST is 03:00Z.
 $total++;
 $result = parse_power_perks_message('Power Perks tomorrow 4am-4pm', $received);
-$utc = $result['start']->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i');
+$utc = $result['sessions'][0]['start']->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i');
 if ($utc !== '2026-09-19 03:00') {
     $failures++;
     echo "FAIL  BST offset: expected 2026-09-19 03:00Z, got {$utc}Z\n";

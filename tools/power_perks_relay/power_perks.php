@@ -15,6 +15,7 @@
  *   sessions  GET                                   public           parsed sessions (last 60 days onward)
  *   parse     GET  ?text=...                        public           dry-run the parser, nothing stored
  *   messages  GET                                   token required   raw stored texts, for debugging
+ *   reparse   GET                                   token required   re-run the parser over stored texts
  *   health    GET                                   public
  *
  * The token is passed as an X-Token header or a ?token= query parameter. It lives in
@@ -56,13 +57,18 @@ const MONTHS = [
 const WEEKDAYS = ['mon' => 1, 'tue' => 2, 'wed' => 3, 'thu' => 4, 'fri' => 5, 'sat' => 6, 'sun' => 7];
 
 /**
- * Parse an EDF Power Perks text into a session.
+ * Parse an EDF Power Perks text into one or more sessions.
  *
- * Returns ['start' => DateTimeImmutable, 'end' => DateTimeImmutable, 'code' => string]
+ * Returns ['sessions' => [['start' => DateTimeImmutable, 'end' => DateTimeImmutable, 'code' => string], ...]]
  * or ['error' => string] describing what could not be found. EDF have a habit of
  * rewording their messages, so this keys on three things only: the words "Power Perks",
  * a date (explicit, or today/tomorrow/a weekday resolved against when the text arrived)
- * and a time window in any common form.
+ * and one or more time windows in any common form.
+ *
+ * A text can announce several windows over more than one day ("tonight, 19 September and
+ * tomorrow. Your free hours are 11pm-6am, 9am-2pm and 3pm-4pm"). Windows are taken in the
+ * order written, starting on the first date named; a window that would begin before the
+ * previous one ended belongs to the following day.
  */
 function parse_power_perks_message(string $text, DateTimeImmutable $received): array
 {
@@ -79,23 +85,34 @@ function parse_power_perks_message(string $text, DateTimeImmutable $received): a
         return ['error' => 'no date found'];
     }
 
-    $window = extract_time_window($normalised);
-    if ($window === null) {
+    $windows = extract_time_windows($normalised);
+    if ($windows === []) {
         return ['error' => 'no time window found'];
     }
 
-    $start = $date->setTime($window['start'][0], $window['start'][1]);
-    $end = $date->setTime($window['end'][0], $window['end'][1]);
-    if ($end <= $start) {
-        // A window that runs past midnight (e.g. 10pm-2am).
-        $end = $end->modify('+1 day');
+    $sessions = [];
+    $day = $date;
+    $previousEnd = null;
+    foreach ($windows as $window) {
+        $start = $day->setTime($window['start'][0], $window['start'][1]);
+        if ($previousEnd !== null && $start < $previousEnd) {
+            $day = $day->modify('+1 day');
+            $start = $day->setTime($window['start'][0], $window['start'][1]);
+        }
+        $end = $day->setTime($window['end'][0], $window['end'][1]);
+        if ($end <= $start) {
+            // A window that runs past midnight (e.g. 11pm-6am).
+            $end = $end->modify('+1 day');
+        }
+        $sessions[] = [
+            'start' => $start,
+            'end' => $end,
+            'code' => 'power_perks_' . $start->format('YmdHi'),
+        ];
+        $previousEnd = $end;
     }
 
-    return [
-        'start' => $start,
-        'end' => $end,
-        'code' => 'power_perks_' . $start->format('YmdHi'),
-    ];
+    return ['sessions' => $sessions];
 }
 
 /** The calendar date the text refers to, at midnight local time, or null. */
@@ -157,22 +174,24 @@ function resolve_explicit_date(int $day, int $month, string $year, DateTimeImmut
 }
 
 /**
- * The first "X to Y" pair of clock times in the text, as [[h, m], [h, m]] in 24h, or null.
+ * Every "X to Y" pair of clock times in the text, in order, each as
+ * ['start' => [h, m], 'end' => [h, m]] in 24h. Empty if there are none.
  *
  * Accepts 4am-4pm, 4am to 4pm, between 4am and 4pm, 04:00-16:00, 4.30pm, 4 p.m., midday,
  * noon and midnight. A missing am/pm on one side is inferred from the other: "4-4pm" is
  * 04:00-16:00 because 16:00-16:00 is not a window.
  */
-function extract_time_window(string $text): ?array
+function extract_time_windows(string $text): array
 {
     $time = '(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?|(midday|noon|midnight)';
     $separator = '\s*(?:-|–|—|to|until|till|and|through)\s*';
     $pattern = "/(?:between\\s+)?(?:$time)$separator(?:$time)/iu";
 
     if (!preg_match_all($pattern, $text, $matches, PREG_SET_ORDER)) {
-        return null;
+        return [];
     }
 
+    $windows = [];
     foreach ($matches as $m) {
         $first = clock_parts($m[1] ?? '', $m[2] ?? '', $m[3] ?? '', $m[4] ?? '');
         $second = clock_parts($m[5] ?? '', $m[6] ?? '', $m[7] ?? '', $m[8] ?? '');
@@ -186,10 +205,10 @@ function extract_time_window(string $text): ?array
         }
         $resolved = resolve_meridiems($first, $second);
         if ($resolved !== null) {
-            return $resolved;
+            $windows[] = $resolved;
         }
     }
-    return null;
+    return $windows;
 }
 
 /** @return array{hour:int, minute:int, meridiem:string, explicit:bool}|null */
@@ -324,19 +343,7 @@ function ingest_message(string $text, DateTimeImmutable $received, string $sende
         }
     }
 
-    $parsed = parse_power_perks_message($text, $received);
-    $record = [
-        'id' => $id,
-        'received_at' => $received->format(DATE_ATOM),
-        'sender' => $sender,
-        'text' => $text,
-        'session' => isset($parsed['error']) ? null : [
-            'code' => $parsed['code'],
-            'start' => $parsed['start']->format(DATE_ATOM),
-            'end' => $parsed['end']->format(DATE_ATOM),
-        ],
-        'parse_error' => $parsed['error'] ?? null,
-    ];
+    $record = parse_into_record($id, $text, $received, $sender);
     $messages[] = $record;
 
     // Keep the raw log bounded.
@@ -350,23 +357,65 @@ function ingest_message(string $text, DateTimeImmutable $received, string $sende
     return $record;
 }
 
+/** A stored message record with its parse result. */
+function parse_into_record(string $id, string $text, DateTimeImmutable $received, string $sender): array
+{
+    $parsed = parse_power_perks_message($text, $received);
+    $sessions = [];
+    foreach ($parsed['sessions'] ?? [] as $session) {
+        $sessions[] = [
+            'code' => $session['code'],
+            'start' => $session['start']->format(DATE_ATOM),
+            'end' => $session['end']->format(DATE_ATOM),
+        ];
+    }
+    return [
+        'id' => $id,
+        'received_at' => $received->format(DATE_ATOM),
+        'sender' => $sender,
+        'text' => $text,
+        'session' => $sessions[0] ?? null,
+        'sessions' => $sessions,
+        'parse_error' => $parsed['error'] ?? null,
+    ];
+}
+
+/** Re-run the parser over every stored message (after a parser change). Returns the count. */
+function reparse_messages(): int
+{
+    $messages = read_json_file(messages_path());
+    $out = [];
+    foreach ($messages as $m) {
+        $received = DateTimeImmutable::createFromFormat(DATE_ATOM, (string)($m['received_at'] ?? ''));
+        if ($received === false) {
+            $out[] = $m;
+            continue;
+        }
+        $out[] = parse_into_record((string)$m['id'], (string)$m['text'], $received, (string)($m['sender'] ?? ''));
+    }
+    write_json_file(messages_path(), $out);
+    return count($out);
+}
+
 /** The published sessions: parsed texts plus overrides, deduplicated by code, recent first purged. */
 function build_sessions(DateTimeImmutable $now): array
 {
     $byCode = [];
     foreach (read_json_file(messages_path()) as $message) {
-        $session = $message['session'] ?? null;
-        if (!is_array($session) || empty($session['code'])) {
-            continue;
+        $sessions = $message['sessions'] ?? (isset($message['session']) ? [$message['session']] : []);
+        foreach ($sessions as $session) {
+            if (!is_array($session) || empty($session['code'])) {
+                continue;
+            }
+            $byCode[$session['code']] = [
+                'code' => $session['code'],
+                'start' => $session['start'],
+                'end' => $session['end'],
+                'source' => 'power_perks',
+                'received_at' => $message['received_at'] ?? null,
+                'text' => $message['text'] ?? null,
+            ];
         }
-        $byCode[$session['code']] = [
-            'code' => $session['code'],
-            'start' => $session['start'],
-            'end' => $session['end'],
-            'source' => 'power_perks',
-            'received_at' => $message['received_at'] ?? null,
-            'text' => $message['text'] ?? null,
-        ];
     }
     foreach (read_json_file(overrides_path()) as $override) {
         $code = (string)($override['code'] ?? '');
@@ -586,16 +635,13 @@ function main(): void
                 respond(400, ['ok' => false, 'error' => 'text is required']);
             }
             $received = parse_received_at($_GET['received_at'] ?? null);
-            $parsed = parse_power_perks_message($text, $received);
+            $record = parse_into_record('dry-run', $text, $received, '');
             respond(200, [
-                'ok' => !isset($parsed['error']),
+                'ok' => $record['parse_error'] === null,
                 'received_at' => $received->format(DATE_ATOM),
-                'session' => isset($parsed['error']) ? null : [
-                    'code' => $parsed['code'],
-                    'start' => $parsed['start']->format(DATE_ATOM),
-                    'end' => $parsed['end']->format(DATE_ATOM),
-                ],
-                'error' => $parsed['error'] ?? null,
+                'session' => $record['session'],
+                'sessions' => $record['sessions'],
+                'error' => $record['parse_error'],
             ]);
             // no break
 
@@ -626,8 +672,14 @@ function main(): void
                 'duplicate' => !empty($record['duplicate']),
                 'id' => $record['id'],
                 'session' => $record['session'],
+                'sessions' => $record['sessions'] ?? [],
                 'error' => $record['parse_error'],
             ]);
+            // no break
+
+        case 'reparse':
+            require_token($config);
+            respond(200, ['ok' => true, 'messages' => reparse_messages(), 'sessions' => count(build_sessions($now))]);
             // no break
 
         default:
