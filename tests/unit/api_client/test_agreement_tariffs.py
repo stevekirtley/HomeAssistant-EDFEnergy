@@ -2,6 +2,8 @@
 pricing API (issue #32)."""
 from datetime import datetime, timezone
 
+import pytest
+
 from custom_components.edf_energy.api_client.agreement_tariffs import (
   agreement_rates_to_results,
   agreement_standing_charge,
@@ -29,6 +31,7 @@ RESPONSE = {
         {
           "validFrom": "2026-09-13T23:00:00+00:00",
           "validTo": "2028-03-14T00:00:00+00:00",
+          "meterPoint": {"mpan": "2199995604619"},
           "tariff": {
             "__typename": "HalfHourlyTariff",
             "productCode": "EDF_EV_FIX_GOELEC_18M_HH",
@@ -71,6 +74,7 @@ RESPONSE = {
         {
           "validFrom": "2026-09-09T23:00:00+00:00",
           "validTo": "2028-09-09T23:00:00+00:00",
+          "meterPoint": {"mprn": "3986011510"},
           "tariff": {
             "__typename": "GasTariffType",
             "productCode": "EDF_SIMPLY_FIXED_2YR_SEP2028_V5",
@@ -194,3 +198,96 @@ def test_standing_charge_takes_the_agreement_dates():
 def test_standing_charge_missing_is_none():
   assert agreement_standing_charge(None) is None
   assert agreement_standing_charge({"tariff_code": "x", "standing_charge": None}) is None
+
+
+# ── applicableRates: pricing periods the agreement's own rates cannot reach ───
+
+from custom_components.edf_energy.api_client.agreement_tariffs import (
+  agreement_covers_period,
+  applicable_rates_to_results,
+  parse_applicable_rates,
+  vat_multiplier,
+)
+
+APPLICABLE = {
+  "data": {"applicableRates": {"edges": [
+    {"node": {"value": "6.66000", "validFrom": "2026-09-30T00:00:00+00:00", "validTo": "2026-09-30T05:00:00+00:00"}},
+    {"node": {"value": "30.21000", "validFrom": "2026-09-30T05:00:00+00:00", "validTo": "2026-09-30T22:00:00+00:00"}},
+    {"node": {"value": "6.66000", "validFrom": "2026-09-30T22:00:00+00:00", "validTo": "2026-10-01T00:00:00+00:00"}},
+  ]}}
+}
+DAY_FROM = datetime(2026, 9, 30, 0, 0, tzinfo=timezone.utc)
+DAY_TO = datetime(2026, 10, 1, 0, 0, tzinfo=timezone.utc)
+
+
+def test_parse_applicable_rates_sorts_and_converts():
+  bands = parse_applicable_rates(APPLICABLE)
+
+  assert len(bands) == 3
+  assert bands[0]["valid_from"] == DAY_FROM
+  assert bands[0]["value"] == 6.66
+  assert bands == sorted(bands, key=lambda b: b["valid_from"])
+
+
+@pytest.mark.parametrize("payload", [None, {}, {"data": {"applicableRates": None}}, {"errors": [{"message": "x"}]}])
+def test_parse_applicable_rates_tolerates_garbage(payload):
+  assert parse_applicable_rates(payload) == []
+
+
+def test_half_hourly_agreement_does_not_cover_an_older_period():
+  """The real cause of issue #39 - the agreement only reaches about a day either side."""
+  info = parse_agreement_tariffs(RESPONSE)["E-1R-EDF_EV_FIX_GOELEC_18M_HH-K"]
+
+  assert agreement_covers_period(info, PERIOD_FROM, PERIOD_TO) is False
+
+
+def test_flat_rate_agreement_covers_any_period():
+  info = parse_agreement_tariffs(RESPONSE)["E-1R-EDF_SIMPLY_FIXED_2YR_SEP2028_V5-B"]
+
+  assert agreement_covers_period(info, DAY_FROM, DAY_TO) is True
+  assert agreement_covers_period(None, DAY_FROM, DAY_TO) is False
+
+
+def test_applicable_rates_fill_a_whole_day_of_half_hours():
+  info = parse_agreement_tariffs(RESPONSE)["E-1R-EDF_EV_FIX_GOELEC_18M_HH-K"]
+
+  rates = applicable_rates_to_results(parse_applicable_rates(APPLICABLE), info, DAY_FROM, DAY_TO)
+
+  assert len(rates) == 48
+  assert rates[0]["start"] == DAY_FROM
+  assert rates[-1]["end"] == DAY_TO
+  assert rates == sorted(rates, key=lambda r: r["start"])
+
+
+def test_applicable_rates_are_converted_to_the_inc_vat_basis():
+  """applicableRates publishes exc-VAT only; the ratio comes from the agreement itself."""
+  info = dict(parse_agreement_tariffs(RESPONSE)["E-1R-EDF_EV_FIX_GOELEC_18M_HH-K"])
+  info["standing_charge"], info["pre_vat_standing_charge"] = 57.84135, 55.087
+
+  assert round(vat_multiplier(info), 4) == 1.05
+  rates = applicable_rates_to_results(parse_applicable_rates(APPLICABLE), info, DAY_FROM, DAY_TO)
+  assert round(rates[0]["value_inc_vat"], 3) == round(6.66 * 1.05, 3)
+
+
+def test_zero_rated_vat_leaves_prices_untouched():
+  """Electricity is zero-rated Oct 2026 to Apr 2027, so inc and exc are equal and correct."""
+  info = dict(parse_agreement_tariffs(RESPONSE)["E-1R-EDF_EV_FIX_GOELEC_18M_HH-K"])
+  info["standing_charge"] = info["pre_vat_standing_charge"] = 55.087
+
+  assert vat_multiplier(info) == 1.0
+  rates = applicable_rates_to_results(parse_applicable_rates(APPLICABLE), info, DAY_FROM, DAY_TO)
+  assert rates[0]["value_inc_vat"] == 6.66
+
+
+@pytest.mark.parametrize("sc,pre", [(None, None), (57.8, None), (57.8, 0), (57.8, 100.0)])
+def test_vat_multiplier_refuses_nonsense(sc, pre):
+  """A missing, zero or implausible pair must never scale a price."""
+  assert vat_multiplier({"standing_charge": sc, "pre_vat_standing_charge": pre}) == 1.0
+  assert vat_multiplier(None) == 1.0
+
+
+def test_agreement_carries_the_meter_number_for_applicable_rates():
+  tariffs = parse_agreement_tariffs(RESPONSE)
+
+  assert tariffs["E-1R-EDF_EV_FIX_GOELEC_18M_HH-K"]["mpxn"] == "2199995604619"
+  assert tariffs["G-1R-EDF_SIMPLY_FIXED_2YR_SEP2028_V5-B"]["mpxn"] == "3986011510"

@@ -1,3 +1,12 @@
+## Unreleased
+
+
+### Bug Fixes
+
+* Fixed consumption sensors staying empty when EDF hide your product from their pricing API. The rates fallback added in 19.2.1 reads your account's agreement, but that only publishes rates for about a day either side of now, and the integration will not publish consumption it cannot price. Anyone on a hidden half-hourly tariff therefore got working current rates but no previous consumption at all. The integration now asks EDF which rates applied to your meter over the exact period it needs, so historical days are priced properly. Flat-rate and gas tariffs were never affected, as a single rate covers any period. Reported by [@buttshill](https://github.com/buttshill) ([#39](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/39)).
+* The unknown product repair notice is no longer raised for a tariff you are actually on. EDF hide a product for a couple of weeks after withdrawing it from sale, which made the integration report a product it prices perfectly well as unknown. The notice is also cleared automatically once EDF publish the product again, rather than sitting in your repairs list forever.
+
+
 ## [19.2.2](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.2) (2026-09-19)
 
 

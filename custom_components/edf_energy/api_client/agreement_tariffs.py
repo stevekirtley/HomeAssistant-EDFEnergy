@@ -32,12 +32,16 @@ agreement_tariffs_query = '''query {{
     electricityAgreements(active: true) {{
       validFrom
       validTo
+      meterPoint {{
+        mpan
+      }}
       tariff {{
         __typename
         ... on TariffType {{
           productCode
           tariffCode
           standingCharge
+          preVatStandingCharge
         }}
         ... on StandardTariff {{
           unitRate
@@ -66,16 +70,56 @@ agreement_tariffs_query = '''query {{
     gasAgreements(active: true) {{
       validFrom
       validTo
+      meterPoint {{
+        mprn
+      }}
       tariff {{
         __typename
         productCode
         tariffCode
         standingCharge
+        preVatStandingCharge
         unitRate
       }}
     }}
   }}
 }}'''
+
+
+# Kraken caps this at 100 records; a day is only a handful of bands, so that is ample.
+applicable_rates_query = '''query($accountNumber: String!, $mpxn: String!, $startAt: DateTime!, $endAt: DateTime!) {
+  applicableRates(accountNumber: $accountNumber, mpxn: $mpxn, startAt: $startAt, endAt: $endAt, first: 100) {
+    edges {
+      node {
+        value
+        validFrom
+        validTo
+      }
+    }
+  }
+}'''
+
+
+def parse_applicable_rates(response_body) -> list[dict]:
+  """The bands from an applicableRates response, as {value, valid_from, valid_to}.
+
+  Values are exclusive of VAT - see vat_multiplier.
+  """
+  data = ((response_body or {}).get("data") or {}).get("applicableRates") or {}
+  bands = []
+  for edge in data.get("edges") or []:
+    node = (edge or {}).get("node") or {}
+    value = _as_float(node.get("value"))
+    valid_from = _as_datetime(node.get("validFrom"))
+    if value is None or valid_from is None:
+      continue
+    bands.append({
+      "value": value,
+      "valid_from": valid_from,
+      "valid_to": _as_datetime(node.get("validTo")),
+    })
+  bands.sort(key=lambda b: b["valid_from"])
+  return bands
 
 
 def parse_agreement_tariffs(response_body) -> dict[str, dict]:
@@ -94,11 +138,16 @@ def parse_agreement_tariffs(response_body) -> dict[str, dict]:
     code = tariff.get("tariffCode")
     if not code:
       continue
+    meter_point = agreement.get("meterPoint") or {}
     tariffs[code] = {
       "type": tariff.get("__typename"),
       "product_code": tariff.get("productCode"),
       "tariff_code": code,
+      # The meter number this agreement belongs to. applicableRates is keyed on it, and the
+      # rate methods only receive a tariff code, so the mapping has to come from here.
+      "mpxn": meter_point.get("mpan") or meter_point.get("mprn"),
       "standing_charge": _as_float(tariff.get("standingCharge")),
+      "pre_vat_standing_charge": _as_float(tariff.get("preVatStandingCharge")),
       "valid_from": _as_datetime(agreement.get("validFrom")),
       "valid_to": _as_datetime(agreement.get("validTo")),
       "unit_rate": _as_float(tariff.get("unitRate")),
@@ -158,6 +207,67 @@ def agreement_rates_to_results(
     return results
 
   return None
+
+
+def agreement_covers_period(info: dict, period_from: datetime, period_to: datetime) -> bool:
+  """Whether the agreement's own rates can price the whole of the requested period.
+
+  A flat-rate tariff carries one price with no time bands, so it covers any period. A
+  half-hourly tariff only carries the bands Kraken is currently publishing, which is about
+  a day either side of now, so anything older needs applicableRates instead.
+  """
+  if info is None:
+    return False
+  if info.get("type") != HALF_HOURLY:
+    return info.get("unit_rate") is not None or info.get("type") in (DAY_NIGHT,)
+
+  bands = [r for r in info.get("unit_rates") or [] if r.get("valid_from") is not None]
+  if not bands:
+    return False
+  earliest = min(r["valid_from"] for r in bands)
+  latest = max((r["valid_to"] for r in bands if r.get("valid_to") is not None), default=None)
+  return earliest <= period_from and latest is not None and latest >= period_to
+
+
+def vat_multiplier(info: dict) -> float:
+  """How much to scale an exc-VAT price by, derived from the account's own agreement.
+
+  applicableRates publishes exc-VAT prices only, while everything downstream expects the
+  inc-VAT basis the pricing API uses. Rather than hardcode a VAT rate - electricity is
+  zero-rated between October 2026 and April 2027, gas is not - the ratio is taken from a
+  pair of values on the agreement itself.
+
+  Note this is the ratio applying *now*, so a historical period that straddles a change in
+  the VAT rate is priced at today's rate. That only affects a tariff whose product is
+  hidden, and only across the boundary, so it is accepted rather than guessed at.
+  """
+  if info is None:
+    return 1.0
+  for inc, exc in (("standing_charge", "pre_vat_standing_charge"),):
+    a, b = info.get(inc), info.get(exc)
+    if a is not None and b is not None and b > 0:
+      ratio = a / b
+      # Guard against nonsense: VAT only ever adds, and never more than a quarter.
+      if 1.0 <= ratio <= 1.25:
+        return ratio
+  return 1.0
+
+
+def applicable_rates_to_results(
+  bands: list,
+  info: dict,
+  period_from: datetime,
+  period_to: datetime,
+  price_cap: float | None = None,
+) -> list:
+  """Half-hour rate entries from applicableRates bands, converted to the inc-VAT basis."""
+  multiplier = vat_multiplier(info)
+  expanded = [
+    (b["value"] * multiplier, b["valid_from"], b["valid_to"])
+    for b in bands
+    if b.get("value") is not None and b.get("valid_from") is not None
+  ]
+  return _expand(expanded, period_from, period_to, info.get("tariff_code"), price_cap)
 
 
 def agreement_standing_charge(info: dict) -> dict | None:
