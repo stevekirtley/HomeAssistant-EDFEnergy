@@ -21,6 +21,10 @@ from .agreement_tariffs import (
   parse_agreement_tariffs,
   agreement_rates_to_results,
   agreement_standing_charge,
+  agreement_covers_period,
+  applicable_rates_to_results,
+  applicable_rates_query,
+  parse_applicable_rates,
   DAY_NIGHT as AGREEMENT_DAY_NIGHT,
 )
 from .intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches
@@ -1338,13 +1342,61 @@ class EDFEnergyApiClient:
         f"restore the product, usually within a couple of weeks of a new version launching."
       )
 
+  async def async_get_applicable_rates(self, mpxn: str, period_from: datetime, period_to: datetime) -> list:
+    """The rates that applied to a meter over an arbitrary period, from the account.
+
+    Unlike the agreement's own rates, which only cover roughly a day either side of now,
+    this answers for any period - which is what pricing yesterday's consumption needs when
+    the product is hidden from the pricing API. Prices come back exclusive of VAT.
+    """
+    if self._account_id is None or mpxn is None:
+      return []
+    await self.async_refresh_token()
+    try:
+      request_context = "applicable-rates"
+      client = self._create_client_session()
+      url = f'{self._base_url}/v1/graphql/'
+      payload = {
+        "query": applicable_rates_query,
+        "variables": {
+          "accountNumber": self._account_id,
+          "mpxn": str(mpxn),
+          "startAt": period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+          "endAt": period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        },
+      }
+      headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
+      async with client.post(url, json=payload, headers=headers) as response:
+        response_body = await self.__async_read_response__(response, url)
+    except TimeoutError:
+      _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
+      raise TimeoutException()
+
+    return parse_applicable_rates(response_body)
+
   async def _async_rates_from_agreement(self, product_code: str, tariff_code: str, period_from: datetime, period_to: datetime, is_smart_meter: bool, price_cap: float | None) -> list:
-    """Rates for a hidden product from the account's agreement, or [] if that is not possible."""
+    """Rates for a hidden product from the account, or [] if that is not possible."""
     tariffs = await self.async_get_agreement_tariffs()
     info = (tariffs or {}).get(tariff_code)
     if info is None:
       self._log_hidden_product(product_code, tariff_code, False, " (no active agreement with that tariff code)")
       return []
+
+    # The agreement's own rates only stretch about a day either side of now. Anything older -
+    # pricing yesterday's consumption, say - has to come from applicableRates instead, or the
+    # caller gets nothing and silently publishes no consumption at all.
+    if not agreement_covers_period(info, period_from, period_to):
+      bands = await self.async_get_applicable_rates(info.get("mpxn"), period_from, period_to)
+      if bands:
+        rates = applicable_rates_to_results(bands, info, period_from, period_to, price_cap)
+        if rates:
+          self._log_hidden_product(product_code, tariff_code, True)
+          rates.sort(key=get_start)
+          return rates
+      _LOGGER.debug(
+        f"applicableRates returned nothing for '{tariff_code}' over {period_from} - {period_to}; "
+        "falling back to the agreement's own rates"
+      )
 
     is_night_rate = (lambda rate: self.__is_night_rate(rate, is_smart_meter)) if info.get("type") == AGREEMENT_DAY_NIGHT else None
     rates = agreement_rates_to_results(info, period_from, period_to, price_cap, is_night_rate)
@@ -1569,10 +1621,25 @@ class EDFEnergyApiClient:
       auth = await self._async_get_rest_auth(headers)
       url = f'{self._base_url}/v1/products/{product_code}'
       async with client.get(url, auth=auth, headers=headers) as response:
-        return await self.__async_read_response__(response, url)
+        product = await self.__async_read_response__(response, url)
     except TimeoutError:
       _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
       raise TimeoutException()
+
+    if product is not None:
+      return product
+
+    # EDF hide a product from the pricing API for a couple of weeks after withdrawing it,
+    # so a 404 here does not mean the tariff is unknown - only that it is not on sale. If
+    # the account is actually on it, report it as known so no repair notice is raised for
+    # something the customer can neither see nor fix.
+    tariffs = await self.async_get_agreement_tariffs()
+    for info in (tariffs or {}).values():
+      if info.get("product_code") == product_code:
+        _LOGGER.debug(f"Product '{product_code}' is hidden from the pricing API but is on the account")
+        return { "code": product_code, "is_from_agreement": True }
+
+    return None
 
   async def async_get_electricity_standing_charge(self, product_code: str, tariff_code: str, period_from: datetime, period_to: datetime):
     """Get the electricity standing charges"""

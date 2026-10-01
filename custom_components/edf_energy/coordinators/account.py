@@ -93,12 +93,17 @@ def raise_meter_removed(hass, account_id: str, mprn_mpan: str, serial_number: st
     translation_placeholders={ "account_id": account_id, "mprn_mpan": mprn_mpan, "serial_number": serial_number, "meter_type": "Electricity" if is_electricity else "Gas" },
   )
 
-async def async_check_valid_product(client: EDFEnergyApiClient, product_code: str, is_electricity: bool, raise_product_not_found: Callable[[str, bool], None]):
+async def async_check_valid_product(client: EDFEnergyApiClient, product_code: str, is_electricity: bool, raise_product_not_found: Callable[[str, bool], None], clear_product_not_found: Callable[[str], None] | None = None):
   try:
     _LOGGER.debug(f"Retrieving product information for '{product_code}'")
     product = await client.async_get_product(product_code)
     if product is None:
       raise_product_not_found(product_code, is_electricity)
+    elif clear_product_not_found is not None:
+      # The product is known again - EDF hide a withdrawn product for a couple of weeks and
+      # then restore it - so retire any notice raised while it was hidden. Without this the
+      # warning sticks forever, long after the thing it complained about has fixed itself.
+      clear_product_not_found(product_code)
   except:
     _LOGGER.debug(f"Failed to retrieve product info for '{product_code}'")
 
@@ -168,7 +173,8 @@ async def async_refresh_account(
   raise_product_not_found: Callable[[str, bool], None],
   raise_meter_removed: Callable[[str, str, bool], None],
   raise_meter_added: Callable[[str, str, bool], None],
-  clear_issue: Callable[[str], None]
+  clear_issue: Callable[[str], None],
+  clear_product_not_found: Callable[[str], None] | None = None
 ):
   if (current >= previous_request.next_refresh):
     account_info = None
@@ -197,11 +203,11 @@ async def async_refresh_account(
 
         for meter_key, (tariff, is_export) in current_unique_electricity_meters.items():
           if not is_export:
-            await async_check_valid_product(client, tariff.product, True, raise_product_not_found)
+            await async_check_valid_product(client, tariff.product, True, raise_product_not_found, clear_product_not_found)
 
         for meter_key in current_unique_gas_meters.keys():
           product = current_unique_gas_meters[meter_key].product
-          await async_check_valid_product(client, product, False, raise_product_not_found)
+          await async_check_valid_product(client, product, False, raise_product_not_found, clear_product_not_found)
 
         return AccountCoordinatorResult(current, 1, account_info)
     except Exception as e:
@@ -247,7 +253,8 @@ async def async_setup_account_info_coordinator(hass, account_id: str, entry):
         lambda product_code, is_electricity: raise_product_not_found(hass, product_code, is_electricity),
         lambda mprn_mpan, serial_number, is_electricity: raise_meter_removed(hass, account_id, mprn_mpan, serial_number, is_electricity),
         lambda mprn_mpan, serial_number, is_electricity: raise_meter_added(hass, account_id, mprn_mpan, serial_number, is_electricity),
-        lambda key: clear_issue(hass, key)
+        lambda key: clear_issue(hass, key),
+        lambda product_code: clear_issue(hass, f"unknown_product_{product_code}")
       )
     except AuthenticationException:
       entry.async_start_reauth(hass)
