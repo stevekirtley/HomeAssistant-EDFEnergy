@@ -1259,7 +1259,7 @@
 <h3 id="alternative-ct-clamp-or-inverter-grid-import-sensor">Alternative: CT clamp or inverter grid-import sensor<a class="headerlink" href="#alternative-ct-clamp-or-inverter-grid-import-sensor" title="Permanent link">#</a></h3>
 <p>If you don't use Bright/Glow, any other near-live grid-import source works too — a CT clamp such as a Shelly EM on the incoming supply cable, or a grid-import sensor from your solar/battery inverter.</p>
 <ol>
-<li>Create a utility meter that resets daily to store the consumption in, e.g. <code>Grid Import Today</code></li>
+<li>Create a <a href="https://www.home-assistant.io/integrations/utility_meter/">utility meter</a> that resets daily to store the consumption in, e.g. <code>Grid Import Today</code>. A utility meter is a Home Assistant helper that totals an ever-increasing sensor over a cycle; add one under <strong>Settings &gt; Devices &amp; services &gt; Helpers</strong>.</li>
 <li>Point the utility meter at your grid-import sensor. e.g. for a Hildebrand Glow it could be <code>sensor.glow_smart_meter_&lt;DEVICE_ID&gt;_smart_meter_electricity_import</code>; a Shelly EM will be <code>sensor.&lt;EM channel name&gt;_energy_total</code>; for a GivEnergy inverter using GivTCP it will be <code>sensor.givtcp_XXyywwXnnn_import_energy_today_kwh</code></li>
 <li>Add the utility meter to the Energy dashboard as above: for <code>consumed energy</code> use the utility meter (e.g. <code>sensor.grid_import_today</code>), and for cost choose <code>Use an entity with current price</code> with <code>sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_rate</code></li>
 </ol>
@@ -1324,7 +1324,7 @@
       
     </span>
     <nav>
-      BottlecapDave, Geoffrey Coan, stevekirtley, stevekirtley
+      BottlecapDave, Geoffrey Coan, stevekirtley, stevekirtley, stevekirtley
     </nav>
   </span>
 
