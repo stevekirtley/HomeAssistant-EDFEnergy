@@ -40,7 +40,7 @@ To add it to the Energy dashboard:
 
 If you don't use Bright/Glow, any other near-live grid-import source works too — a CT clamp such as a Shelly EM on the incoming supply cable, or a grid-import sensor from your solar/battery inverter.
 
-1. Create a utility meter that resets daily to store the consumption in, e.g. `Grid Import Today`
+1. Create a [utility meter](https://www.home-assistant.io/integrations/utility_meter/) that resets daily to store the consumption in, e.g. `Grid Import Today`. A utility meter is a Home Assistant helper that totals an ever-increasing sensor over a cycle; add one under **Settings > Devices & services > Helpers**.
 2. Point the utility meter at your grid-import sensor. e.g. for a Hildebrand Glow it could be `sensor.glow_smart_meter_<DEVICE_ID>_smart_meter_electricity_import`; a Shelly EM will be `sensor.<EM channel name>_energy_total`; for a GivEnergy inverter using GivTCP it will be `sensor.givtcp_XXyywwXnnn_import_energy_today_kwh`
 3. Add the utility meter to the Energy dashboard as above: for `consumed energy` use the utility meter (e.g. `sensor.grid_import_today`), and for cost choose `Use an entity with current price` with `sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_current_rate`
 

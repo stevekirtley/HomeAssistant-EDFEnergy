@@ -16,7 +16,8 @@ blueprint:
       name: Interval consumption entity
       description: >
         A sensor reporting how much you've consumed so far in the current interval. EDF does not
-        expose this, so create a utility meter with a 30 minute or hourly cycle pointed at your live
+        expose this, so create a utility meter (https://www.home-assistant.io/integrations/utility_meter/)
+        with a 30 minute or hourly cycle pointed at your live
         import source (e.g. sensor.glow_smart_meter_<id>_smart_meter_electricity_import for a
         Hildebrand Glow / Bright feed, a Shelly EM channel, or your inverter's grid-import sensor)
         and select that utility meter here.

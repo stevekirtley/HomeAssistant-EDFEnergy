@@ -3,8 +3,18 @@
 
 ### Bug Fixes
 
+* Reconfiguring the integration no longer uses a Home Assistant call that is being withdrawn. The config flow asked Home Assistant to update the entry and reload it, while the integration also has its own reload listener, which Home Assistant warns about and stops supporting in 2026.12. The reload is now left to the listener, as upstream Octopus did.
+* Looking up this integration's own devices now uses the call that replaced the deprecated one in Home Assistant 2026.9, which was logging a warning on every startup. The old call is still used on earlier versions, so nothing changes for anyone below 2026.9.
+* Fixed a check that raised an authentication error when EDF failed to issue a new token but the existing one was still valid, and merely logged when it had actually expired, leaving requests to carry on with a dead token. The two cases were the wrong way round.
+* The token refresh lock is now per account and built for async. It was a re-entrant threading lock shared by every account, which cannot keep two coroutines out of the same refresh because they run on one thread and it lets them straight back in.
+* The integration no longer polls the Sunday Saver weekly endpoint, which has answered 502 for everyone since the scheme was retired. Because the retry timer anchored on a fixed point, a fresh install logged a pair of warnings every refresh until the backoff climbed clear of it. Existing Sunday Saver history is untouched. Reported with the four items above by [@david40i9](https://github.com/david40i9) ([#36](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/36)).
 * Fixed consumption sensors staying empty when EDF hide your product from their pricing API. The rates fallback added in 19.2.1 reads your account's agreement, but that only publishes rates for about a day either side of now, and the integration will not publish consumption it cannot price. Anyone on a hidden half-hourly tariff therefore got working current rates but no previous consumption at all. The integration now asks EDF which rates applied to your meter over the exact period it needs, so historical days are priced properly. Flat-rate and gas tariffs were never affected, as a single rate covers any period. Reported by [@buttshill](https://github.com/buttshill) ([#39](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/39)).
 * The unknown product repair notice is no longer raised for a tariff you are actually on. EDF hide a product for a couple of weeks after withdrawing it from sale, which made the integration report a product it prices perfectly well as unknown. The notice is also cleared automatically once EDF publish the product again, rather than sitting in your repairs list forever.
+
+
+### Changes
+
+* The Energy Dashboard guide now links to Home Assistant's own utility meter documentation, and says where to create one. Suggested by [@PaulDGAL](https://github.com/PaulDGAL) ([#35](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/35)).
 
 
 ## [19.2.2](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.2) (2026-09-19)
