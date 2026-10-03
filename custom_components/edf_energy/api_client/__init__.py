@@ -2,6 +2,7 @@ import logging
 import json
 from typing import Any, List
 import aiohttp
+import asyncio
 from asyncio import TimeoutError
 from datetime import (datetime, timedelta, time, timezone)
 from threading import RLock
@@ -514,7 +515,6 @@ def _parse_football_enrollment_status(data: dict) -> bool | None:
 
 
 class EDFEnergyApiClient:
-  _refresh_token_lock = RLock()
   _session_lock = RLock()
 
   def __init__(self, refresh_token: str = None, electricity_price_cap=None, gas_price_cap=None, timeout_in_seconds=20, favour_direct_debit_rates=True, on_token_refresh=None, on_refresh_expiry_update=None, api_key=None):
@@ -547,6 +547,9 @@ class EDFEnergyApiClient:
     self._default_headers = { "user-agent": f'{user_agent_value}/{INTEGRATION_VERSION}' }
 
     self._session = None
+    # Per client, and asyncio rather than threading: coroutines share a thread, so a
+    # re-entrant threading lock would admit a second refresh rather than hold it back.
+    self._refresh_token_lock = asyncio.Lock()
 
   async def _async_get_rest_auth(self, headers: dict):
     """Return BasicAuth when an API key is set, otherwise inject a JWT header and return None."""
@@ -592,7 +595,7 @@ class EDFEnergyApiClient:
     if (self._graphql_expiration is not None and (self._graphql_expiration - timedelta(minutes=5)) > now()):
       return
 
-    with self._refresh_token_lock:
+    async with self._refresh_token_lock:
       # Check that our token wasn't refreshed while waiting for the lock
       if (self._graphql_expiration is not None and (self._graphql_expiration - timedelta(minutes=5)) > now()):
         return
@@ -667,7 +670,7 @@ class EDFEnergyApiClient:
           self._graphql_refresh_token = new_refresh_token
           if self._on_token_refresh is not None:
             await self._on_token_refresh(new_refresh_token)
-      elif (self._graphql_expiration is None or self._graphql_expiration > now()):
+      elif (self._graphql_expiration is None or self._graphql_expiration < now()):
         raise AuthenticationException("Failed to retrieve auth token and current token is expired")
       else:
         _LOGGER.error("Failed to retrieve auth token")
