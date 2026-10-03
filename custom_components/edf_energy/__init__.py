@@ -358,6 +358,20 @@ async def async_setup_entry(hass, entry):
 
   return True
 
+def _async_device_by_identifier(device_registry, identifier: tuple[str, str], config_entry_id: str):
+  """Look up one of our devices by its identifier.
+
+  Home Assistant 2026.9 replaced async_get_device with async_get_device_by_identifier,
+  because identifiers are only unique within a config entry. The replacement does not
+  exist on the oldest Home Assistant this integration supports, so prefer it when it is
+  there and fall back when it is not.
+  """
+  getter = getattr(device_registry, "async_get_device_by_identifier", None)
+  if getter is not None:
+    return getter(identifier, config_entry_id)
+  return device_registry.async_get_device(identifiers={identifier})
+
+
 async def async_setup_dependencies(hass, entry, config):
   """Setup the coordinator and api client which will be shared by various entities"""
   account_id = config[CONFIG_ACCOUNT_ID]
@@ -494,13 +508,13 @@ async def async_setup_dependencies(hass, entry, config):
 
         tariff = get_active_tariff(now, point["agreements"])
         if tariff is None:
-          gas_device = device_registry.async_get_device(identifiers={(DOMAIN, f"gas_{serial_number}_{mprn}")})
+          gas_device = _async_device_by_identifier(device_registry, (DOMAIN, f"gas_{serial_number}_{mprn}"), entry.entry_id)
           if gas_device is not None:
             _LOGGER.debug(f'Removed gas device {serial_number}/{mprn} due to no active tariff')
             device_registry.async_remove_device(gas_device.id)
 
         # Remove gas meter devices which had incorrect identifier
-        gas_device = device_registry.async_get_device(identifiers={(DOMAIN, f"electricity_{serial_number}_{mprn}")})
+        gas_device = _async_device_by_identifier(device_registry, (DOMAIN, f"electricity_{serial_number}_{mprn}"), entry.entry_id)
         if gas_device is not None:
           device_registry.async_remove_device(gas_device.id)
 
@@ -514,7 +528,7 @@ async def async_setup_dependencies(hass, entry, config):
       
       if electricity_tariff is None:
         _LOGGER.debug(f'Removed electricity device {serial_number}/{mpan} due to no active tariff')
-        electricity_device = device_registry.async_get_device(identifiers={(DOMAIN, f"electricity_{serial_number}_{mpan}")})
+        electricity_device = _async_device_by_identifier(device_registry, (DOMAIN, f"electricity_{serial_number}_{mpan}"), entry.entry_id)
         if electricity_device is not None:
           device_registry.async_remove_device(electricity_device.id)
 

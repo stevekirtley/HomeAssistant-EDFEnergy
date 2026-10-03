@@ -283,7 +283,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     errors = await async_validate_main_config(config, account_ids)
 
     if len(errors) < 1 and user_input is not None:
-      return self.async_update_reload_and_abort(
+      return self.async_update_and_abort(
         self._get_reconfigure_entry(),
         data_updates=config,
       )
@@ -315,7 +315,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
         config.pop(CONFIG_MAIN_API_KEY, None)
       errors = await async_validate_main_config(config, [])
       if len(errors) < 1:
-        return self.async_update_reload_and_abort(entry, data_updates=config)
+        return self.async_update_and_abort(entry, data_updates=config)
     else:
       errors = {}
 
@@ -429,7 +429,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     errors = validate_cost_tracker_config(config, account_info.account, now)
 
     if len(errors) < 1 and user_input is not None:
-      return self.async_update_reload_and_abort(
+      return self.async_update_and_abort(
         self._get_reconfigure_entry(),
         data_updates=config,
       )
@@ -527,7 +527,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     errors = await async_validate_tariff_comparison_config(config, account_info.account, now, client)
 
     if len(errors) < 1 and user_input is not None:
-      return self.async_update_reload_and_abort(
+      return self.async_update_and_abort(
         self._get_reconfigure_entry(),
         data_updates=config,
       )

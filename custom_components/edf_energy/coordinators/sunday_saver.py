@@ -30,6 +30,13 @@ _UK_TZ = ZoneInfo("Europe/London")
 # because Flextras is expected to need the same shape - flip this to True to revive it.
 AUTO_ENROL_SUPPORTED = False
 
+# The weekly endpoint that served each Sunday's free hours went away with the scheme and
+# now answers 502 for every request. Retrying it achieves nothing and, on a fresh install,
+# logs a pair of warnings every refresh until the backoff climbs clear - which is what
+# users were reporting. The call is left in place for the day EDF revive it; flip this to
+# True and the coordinator starts asking again.
+WEEKLY_ENDPOINT_SUPPORTED = False
+
 
 def _parse_edf_datetime(dt_str: str) -> datetime | None:
   """Parse a Sunday Saver datetime string as UK local time.
@@ -106,6 +113,19 @@ async def async_refresh_sunday_saver(
     checked = await client.async_get_sunday_saver_enrollment_status(account_id)
     if checked is not None:
       is_enrolled = checked
+
+  if not WEEKLY_ENDPOINT_SUPPORTED:
+    # No event to report, but keep whatever the sensors already hold so a retired scheme
+    # does not wipe the history the panel draws from.
+    return SundaySaverCoordinatorResult(
+      current,
+      1,
+      existing_result.has_event if existing_result is not None else False,
+      existing_result.free_hours if existing_result is not None else 0.0,
+      existing_result.start if existing_result is not None else None,
+      existing_result.end if existing_result is not None else None,
+      is_enrolled=is_enrolled,
+    ), newly_enrolled
 
   week_start = _get_week_start_date()
   try:
