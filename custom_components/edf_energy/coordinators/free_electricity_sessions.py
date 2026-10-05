@@ -1,3 +1,37 @@
+def _normalise_flextras_hours(result: FlextrasHoursCoordinatorResult | None) -> list[FreeElectricitySession]:
+  if result is None:
+    return []
+  return list(result.sessions)
+
+
+# Sources whose sessions can be taken away again before they start: EDF can cancel a Power
+# Perks event, and a customer can move or hand back the Flextras hours they booked.
+_RETRACTABLE_SOURCES = ("power_perks", "flextras_hours")
+
+
+def _retract_withdrawn_sessions(
+  history: list[FreeElectricitySession],
+  states: list[tuple[str, bool, set[str]]],
+  current: datetime,
+) -> list[FreeElectricitySession]:
+  """Drop sessions a source no longer offers, provided they have not started.
+
+  History normally only grows, so a finished session stays in the day's feed until the day
+  rolls over. But a session that has not begun must follow its source, or a window the
+  customer has cancelled would go on driving a battery all day. Only sources that answered
+  this tick are considered, so an outage never deletes anything, and a session already
+  under way is always kept.
+  """
+  reachable = {source: published for source, available, published in states if available}
+  return [
+    s for s in history
+    if s.source not in _RETRACTABLE_SOURCES
+    or s.source not in reachable
+    or s.start <= current
+    or s.code in reachable[s.source]
+  ]
+
+
 import logging
 from datetime import datetime, timedelta
 from typing import Callable, Any
@@ -14,6 +48,8 @@ from ..const import (
   DATA_FREE_ELECTRICITY_SESSIONS,
   DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
+  DATA_FLEXTRAS_HOURS,
+  DATA_FLEXTRAS_HOURS_COORDINATOR,
   DATA_POWER_PERKS,
   DATA_POWER_PERKS_COORDINATOR,
   DATA_SUNDAY_SAVER,
@@ -26,6 +62,7 @@ from . import BaseCoordinatorResult
 from .sunday_saver import SundaySaverCoordinatorResult
 from .event_free_electricity import EventFreeElectricityCoordinatorResult
 from .power_perks import PowerPerksCoordinatorResult
+from .flextras_hours import FlextrasHoursCoordinatorResult
 from ..api_client.free_electricity_sessions import FreeElectricitySession
 from ..api_client import EDFEnergyApiClient
 from ..storage.free_electricity_sessions_history import (
@@ -43,6 +80,8 @@ _LOGGER = logging.getLogger(__name__)
 #   - "football": free windows tied to England/Scotland World Cup matches, derived from
 #     an external schedule. Requires user opt-in because EDF does not confirm these
 #     via their API — we infer them from the public match schedule.
+#   - "flextras_hours": free hours the customer booked in the Flextras app, which they can
+#     move or hand back until the Thursday before, so they are retracted as well as added.
 #   - "power_perks": Flextras Power Perks sessions. EDF announce these by SMS only, so they
 #     come from a relay that parses the text (see coordinators/power_perks.py), plus any
 #     registered by hand with the register_power_perks_session action.
@@ -100,6 +139,7 @@ def _retract_withdrawn_power_perks(
 _ALWAYS_ON_PROVIDERS: list[tuple[str, Callable[[Any], list[FreeElectricitySession]]]] = [
   (DATA_SUNDAY_SAVER, _normalise_sunday_saver),
   (DATA_POWER_PERKS, _normalise_power_perks),
+  (DATA_FLEXTRAS_HOURS, _normalise_flextras_hours),
 ]
 
 # ARCHIVED — World Cup 2026 ended 2026-07-19. Football provider is dormant.
@@ -227,9 +267,14 @@ def refresh_free_electricity_sessions(
   history_key = DATA_FREE_ELECTRICITY_SESSIONS_HISTORY.format(account_id)
   existing_history = hass.data[DOMAIN][account_id].get(history_key) or []
   history = merge_free_electricity_sessions(existing_history, live_sessions, current)
-  history = _retract_withdrawn_power_perks(
-    history, hass.data[DOMAIN][account_id].get(DATA_POWER_PERKS.format(account_id)), current
-  )
+  power_perks = hass.data[DOMAIN][account_id].get(DATA_POWER_PERKS.format(account_id))
+  flextras_hours = hass.data[DOMAIN][account_id].get(DATA_FLEXTRAS_HOURS.format(account_id))
+  history = _retract_withdrawn_sessions(history, [
+    ("power_perks", power_perks is not None and power_perks.feed_available,
+     {s.code for s in power_perks.all_sessions} if power_perks is not None else set()),
+    ("flextras_hours", flextras_hours is not None and flextras_hours.available,
+     {s.code for s in flextras_hours.sessions} if flextras_hours is not None else set()),
+  ], current)
   hass.data[DOMAIN][account_id][history_key] = history
 
   events = _todays_sessions(history, current)
@@ -290,9 +335,10 @@ async def async_setup_free_electricity_sessions_coordinator(hass, account_id: st
     # listeners never polls after its first refresh. This coordinator is its only consumer,
     # so it pulls the feed refresh along with its own tick; the Power Perks result caps how
     # often the relay is actually called.
-    power_perks_coordinator = hass.data[DOMAIN][account_id].get(DATA_POWER_PERKS_COORDINATOR.format(account_id))
-    if power_perks_coordinator is not None:
-      await power_perks_coordinator.async_refresh()
+    for coordinator_key in (DATA_POWER_PERKS_COORDINATOR, DATA_FLEXTRAS_HOURS_COORDINATOR):
+      source_coordinator = hass.data[DOMAIN][account_id].get(coordinator_key.format(account_id))
+      if source_coordinator is not None:
+        await source_coordinator.async_refresh()
 
     existing_result = hass.data[DOMAIN][account_id].get(DATA_FREE_ELECTRICITY_SESSIONS.format(account_id))
 

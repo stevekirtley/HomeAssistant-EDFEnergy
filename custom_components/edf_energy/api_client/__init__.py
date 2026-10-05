@@ -950,6 +950,70 @@ class EDFEnergyApiClient:
     """Leave Flextras. Reversible - see async_register_flextras."""
     return await self._async_flextras_membership(account_id, 'opt-out')
 
+  async def async_get_flextras_booked_hours(self, account_id: str, property_id: str):
+    """Fetch the Flextras hours screen, which carries the free hours the customer booked.
+
+    Returns the raw server-driven UI payload, or None if it could not be fetched. Parsing
+    lives in api_client/flextras_hours.py.
+    """
+    return await self._async_get_edf_rest_json(
+      f'https://www.edfenergy.com/support/energyhub/api/weekend-saver/v1'
+      f'/{account_id}/{property_id}/ui/hours',
+      f'Flextras booked hours for {account_id}/{property_id}',
+    )
+
+  async def async_get_flextras_bookable_days(self, account_id: str, property_id: str):
+    """Fetch the book-hours screen, which lists the days currently on offer."""
+    return await self._async_get_edf_rest_json(
+      f'https://www.edfenergy.com/support/energyhub/api/weekend-saver/v1'
+      f'/{account_id}/{property_id}/ui/hours/select-days',
+      f'Flextras bookable days for {account_id}/{property_id}',
+    )
+
+  async def async_get_flextras_day_slots(self, account_id: str, property_id: str, date: str):
+    """Fetch the hourly slots for one day, and whether each is still free to take.
+
+    `date` is an ISO date; EDF wants it as DD/MM/YYYY, url encoded.
+    """
+    year, month, day = date.split("-")
+    return await self._async_get_edf_rest_json(
+      f'https://www.edfenergy.com/support/energyhub/api/reward/v1'
+      f'/{account_id}/{property_id}/timeslots?date={day}%2F{month}%2F{year}',
+      f'Flextras slots for {account_id}/{property_id} on {date}',
+    )
+
+  async def async_put_flextras_bookings(self, account_id: str, property_id: str,
+                                        booking_window: str, payload: dict):
+    """Replace the booked hours for a booking window.
+
+    This is a whole-set replace, not an incremental add: whatever is left out of the
+    payload is cancelled, and an empty list cancels everything. Callers must therefore
+    send the complete desired set.
+
+    Unlike the reads, a failure here raises rather than returning None. A booking that
+    silently did nothing is worse than an error - the customer would believe hours were
+    held when they were not.
+    """
+    await self.async_refresh_token()
+    headers = {
+      'Authorization': self._graphql_token,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    }
+    url = (f'https://www.edfenergy.com/support/energyhub/api/reward/v1'
+           f'/{account_id}/{property_id}/bookings/{booking_window}/timeslots')
+    client = self._create_client_session()
+    async with client.put(url, headers=headers, json=payload) as response:
+      body = await response.text()
+      if response.status not in (200, 201, 204):
+        raise ApiException(
+          f'Booking free hours failed with HTTP {response.status}: {body[:500]}'
+        )
+      try:
+        return json.loads(body) if body else {}
+      except ValueError:
+        return {}
+
   async def async_register_power_perks(self, account_id: str):
     """Register the account for Power Perks.
 

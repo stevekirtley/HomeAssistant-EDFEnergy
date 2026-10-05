@@ -5,11 +5,11 @@ import voluptuous as vol
 from datetime import datetime, timedelta, timezone
 from homeassistant.helpers import config_validation as cv
 
-from homeassistant.core import callback
+from homeassistant.core import SupportsResponse, callback
 from homeassistant.components import websocket_api
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
 from homeassistant.util.dt import (utcnow, now)
@@ -36,6 +36,11 @@ from .coordinators.flextras import async_setup_flextras_coordinator, get_propert
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
 from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
 from .coordinators.power_perks import async_setup_power_perks_coordinator, register_manual_session
+from .coordinators.flextras_hours import (
+  async_book_flextras_hours,
+  async_get_flextras_day_slots,
+  async_setup_flextras_hours_coordinator,
+)
 from .statistics import get_statistic_ids_to_remove
 from .intelligent import get_intelligent_features, mock_intelligent_devices
 from .config.tariff_comparison import async_migrate_tariff_comparison_config
@@ -112,8 +117,11 @@ from .const import (
   SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS,
   SERVICE_REGISTER_POWER_PERKS,
   SERVICE_JOIN_FLEXTRAS,
+  SERVICE_BOOK_FLEXTRAS_HOURS,
+  SERVICE_CANCEL_FLEXTRAS_HOURS,
   SERVICE_REGISTER_POWER_PERKS_SESSION,
   DATA_FLEXTRAS_COORDINATOR,
+  DATA_FLEXTRAS_HOURS,
   SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
   REPAIR_FREE_ELECTRICITY_EVENT_HISTORY,
   FREE_ELECTRICITY_EVENT_HISTORY_ROW_THRESHOLD,
@@ -161,6 +169,92 @@ def websocket_get_api_key(hass, connection, msg):
       api_key = entry.data.get(CONFIG_MAIN_API_KEY)
       break
   connection.send_result(msg["id"], {"api_key": api_key})
+
+def _account_id_for_panel(hass, account_id: str):
+  """Match the loosely-formatted account id the panel derives from entity slugs."""
+  def _norm(value):
+    return (value or "").lower().replace("-", "").replace("_", "")
+
+  wanted = _norm(account_id)
+  for entry in hass.config_entries.async_entries(DOMAIN):
+    if (entry.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT
+        and _norm(entry.data.get(CONFIG_ACCOUNT_ID)) == wanted):
+      return entry.data.get(CONFIG_ACCOUNT_ID)
+  return None
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/flextras_bookable_days",
+  vol.Required("account_id"): str,
+})
+@websocket_api.async_response
+async def websocket_flextras_bookable_days(hass, connection, msg):
+  """The days EDF is offering, and the hours already booked, for the panel's grid."""
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  if account_id is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  result = hass.data.get(DOMAIN, {}).get(account_id, {}).get(DATA_FLEXTRAS_HOURS.format(account_id))
+  if result is None:
+    connection.send_result(msg["id"], {"days": [], "booked": [], "remaining_hours": None})
+    return
+
+  connection.send_result(msg["id"], {
+    "days": result.bookable_days,
+    "booked": [list(h) for h in result.hours],
+    "remaining_hours": result.total_remaining_hours,
+    "bonus_hours_remaining": result.bonus_hours_remaining,
+    "challenge_hours_remaining": result.challenge_hours_remaining,
+    "entitlements": result.entitlements,
+    "available": result.available,
+  })
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/flextras_day_slots",
+  vol.Required("account_id"): str,
+  vol.Required("date"): str,
+})
+@websocket_api.async_response
+async def websocket_flextras_day_slots(hass, connection, msg):
+  """The hourly slots for one day, fetched on demand when a day is opened."""
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  if account_id is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  slots = await async_get_flextras_day_slots(hass, account_id, msg["date"])
+  connection.send_result(msg["id"], {"slots": [
+    {k: v for k, v in slot.items() if k != "start"} for slot in slots
+  ]})
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/flextras_book_hours",
+  vol.Required("account_id"): str,
+  vol.Required("hours"): [str],
+  vol.Optional("mode", default="replace"): vol.In(["add", "replace", "remove"]),
+})
+@websocket_api.async_response
+async def websocket_flextras_book_hours(hass, connection, msg):
+  """Apply the panel's selection. Admin only, since it spends a real entitlement."""
+  if not connection.user.is_admin:
+    connection.send_error(msg["id"], "unauthorized", "Admin required")
+    return
+
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  if account_id is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  try:
+    result = await async_book_flextras_hours(hass, account_id, msg["hours"], msg["mode"])
+  except (ValueError, ApiException) as err:
+    connection.send_error(msg["id"], "booking_failed", str(err))
+    return
+  connection.send_result(msg["id"], result)
+
 
 async def async_remove_config_entry_device(
   hass, config_entry, device_entry
@@ -217,6 +311,9 @@ async def async_setup_entry(hass, entry):
   if not hass.data[DOMAIN].get("_frontend_registered"):
     hass.data[DOMAIN]["_frontend_registered"] = True
     websocket_api.async_register_command(hass, websocket_get_api_key)
+    websocket_api.async_register_command(hass, websocket_flextras_bookable_days)
+    websocket_api.async_register_command(hass, websocket_flextras_day_slots)
+    websocket_api.async_register_command(hass, websocket_flextras_book_hours)
     www_dir = os.path.join(os.path.dirname(__file__), "www")
     static_paths = []
 
@@ -582,6 +679,7 @@ async def async_setup_dependencies(hass, entry, config):
   await async_setup_flextras_coordinator(hass, account_id, entry)
   await async_setup_event_free_electricity_coordinator(hass, account_id)
   await async_setup_power_perks_coordinator(hass, account_id, entry)
+  await async_setup_flextras_hours_coordinator(hass, account_id, entry)
   await async_setup_free_electricity_sessions_coordinator(hass, account_id, entry)
 
   _async_register_services(hass)
@@ -816,6 +914,79 @@ def _async_register_services(hass):
     schema=vol.Schema({
       vol.Optional("account_id"): cv.string,
     }),
+  )
+
+  def _first_flextras_account(account_id):
+    """The account to book against, defaulting to the only one if there is just one."""
+    candidates = [
+      entry.data.get(CONFIG_ACCOUNT_ID)
+      for entry in hass.config_entries.async_entries(DOMAIN)
+      if entry.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT
+      and (account_id is None or entry.data.get(CONFIG_ACCOUNT_ID) == account_id)
+    ]
+    if not candidates:
+      raise ServiceValidationError(f"No EDF account found for '{account_id}'")
+    if account_id is None and len(candidates) > 1:
+      raise ServiceValidationError(
+        "More than one EDF account is set up, so account_id is required"
+      )
+    return candidates[0]
+
+  async def _handle_book_flextras_hours(call):
+    """Book or move free hours.
+
+    Unlike the other services this one is deliberately not applied to every account: it
+    spends a finite entitlement, so an omitted account id with several accounts set up is
+    an error rather than something to guess at.
+    """
+    account_id = _first_flextras_account(call.data.get("account_id"))
+    try:
+      result = await async_book_flextras_hours(
+        hass, account_id, call.data["hours"], call.data.get("mode", "add")
+      )
+    except (ValueError, ApiException) as err:
+      raise ServiceValidationError(str(err)) from err
+    return {
+      "hours_booked": result.get("hours_booked"),
+      "remaining_hours": result.get("remaining_hours"),
+    }
+
+  hass.services.async_register(
+    DOMAIN,
+    SERVICE_BOOK_FLEXTRAS_HOURS,
+    _handle_book_flextras_hours,
+    schema=vol.Schema({
+      vol.Optional("account_id"): cv.string,
+      vol.Required("hours"): vol.All(cv.ensure_list, [cv.string]),
+      vol.Optional("mode", default="add"): vol.In(["add", "replace", "remove"]),
+    }),
+    supports_response=SupportsResponse.OPTIONAL,
+  )
+
+  async def _handle_cancel_flextras_hours(call):
+    """Give back booked hours - all of them unless particular ones are named."""
+    account_id = _first_flextras_account(call.data.get("account_id"))
+    hours = call.data.get("hours")
+    try:
+      result = await async_book_flextras_hours(
+        hass, account_id, hours or [], "remove" if hours else "replace"
+      )
+    except (ValueError, ApiException) as err:
+      raise ServiceValidationError(str(err)) from err
+    return {
+      "hours_booked": result.get("hours_booked"),
+      "remaining_hours": result.get("remaining_hours"),
+    }
+
+  hass.services.async_register(
+    DOMAIN,
+    SERVICE_CANCEL_FLEXTRAS_HOURS,
+    _handle_cancel_flextras_hours,
+    schema=vol.Schema({
+      vol.Optional("account_id"): cv.string,
+      vol.Optional("hours"): vol.All(cv.ensure_list, [cv.string]),
+    }),
+    supports_response=SupportsResponse.OPTIONAL,
   )
 
   async def _handle_register_power_perks_session(call):

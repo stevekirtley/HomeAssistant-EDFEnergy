@@ -119,6 +119,12 @@ RELAY_FIXTURES_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=fix
 # relayed to this endpoint (see tools/power_perks_relay) which parses it and publishes
 # the sessions. If it is unreachable the last known sessions are kept.
 POWER_PERKS_FEED_URL = "https://apirelay.sitetest.org.uk/power_perks.php?action=sessions"
+DATA_FLEXTRAS_HOURS = "FLEXTRAS_HOURS_{}"
+DATA_FLEXTRAS_HOURS_COORDINATOR = "FLEXTRAS_HOURS_COORDINATOR_{}"
+# Bookings can be changed up to the Thursday before, so this is polled more often than the
+# hour-ish most things use, without being so eager it hammers EDF.
+REFRESH_RATE_IN_MINUTES_FLEXTRAS_HOURS = 30
+
 DATA_POWER_PERKS = "POWER_PERKS_{}"
 DATA_POWER_PERKS_COORDINATOR = "POWER_PERKS_COORDINATOR_{}"
 DATA_POWER_PERKS_MANUAL_SESSIONS = "POWER_PERKS_MANUAL_SESSIONS_{}"
@@ -187,6 +193,8 @@ SERVICE_JOIN_SUNDAY_SAVER = "join_sunday_saver"
 SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS = "claim_flextras_bonus_hours"
 SERVICE_REGISTER_POWER_PERKS = "register_power_perks"
 SERVICE_JOIN_FLEXTRAS = "join_flextras"
+SERVICE_BOOK_FLEXTRAS_HOURS = "book_flextras_hours"
+SERVICE_CANCEL_FLEXTRAS_HOURS = "cancel_flextras_hours"
 SERVICE_REGISTER_POWER_PERKS_SESSION = "register_power_perks_session"
 SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY = "purge_free_electricity_event_history"
 

@@ -21,6 +21,7 @@ from .const import (
   DATA_CLIENT
 )
 from .api_client import EDFEnergyApiClient, TimeoutException
+from .api_client.flextras_hours import redact_hours_screen
 from .utils.debug_overrides import AccountDebugOverride, async_get_account_debug_override
 
 _LOGGER = logging.getLogger(__name__)
@@ -110,6 +111,18 @@ async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, exi
 
   account_info = async_redact_data(account_info, { "id" }) if account_info is not None else None
 
+  # Structure only, with the identifying fields stripped. See redact_hours_screen for why
+  # this is worth carrying: most of the scheme cannot be observed on any one account.
+  flextras_hours_screen = None
+  try:
+    property_ids = (existing_account_info or account_info or {}).get("property_ids") or []
+    if property_ids:
+      flextras_hours_screen = redact_hours_screen(
+        await client.async_get_flextras_booked_hours(account_id, str(property_ids[0]))
+      )
+  except Exception as e:
+    flextras_hours_screen = {"error": f"{type(e).__name__}"}
+
   return {
     "timestamp_captured": now(),
     "token": client.token_diagnostics,
@@ -117,6 +130,7 @@ async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, exi
     "using_cached_account_data": existing_account_info is not None,
     "entities": get_entity_info(redacted_mappings),
     "intelligent_devices": list(map(lambda x: x.to_dict(), intelligent_devices)),
+    "flextras_hours_screen": flextras_hours_screen,
   }
 
 ignored_attributes = ['mpan', 'mprn', 'serial_number', 'friendly_name', 'icon', 'unit_of_measurement', 'device_class', 'state_class', 'account_id']

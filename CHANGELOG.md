@@ -1,3 +1,13 @@
+## Unreleased
+
+
+### Features
+
+* The free hours you book through Flextras now appear as free electricity sessions, alongside Power Perks and Sunday Saver. They reach the calendar, the sensors and anything built on them, so existing automations and Predbat pick them up with no changes. Hours booked next to each other are shown as one window. Because a booking can be moved or given back until the Thursday before, the integration follows the app: a window you cancel disappears, while one already under way never does.
+* You can now choose, move and give back your free hours from the EDF Energy panel, rather than only in the EDF app. Pick a weekend day, click the hours you want, and save. There are also `edf_energy.book_flextras_hours` and `edf_energy.cancel_flextras_hours` services, so an automation can book your hours where they are worth most instead of leaving it to chance.
+* A new Flextras Hours Remaining sensor reports the hours you have left to spend, and when they expire. EDF book unused challenge hours for you once they near expiry, at a time of their choosing, so the expiry attributes let you claim a better slot first.
+
+
 ## [19.2.3](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.3) (2026-10-03)
 
 
