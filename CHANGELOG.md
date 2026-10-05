@@ -1,4 +1,4 @@
-## Unreleased
+## [19.2.4](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.4) (2026-10-05)
 
 
 ### Features
