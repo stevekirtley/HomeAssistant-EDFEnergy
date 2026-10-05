@@ -56,6 +56,7 @@ from .intelligent.current_state import EDFEnergyIntelligentCurrentState
 from .intelligent import get_intelligent_features
 from .sunday_saver.sensor import EDFEnergySundaySaverStartSensor, EDFEnergySundaySaverEndSensor
 from .flextras.sensor import EDFEnergyFlextrasBonusHours
+from .flextras.hours_sensor import EDFEnergyFlextrasHoursRemaining
 from .events.sensor import EDFEnergyEventFreeStartSensor, EDFEnergyEventFreeEndSensor
 from .free_electricity.sensor import EDFEnergyNextFreeElectricitySessionStartSensor, EDFEnergyNextFreeElectricitySessionEndSensor
 
@@ -97,6 +98,7 @@ from .const import (
   DATA_INTELLIGENT_SETTINGS_COORDINATOR,
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
   DATA_FLEXTRAS_COORDINATOR,
+  DATA_FLEXTRAS_HOURS_COORDINATOR,
   DATA_SUNDAY_SAVER_COORDINATOR,
   DATA_EVENT_FREE_ELECTRICITY_COORDINATOR,
   DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
@@ -243,6 +245,12 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
   flextras_coordinator = hass.data[DOMAIN][account_id].get(DATA_FLEXTRAS_COORDINATOR.format(account_id))
   if flextras_coordinator is not None:
     entities.append(EDFEnergyFlextrasBonusHours(hass, flextras_coordinator, account_id))
+
+  # Also gives this coordinator an entity listening to it, so HA keeps it scheduled.
+  flextras_hours_coordinator = hass.data[DOMAIN][account_id].get(
+    DATA_FLEXTRAS_HOURS_COORDINATOR.format(account_id))
+  if flextras_hours_coordinator is not None:
+    entities.append(EDFEnergyFlextrasHoursRemaining(hass, flextras_hours_coordinator, account_id))
 
   event_coordinator = hass.data[DOMAIN][account_id].get(DATA_EVENT_FREE_ELECTRICITY_COORDINATOR.format(account_id))
   if event_coordinator is not None:

@@ -89,7 +89,7 @@
   const DISPATCH_LABEL  = { completed: 'Completed', active: 'Active',    planned: 'Planned',   cancelled: 'Cancelled' };
 
   // Friendly labels for free electricity session sources (Sunday Saver has its own dedicated card).
-  const FREE_SESSION_SOURCE_LABEL = { football: 'World Cup', football_et: 'World Cup (extra time)', power_perks: 'Power Perks' };
+  const FREE_SESSION_SOURCE_LABEL = { football: 'World Cup', football_et: 'World Cup (extra time)', power_perks: 'Power Perks', flextras_hours: 'Flextras free hours' };
   function freeSessionSourceLabel(source) {
     if (FREE_SESSION_SOURCE_LABEL[source]) return FREE_SESSION_SOURCE_LABEL[source];
     if (!source) return 'Free electricity';
@@ -297,6 +297,50 @@
       flex-shrink: 0;
     }
     .menu-btn:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── Flextras free hour booking ── */
+    .flex-days { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 16px 12px; }
+    .flex-day {
+      background: var(--secondary-background-color, rgba(255,255,255,0.08));
+      border: 1px solid transparent; border-radius: 14px;
+      color: inherit; cursor: pointer;
+      padding: 5px 11px; font-size: 0.8em; font-weight: 600; white-space: nowrap;
+    }
+    .flex-day:hover { border-color: var(--primary-color, #3d5afe); }
+    .flex-day.open { background: var(--primary-color, #3d5afe); color: #fff; }
+    .flex-day .count { opacity: 0.75; font-weight: 400; margin-left: 4px; }
+    .flex-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+      gap: 6px; padding: 0 16px 12px;
+    }
+    .flex-slot {
+      background: var(--secondary-background-color, rgba(255,255,255,0.08));
+      border: 1px solid transparent; border-radius: 6px;
+      color: inherit; cursor: pointer;
+      padding: 7px 4px; font-size: 0.78em; font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .flex-slot:hover:not(:disabled) { border-color: var(--primary-color, #3d5afe); }
+    /* Confirmed with EDF: solid. Picked but not saved: outlined, so the grid makes the
+       difference between "chosen" and "booked" obvious without reading anything. */
+    .flex-slot.booked { background: #2e7d32; color: #fff; }
+    .flex-slot.pending {
+      background: transparent; color: var(--primary-color, #3d5afe);
+      border: 1px dashed var(--primary-color, #3d5afe);
+    }
+    .flex-slot.dropping { background: transparent; opacity: 0.5; text-decoration: line-through; }
+    .flex-slot:disabled { opacity: 0.35; cursor: not-allowed; }
+    .flex-slot:disabled.booked { opacity: 0.75; }
+    .flex-actions { display: flex; gap: 8px; align-items: center; padding: 0 16px 14px; }
+    .flex-actions .spacer { flex: 1; }
+    .flex-booked { padding: 2px 16px 10px; font-size: 0.82em; line-height: 1.5; }
+    .flex-booked .row { display: flex; gap: 6px; align-items: baseline; }
+    .flex-booked .tick { color: #43a047; }
+    .flex-pending-note {
+      padding: 0 16px 8px; font-size: 0.8em; font-weight: 600;
+      color: var(--primary-color, #3d5afe);
+    }
+    .flex-day.edited { border-color: var(--primary-color, #3d5afe); border-style: dashed; }
   `;
 
   // ── Panel element ─────────────────────────────────────────────────────────────
@@ -312,6 +356,16 @@
       this._apiKeyValue = null;
       // Track pending edits so a mid-typing re-render doesn't overwrite inputs
       this._pending = {};  // { entityId: value }
+      // Flextras hour booking. The selection is held here rather than read back off the
+      // grid so a re-render mid-edit - which a coordinator refresh will cause - does not
+      // throw away hours the user has picked but not yet saved.
+      this._flex = null;          // { days, booked, remaining_hours } from the backend
+      this._flexSel = null;       // Set of 'YYYY-MM-DD HH:MM', the full desired booking
+      this._flexOpenDate = null;  // which day's grid is expanded
+      this._flexSlots = {};       // date -> slots, fetched on demand
+      this._flexBusy = false;
+      this._flexLoading = false;
+      this._flexConfirmCancel = false;
     }
 
     set hass(hass) {
@@ -748,9 +802,9 @@
     }
 
     // ── Flextras card ─────────────────────────────────────────────────────────
-    // Flextras replaced Sunday Saver in 2026. Joining, and joining the schemes
-    // beneath it, is only possible in the EDF mobile app, so this card is
-    // read-only apart from claiming the joining bonus hours.
+    // Flextras replaced Sunday Saver in 2026. Joining the schemes beneath it is only
+    // possible in the EDF mobile app, so this card is read-only apart from joining and
+    // claiming the bonus hours. Spending those hours is the card below.
     _renderFlextrasCard() {
       const fe = this._findFlextrasEntity(this._hass);
       if (!fe) return '';
@@ -852,6 +906,262 @@
           ${banner}
           ${rows.join('')}
         </div>`;
+    }
+
+    // ── Flextras free hours card ───────────────────────────────────────────────
+    // The hours earned through Flextras are spent on weekend slots of the customer's
+    // choosing. EDF's booking call replaces the whole set at once, so the selection here
+    // is always the complete desired booking rather than a delta, and Save sends it as
+    // such. That mirrors the API exactly and makes moving an hour the same action as
+    // booking one.
+    _renderFlextrasHoursCard() {
+      const flex = this._flex;
+      if (!flex) return '';
+      const days = (flex.days || []).filter(d => d.available);
+      const booked = flex.booked || [];
+      if (!days.length && !booked.length) return '';
+
+      const sel = this._flexSel || new Set();
+      // A missing counter means "not told", not "none left". Blocking the grid on an
+      // unknown would lock out a customer EDF would happily have let book, and the
+      // backend refuses an overspend anyway.
+      const allowanceKnown = flex.remaining_hours != null;
+      const allowance = booked.length + (flex.remaining_hours ?? 0);
+      const chosen = sel.size;
+      const dirty = this._flexDirty();
+
+      // Nothing booked and nothing to spend is the ordinary resting state for anyone on a
+      // time-of-use tariff: Weekend Saver, which earns the hours, is for non-time-of-use
+      // tariffs only. Showing a grid of hours that cannot be clicked would read as broken,
+      // so say why instead.
+      if (allowanceKnown && allowance === 0 && !booked.length) {
+        return `
+          <div class="card">
+            <div class="section-title">&#x23F1;&#xFE0F; Your free hours</div>
+            <div class="section-info">
+              No free hours to spend at the moment. When Flextras awards you some, book
+              them here for any Saturday or Sunday between 12am and 3pm.
+            </div>
+          </div>`;
+      }
+
+      const bookedKeys = new Set(booked.map(h => `${h[0]} ${h[1]}`));
+      const adding = [...sel].filter(k => !bookedKeys.has(k));
+      const dropping = [...bookedKeys].filter(k => !sel.has(k));
+
+      const dayChips = days.map(d => {
+        const onThisDay = [...sel].filter(k => k.startsWith(d.date)).length;
+        const open = this._flexOpenDate === d.date;
+        const edited = [...adding, ...dropping].some(k => k.startsWith(d.date));
+        const label = new Date(d.date + 'T12:00:00')
+          .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+        return `<button class="flex-day${open ? ' open' : ''}${edited ? ' edited' : ''}" data-flex-day="${esc(d.date)}">
+          ${esc(label)}${onThisDay ? `<span class="count">${onThisDay}h</span>` : ''}
+        </button>`;
+      }).join('');
+
+      let grid = '';
+      if (this._flexOpenDate) {
+        const slots = this._flexSlots[this._flexOpenDate];
+        if (!slots) {
+          grid = `<div class="section-info">Loading hours&hellip;</div>`;
+        } else if (!slots.length) {
+          grid = `<div class="section-info">EDF is not offering any hours on this day.</div>`;
+        } else {
+          grid = `<div class="flex-grid">` + slots.map(slot => {
+            const key = `${slot.date} ${slot.start_time}`;
+            const picked = sel.has(key);
+            const isBooked = bookedKeys.has(key);
+            // Three states worth seeing apart: held by EDF, picked but not yet saved, and
+            // booked but about to be given back.
+            let cls = '';
+            if (picked && isBooked) cls = ' booked';
+            else if (picked) cls = ' pending';
+            else if (isBooked) cls = ' dropping';
+            // Anything EDF will not sell, and anything beyond the allowance once the
+            // allowance is spent, is shown but not selectable.
+            const blocked = !slot.available || (allowanceKnown && !picked && chosen >= allowance);
+            const label = isBooked && !picked ? 'booked, will be given back'
+              : picked && !isBooked ? 'chosen, not saved yet'
+              : isBooked ? 'booked' : 'free';
+            return `<button class="flex-slot${cls}"
+              data-flex-slot="${esc(key)}" ${blocked ? 'disabled' : ''}
+              title="${esc(slot.start_time)}&ndash;${esc(slot.end_time)} &middot; ${label}">
+              ${esc(slot.start_time)}
+            </button>`;
+          }).join('') + `</div>`;
+        }
+      }
+
+      const summary = allowanceKnown && allowance
+        ? `${chosen} of ${allowance} hour${allowance === 1 ? '' : 's'} chosen`
+        : `${chosen} hour${chosen === 1 ? '' : 's'} chosen`;
+
+      // What is actually held with EDF, stated plainly and permanently. A toast is not
+      // enough: after saving there has to be something on screen that says it worked.
+      // Unused challenge hours get booked for you by EDF once they near expiry, so an
+      // expiry worth acting on belongs on screen rather than only in an attribute.
+      const expiring = (flex.entitlements || [])
+        .filter(e => e.expires && e.hours_left !== 0)
+        .sort((a, b) => String(a.expires).localeCompare(String(b.expires)))[0];
+      const expiryNote = expiring ? `
+        <div class="flex-booked"><div class="control-sub">
+          ${esc(expiring.title || 'Hours')}:
+          ${expiring.hours_left != null ? esc(String(expiring.hours_left)) + 'h ' : ''}expires
+          ${esc(formatDateOnly(expiring.expires))}
+        </div></div>` : '';
+
+      const bookedList = booked.length ? `
+        <div class="flex-booked">
+          ${this._flexBookedWindows(booked).map(w => `
+            <div class="row"><span class="tick">&#x2714;</span>
+              <span>${esc(w)}</span></div>`).join('')}
+        </div>` : `
+        <div class="flex-booked"><div class="control-sub">
+          No hours booked yet${allowanceKnown && allowance ? ` &mdash; you have ${allowance} to spend` : ''}.
+        </div></div>`;
+
+      // Spell out what Save will do, so the button is never a mystery.
+      const pendingNote = dirty ? `
+        <div class="flex-pending-note">
+          ${[adding.length ? `booking ${adding.length} hour${adding.length === 1 ? '' : 's'}` : '',
+             dropping.length ? `giving back ${dropping.length}` : '']
+            .filter(Boolean).join(', ')} when you save
+        </div>` : '';
+
+      const saveLabel = this._flexBusy ? 'Saving&hellip;'
+        : dirty ? 'Save changes'
+        : booked.length ? 'Saved &#x2714;'
+        : 'Save';
+
+      const actions = `
+        <div class="flex-actions">
+          <div class="control-sub">${esc(summary)}</div>
+          <div class="spacer"></div>
+          ${booked.length ? `<button class="btn-apply danger" data-action="flex-cancel-all"
+            ${this._flexBusy ? 'disabled' : ''}>${
+              this._flexConfirmCancel ? 'Really cancel all?' : 'Cancel all'
+            }</button>` : ''}
+          ${dirty && !this._flexBusy ? `<button class="btn-apply" data-action="flex-revert"
+            style="background:transparent;color:var(--secondary-text-color)">Undo</button>` : ''}
+          <button class="btn-apply" data-action="flex-save"
+            ${this._flexBusy || !dirty ? 'disabled' : ''}>${saveLabel}</button>
+        </div>`;
+
+      const note = flex.available === false
+        ? `<div class="wc-banner">EDF's booking service could not be reached, so these may be out of date.</div>`
+        : '';
+
+      return `
+        <div class="card">
+          <div class="section-title">&#x23F1;&#xFE0F; Your free hours</div>
+          <div class="section-info">
+            Pick the hours you want your earned free electricity on. Whole hours, as many
+            days as you like, and you can change your mind until 11:59pm on the Thursday
+            before.
+          </div>
+          ${note}
+          ${bookedList}
+          ${expiryNote}
+          ${days.length ? `<div class="flex-days">${dayChips}</div>` : ''}
+          ${grid}
+          ${pendingNote}
+          ${actions}
+        </div>`;
+    }
+
+    // The booked hours as readable windows, adjacent hours joined, e.g.
+    // "Sat 10 Oct, 10:00-12:00". Mirrors the merging the backend does for the calendar.
+    _flexBookedWindows(booked) {
+      const byDay = {};
+      booked.forEach(([date, time]) => (byDay[date] = byDay[date] || []).push(time));
+      return Object.keys(byDay).sort().map(date => {
+        const hours = byDay[date].map(t => parseInt(t, 10)).sort((a, b) => a - b);
+        const spans = [];
+        hours.forEach(h => {
+          const last = spans[spans.length - 1];
+          if (last && h === last[1]) last[1] = h + 1;
+          else spans.push([h, h + 1]);
+        });
+        const label = new Date(date + 'T12:00:00')
+          .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+        const times = spans
+          .map(([a, b]) => `${String(a).padStart(2, '0')}:00–${String(b).padStart(2, '0')}:00`)
+          .join(', ');
+        return `${label}, ${times}`;
+      });
+    }
+
+    // True when the selection differs from what EDF currently holds, which is what
+    // decides whether Save does anything.
+    _flexDirty() {
+      if (!this._flex || !this._flexSel) return false;
+      const booked = new Set((this._flex.booked || []).map(h => `${h[0]} ${h[1]}`));
+      if (booked.size !== this._flexSel.size) return true;
+      for (const key of this._flexSel) if (!booked.has(key)) return true;
+      return false;
+    }
+
+    _flexResetSelection() {
+      this._flexSel = new Set((this._flex?.booked || []).map(h => `${h[0]} ${h[1]}`));
+    }
+
+    async _loadFlextrasHours() {
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId || !this._hass) return;
+      try {
+        const res = await this._hass.callWS({
+          type: 'edf_energy/flextras_bookable_days', account_id: accountId,
+        });
+        this._flex = res;
+        // Only adopt EDF's booking as the selection when there is no unsaved edit in
+        // progress, so a background refresh cannot discard what is being chosen.
+        if (!this._flexSel || !this._flexDirty()) this._flexResetSelection();
+        this._render();
+      } catch (err) {
+        this._flex = null;
+      }
+    }
+
+    async _loadFlextrasDaySlots(date) {
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId || !this._hass) return;
+      try {
+        const res = await this._hass.callWS({
+          type: 'edf_energy/flextras_day_slots', account_id: accountId, date,
+        });
+        this._flexSlots[date] = res.slots || [];
+      } catch (err) {
+        this._flexSlots[date] = [];
+        this._toast('Could not load the hours for that day');
+      }
+      this._render();
+    }
+
+    async _saveFlextrasHours(hours) {
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId || !this._hass) return;
+      this._flexBusy = true;
+      this._render();
+      try {
+        const res = await this._hass.callWS({
+          type: 'edf_energy/flextras_book_hours',
+          account_id: accountId, hours, mode: 'replace',
+        });
+        this._toast(hours.length
+          ? `Booked ${res.hours_booked ?? hours.length}h, ${res.remaining_hours ?? 0}h left`
+          : 'All booked hours cancelled');
+        // Re-read rather than trusting the local selection: EDF is the record.
+        this._flexSel = null;
+        this._flexSlots = {};
+        await this._loadFlextrasHours();
+        if (this._flexOpenDate) await this._loadFlextrasDaySlots(this._flexOpenDate);
+      } catch (err) {
+        this._toast(err?.message || 'Booking failed');
+      } finally {
+        this._flexBusy = false;
+        this._render();
+      }
     }
 
     // ── Sunday Saver card ──────────────────────────────────────────────────────
@@ -1002,6 +1312,14 @@
     _render() {
       if (!this._hass) return;
 
+      // Fetched over the websocket rather than from an entity, because the bookable days
+      // and their slots are far too much state to put in attributes. Fired once; the card
+      // renders empty until it lands and then re-renders itself.
+      if (this._flex === null && !this._flexLoading) {
+        this._flexLoading = true;
+        this._loadFlextrasHours();
+      }
+
       const de  = this._findDispatchEntity(this._hass);
       const oe  = this._findOffPeakEntity(this._hass);
       const se  = this._findSundaySaverEntity(this._hass);
@@ -1070,6 +1388,7 @@
             ${this._renderControls(ids)}
             ${this._renderWorldCupCard()}
             ${this._renderFlextrasCard()}
+            ${this._renderFlextrasHoursCard()}
             ${this._renderSundaySaverCard()}
             ${this._renderApiKeyCard()}
 
@@ -1290,6 +1609,54 @@
       root.querySelector('[data-action="set-target-time"]')?.addEventListener('click', () => {
         const val = root.getElementById('select-target-time')?.value;
         if (val && ids.targetTime) this._callTime(ids.targetTime, val);
+      });
+
+      // ── Flextras free hour booking ────────────────────────────────────────
+      root.querySelectorAll('[data-flex-day]').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const date = chip.dataset.flexDay;
+          this._flexOpenDate = this._flexOpenDate === date ? null : date;
+          if (this._flexOpenDate && !this._flexSlots[this._flexOpenDate]) {
+            this._loadFlextrasDaySlots(this._flexOpenDate);
+          }
+          this._render();
+        });
+      });
+
+      root.querySelectorAll('[data-flex-slot]').forEach(slot => {
+        slot.addEventListener('click', () => {
+          const key = slot.dataset.flexSlot;
+          if (!this._flexSel) this._flexResetSelection();
+          if (this._flexSel.has(key)) this._flexSel.delete(key);
+          else this._flexSel.add(key);
+          this._render();
+        });
+      });
+
+      root.querySelector('[data-action="flex-save"]')?.addEventListener('click', () => {
+        this._saveFlextrasHours([...(this._flexSel || [])].sort());
+      });
+
+      root.querySelector('[data-action="flex-revert"]')?.addEventListener('click', () => {
+        this._flexResetSelection();
+        this._render();
+      });
+
+      root.querySelector('[data-action="flex-cancel-all"]')?.addEventListener('click', () => {
+        if (!this._flexConfirmCancel) {
+          this._flexConfirmCancel = true;
+          this._render();
+          // Arm it only briefly, so it cannot sit waiting to be hit by accident later.
+          clearTimeout(this._flexConfirmTimer);
+          this._flexConfirmTimer = setTimeout(() => {
+            this._flexConfirmCancel = false;
+            this._render();
+          }, 5000);
+          return;
+        }
+        clearTimeout(this._flexConfirmTimer);
+        this._flexConfirmCancel = false;
+        this._saveFlextrasHours([]);
       });
 
       root.querySelector('[data-action="join-flextras"]')?.addEventListener('click', e => {

@@ -53,6 +53,67 @@ join_flextras:
       selector:
         text:
 
+book_flextras_hours:
+  name: Book Flextras free hours
+  description: >-
+    Books free electricity hours on the weekend days EDF is currently offering, spending
+    the hours earned through Flextras. Hours are whole hours and need not be next to each
+    other. Bookings can be changed until 11:59pm on the Thursday before.
+  fields:
+    account_id:
+      name: Account Id
+      description: >-
+        The account to book against. Only needed if more than one EDF account is set up -
+        booking spends a finite entitlement, so it is never applied to every account.
+      required: false
+      example: A-XXXXXXXX
+      selector:
+        text:
+    hours:
+      name: Hours
+      description: >-
+        The hours to book, each as a local date and start time. Each entry books one hour.
+      required: true
+      example: '["2026-10-10 09:00", "2026-10-10 10:00"]'
+      selector:
+        object:
+    mode:
+      name: Mode
+      description: >-
+        'add' keeps what is already booked and adds these (the default). 'replace' makes
+        these the only booked hours, cancelling anything else. 'remove' gives these back.
+      required: false
+      default: add
+      selector:
+        select:
+          options:
+            - add
+            - replace
+            - remove
+
+cancel_flextras_hours:
+  name: Cancel Flextras free hours
+  description: >-
+    Gives back booked free hours so they can be spent on another slot. Without any hours
+    named, every booked hour is cancelled.
+  fields:
+    account_id:
+      name: Account Id
+      description: The account to cancel against. Only needed if more than one is set up.
+      required: false
+      example: A-XXXXXXXX
+      selector:
+        text:
+    hours:
+      name: Hours
+      description: >-
+        The particular hours to give back, each as a local date and start time. Leave
+        empty to cancel everything currently booked.
+      required: false
+      example: '["2026-10-10 09:00"]'
+      selector:
+        object:
+
 register_power_perks_session:
   name: Register Power Perks session
   description: >-
