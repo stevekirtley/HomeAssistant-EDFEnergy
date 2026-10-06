@@ -63,6 +63,7 @@ from .utils.repairs import safe_repair_key
 
 from .const import (
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
+  CONFIG_TARIFF_COMPARISON_PRODUCT_CODE,
   CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS,
   CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES,
@@ -296,6 +297,22 @@ async def async_migrate_entry(hass, config_entry):
 
   return True
 
+def _infer_config_kind(config: dict) -> str:
+  """Work out what an entry is when it has no kind recorded.
+
+  Every kind carries the account id, so that cannot tell them apart. Each child kind has
+  a field of its own that an account entry never has, so look for those first and fall
+  back to an account, which is what the great majority of entries are.
+  """
+  if CONFIG_COST_TRACKER_TARGET_ENTITY_ID in config:
+    return CONFIG_KIND_COST_TRACKER
+  if CONFIG_TARIFF_COMPARISON_PRODUCT_CODE in config:
+    return CONFIG_KIND_TARIFF_COMPARISON
+  # Target rates are not offered by this fork, so there is nothing to detect them by and
+  # nothing to detect.
+  return CONFIG_KIND_ACCOUNT
+
+
 async def _async_close_client(hass, account_id: str):
   if account_id in hass.data[DOMAIN]:
     if DATA_CLIENT in hass.data[DOMAIN][account_id]:
@@ -363,6 +380,18 @@ async def async_setup_entry(hass, entry):
 
   account_id = config[CONFIG_ACCOUNT_ID]
   hass.data[DOMAIN].setdefault(account_id, {})
+
+  if CONFIG_KIND not in config:
+    # An entry with no kind used to take setup down with a KeyError, and nothing could
+    # put it right: the migration that fills the kind in only runs while the entry is
+    # below the current config version, so an entry that reached the current version
+    # without one stayed broken through every restart. Infer it and write it back.
+    config[CONFIG_KIND] = _infer_config_kind(config)
+    _LOGGER.warning(
+      "Config entry for %s had no kind recorded; treating it as '%s' and repairing it",
+      account_id, config[CONFIG_KIND],
+    )
+    hass.config_entries.async_update_entry(entry, data=config)
 
   if config[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
     await async_setup_dependencies(hass, entry, config)
