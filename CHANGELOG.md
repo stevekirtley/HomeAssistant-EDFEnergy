@@ -1,3 +1,11 @@
+## Unreleased
+
+
+### Bug Fixes
+
+* Fixed the integration failing to set up with `KeyError: 'kind'` for anyone whose config entry has no kind recorded against it. Nothing could put this right once it happened, because the migration that fills the kind in only runs while an entry is below the current config version, so the entry stayed broken through every restart. The kind is now worked out from the entry and written back. This was not introduced by 19.2.4 - updating simply forced the reload that brought it to light. Reported by Derek via Reddit.
+
+
 ## [19.2.4](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.4) (2026-10-05)
 
 
