@@ -4,6 +4,10 @@ The product is discovered rather than hard-coded; see tests/integration/__init__
 why. Exact pence are EDF's to change, so what is checked is that a charge comes back, is
 plausible, and carries the VAT the client is responsible for applying.
 """
+# These endpoints return only an inclusive-of-VAT figure - {start, end, value_inc_vat,
+# tariff_code} - so there is no VAT relationship to assert here. An earlier version of
+# this file checked one against a value_exc_vat that does not exist.
+
 import pytest
 
 from integration import find_product, get_test_context, pricing_period
@@ -32,19 +36,6 @@ async def test_when_get_gas_standing_charge_is_called_for_existent_tariff_then_r
   assert result is not None, f"no gas standing charge for {product.code}"
   assert "value_inc_vat" in result
   assert 0 < result["value_inc_vat"] < 500, result
-
-
-@pytest.mark.asyncio
-async def test_gas_standing_charge_still_carries_vat():
-  """Gas stayed at 5% when electricity was zero rated, so inc must exceed exc."""
-  context = get_test_context()
-  product = find_product(is_variable=True, needs_gas=True)
-  client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
-
-  result = await client.async_get_gas_standing_charge(
-    product.code, product.gas_tariff_code, period_from, period_to)
-
-  assert result["value_inc_vat"] > result["value_exc_vat"], result
 
 
 @pytest.mark.asyncio
