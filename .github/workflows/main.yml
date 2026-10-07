@@ -43,6 +43,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
+      # Without this, the first version to fail cancels the other and hides whether it
+      # would have passed. The 3.13 break in 19.2.4 masked 3.14 for exactly this reason.
+      fail-fast: false
       matrix:
         python-version: ["3.13", "3.14"]
     steps:
@@ -66,6 +69,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
+      # Without this, the first version to fail cancels the other and hides whether it
+      # would have passed. The 3.13 break in 19.2.4 masked 3.14 for exactly this reason.
+      fail-fast: false
       matrix:
         python-version: ["3.13", "3.14"]
     steps:

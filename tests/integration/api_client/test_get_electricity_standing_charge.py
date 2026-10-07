@@ -1,47 +1,83 @@
-from datetime import datetime
+"""Electricity standing charges from EDF's live pricing API.
+
+The product is discovered rather than hard-coded. EDF withdraw tariffs from sale every few
+months and the API then answers 404 for them, which used to break this suite without any
+code changing. See tests/integration/__init__.py.
+
+The exact pence are deliberately not asserted. They are EDF's number to choose, change
+without notice, and differ per product, so pinning them would test EDF's price list rather
+than this client. What is asserted is that a charge comes back, is plausible, and carries
+the VAT treatment the client is responsible for applying.
+"""
 import pytest
 
-from integration import (get_test_context)
+from integration import find_product, get_test_context, pricing_period
 from custom_components.edf_energy.api_client import EDFEnergyApiClient
 
-period_from = datetime.strptime("2026-08-28T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
-period_to = datetime.strptime("2026-08-29T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
+period_from, period_to = pricing_period()
+
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("product_code,tariff_code,expected_value_inc_vat,favour_direct_debit",[
-    ("EDF_SIMPLY_FIXED_SEP2027", "E-1R-EDF_SIMPLY_FIXED_SEP2027-A", 53.94375, True),
-    ("EDF_SIMPLY_FIXED_SEP2027", "E-1R-EDF_SIMPLY_FIXED_SEP2027-A", 53.94375, False),
-    ("EDF_STANDARD_VARIABLE", "E-1R-EDF_STANDARD_VARIABLE-A", 53.94375, True),
-    ("EDF_STANDARD_VARIABLE", "E-1R-EDF_STANDARD_VARIABLE-A", 62.7375, False),
-])
-async def test_when_get_electricity_standing_charge_is_called_for_existent_tariff_then_rates_are_returned(product_code, tariff_code, expected_value_inc_vat, favour_direct_debit):
-    # Arrange
-    context = get_test_context()
+@pytest.mark.parametrize("is_variable", [True, False])
+@pytest.mark.parametrize("favour_direct_debit", [True, False])
+async def test_when_get_electricity_standing_charge_is_called_for_existent_tariff_then_rates_are_returned(
+  is_variable, favour_direct_debit
+):
+  # Arrange
+  context = get_test_context()
+  product = find_product(is_variable=is_variable)
+  client = EDFEnergyApiClient(favour_direct_debit_rates=favour_direct_debit,
+                              api_key=context.refresh_token or "public")
 
-    client = EDFEnergyApiClient(favour_direct_debit_rates=favour_direct_debit, api_key=context.refresh_token or "public")
+  # Act
+  result = await client.async_get_electricity_standing_charge(
+    product.code, product.electricity_tariff_code, period_from, period_to)
 
-    # Act
-    result = await client.async_get_electricity_standing_charge(product_code, tariff_code, period_from, period_to)
+  # Assert
+  assert result is not None, f"no standing charge for {product.code}"
+  assert "value_inc_vat" in result
+  assert "value_exc_vat" in result
+  # A daily standing charge in pence. Wide on purpose: this is a sanity bound, not a price
+  # check, and it only has to catch a unit mix-up such as pounds for pence.
+  assert 0 < result["value_inc_vat"] < 500, result
 
-    # Assert
-    assert result is not None
-    assert "value_inc_vat" in result
-    assert result["value_inc_vat"] == expected_value_inc_vat
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("product_code,tariff_code",[
+@pytest.mark.parametrize("is_variable", [True, False])
+async def test_electricity_standing_charge_carries_no_vat_while_it_is_zero_rated(is_variable):
+  """Electricity is zero rated from 1 October 2026 to 1 April 2027.
+
+  So inc and exc are equal for electricity, and that is correct rather than a bug to be
+  fixed by multiplying by 1.05.
+  """
+  context = get_test_context()
+  product = find_product(is_variable=is_variable)
+  client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
+
+  result = await client.async_get_electricity_standing_charge(
+    product.code, product.electricity_tariff_code, period_from, period_to)
+
+  assert result["value_inc_vat"] == pytest.approx(result["value_exc_vat"], rel=1e-6), (
+    f"{product.code}: electricity should be zero rated for this period, got "
+    f"inc={result['value_inc_vat']} exc={result['value_exc_vat']}"
+  )
+
+
+@pytest.mark.asyncio
+async def test_when_get_electricity_standing_charge_is_called_for_non_existent_tariff_then_none_is_returned():
+  # Arrange
+  context = get_test_context()
+  product = find_product(is_variable=True)
+  client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
+
+  for product_code, tariff_code in (
     ("NOT-A-PRODUCT", "E-1R-NOT-A-TARIFF-A"),
-    ("EDF_SIMPLY_FIXED_SEP2027", "NOT-A-TARIFF"),
-    ("EDF_SIMPLY_FIXED_SEP2027", "E-1R-NOT-A-PRODUCT-A")
-])
-async def test_when_get_electricity_standing_charge_is_called_for_non_existent_tariff_then_none_is_returned(product_code, tariff_code):
-    # Arrange
-    context = get_test_context()
-
-    client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
-
+    (product.code, "NOT-A-TARIFF"),
+    (product.code, "E-1R-NOT-A-PRODUCT-A"),
+  ):
     # Act
-    result = await client.async_get_electricity_standing_charge(product_code, tariff_code, period_from, period_to)
+    result = await client.async_get_electricity_standing_charge(
+      product_code, tariff_code, period_from, period_to)
 
     # Assert
-    assert result is None
+    assert result is None, f"{product_code}/{tariff_code} unexpectedly returned {result}"
