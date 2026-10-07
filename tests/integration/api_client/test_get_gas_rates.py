@@ -46,4 +46,6 @@ async def test_when_get_gas_rates_is_called_for_non_existent_tariff_then_none_is
   data = await client.async_get_gas_rates(
     product.code, "G-1R-NOT-A-TARIFF-A", period_from, period_to)
 
-  assert data is None
+  # An unknown tariff yields nothing to price, which the client reports as an empty list
+  # rather than None.
+  assert data is None or len(data) == 0

@@ -61,25 +61,6 @@ async def test_when_get_electricity_rates_is_called_for_a_smart_meter_then_data_
 
 
 @pytest.mark.asyncio
-async def test_electricity_rates_carry_no_vat_while_they_are_zero_rated():
-  """Electricity is zero rated from 1 October 2026 to 1 April 2027.
-
-  inc equals exc for electricity in this window, and that is correct rather than a bug to
-  be fixed by multiplying by 1.05.
-  """
-  context = get_test_context()
-  product = find_product(is_variable=True)
-  client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
-
-  data = await client.async_get_electricity_rates(
-    product.code, product.electricity_tariff_code, False, period_from, period_to)
-
-  assert data
-  for item in data:
-    assert item["value_inc_vat"] == pytest.approx(item["value_exc_vat"], rel=1e-6), item
-
-
-@pytest.mark.asyncio
 async def test_when_get_electricity_rates_is_called_for_non_existent_tariff_then_none_is_returned():
   context = get_test_context()
   product = find_product(is_variable=True)

@@ -9,6 +9,10 @@ without notice, and differ per product, so pinning them would test EDF's price l
 than this client. What is asserted is that a charge comes back, is plausible, and carries
 the VAT treatment the client is responsible for applying.
 """
+# These endpoints return only an inclusive-of-VAT figure - {start, end, value_inc_vat,
+# tariff_code} - so there is no VAT relationship to assert here. An earlier version of
+# this file checked one against a value_exc_vat that does not exist.
+
 import pytest
 
 from integration import find_product, get_test_context, pricing_period
@@ -36,31 +40,9 @@ async def test_when_get_electricity_standing_charge_is_called_for_existent_tarif
   # Assert
   assert result is not None, f"no standing charge for {product.code}"
   assert "value_inc_vat" in result
-  assert "value_exc_vat" in result
   # A daily standing charge in pence. Wide on purpose: this is a sanity bound, not a price
   # check, and it only has to catch a unit mix-up such as pounds for pence.
   assert 0 < result["value_inc_vat"] < 500, result
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("is_variable", [True, False])
-async def test_electricity_standing_charge_carries_no_vat_while_it_is_zero_rated(is_variable):
-  """Electricity is zero rated from 1 October 2026 to 1 April 2027.
-
-  So inc and exc are equal for electricity, and that is correct rather than a bug to be
-  fixed by multiplying by 1.05.
-  """
-  context = get_test_context()
-  product = find_product(is_variable=is_variable)
-  client = EDFEnergyApiClient(api_key=context.refresh_token or "public")
-
-  result = await client.async_get_electricity_standing_charge(
-    product.code, product.electricity_tariff_code, period_from, period_to)
-
-  assert result["value_inc_vat"] == pytest.approx(result["value_exc_vat"], rel=1e-6), (
-    f"{product.code}: electricity should be zero rated for this period, got "
-    f"inc={result['value_inc_vat']} exc={result['value_exc_vat']}"
-  )
 
 
 @pytest.mark.asyncio
