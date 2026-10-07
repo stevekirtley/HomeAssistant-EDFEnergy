@@ -46,6 +46,15 @@ declare(strict_types=1);
 const RETENTION_DAYS = 60;
 const TIMEZONE = 'Europe/London';
 
+// How often an install polls this feed, from REFRESH_RATE_IN_MINUTES_POWER_PERKS in the
+// integration. Installs are estimated from request volume, so if that interval ever
+// changes this has to change with it or the estimate silently drifts.
+const FEED_POLL_MINUTES = 15;
+
+// How long the daily counts are kept. They are counts, not records of anyone, so this is
+// about tidiness rather than retention policy.
+const STATS_RETENTION_DAYS = 400;
+
 // ---------------------------------------------------------------------------
 // Parser
 // ---------------------------------------------------------------------------
@@ -539,6 +548,108 @@ function feed_consumer(array $config): ?string
 }
 
 /** Append one line per read-token fetch so token use is visible. Never fails the request. */
+/**
+ * Count one feed read, by day and by integration version.
+ *
+ * Counts only. No address is recorded, hashed or otherwise, so there is nothing here that
+ * identifies anyone and nothing to keep on anyone's behalf.
+ *
+ * Volume is the measure rather than distinct addresses, because an install polls on a
+ * fixed interval and so contributes a known number of requests a day whatever its address
+ * does. Most home connections are on dynamic addresses - measured on this feed, roughly
+ * forty percent change within a fortnight - so counting addresses would drift while
+ * counting requests does not.
+ *
+ * Never fails the request: statistics are not worth a 500 to a customer waiting on their
+ * free electricity windows.
+ */
+function record_feed_hit(string $consumer): void
+{
+    try {
+        $dir = cache_dir() . '/stats';
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            return;
+        }
+
+        // Only the integration's own agent carries a version worth recording. Anything
+        // else is bucketed, because plenty of agents end in a version-shaped string -
+        // curl/8.7.1 would otherwise be filed as release 8.7.1.
+        $agent = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+        $prefix = 'stevekirtley-ha-edf-energy/';
+        $version = 'other';
+        if (strncmp($agent, $prefix, strlen($prefix)) === 0) {
+            $tail = substr($agent, strlen($prefix));
+            $version = $tail === '' ? 'unknown' : substr($tail, 0, 32);
+        }
+
+        $handle = @fopen($dir . '/' . date('Y-m-d') . '.json', 'c+');
+        if ($handle === false) {
+            return;
+        }
+        if (flock($handle, LOCK_EX)) {
+            $raw = (string)stream_get_contents($handle);
+            $data = json_decode($raw, true);
+            if (!is_array($data)) {
+                $data = [];
+            }
+            $data['requests'] = (int)($data['requests'] ?? 0) + 1;
+            $data['versions'][$version] = (int)($data['versions'][$version] ?? 0) + 1;
+            $data['consumers'][$consumer] = (int)($data['consumers'][$consumer] ?? 0) + 1;
+
+            ftruncate($handle, 0);
+            rewind($handle);
+            fwrite($handle, json_encode($data, JSON_UNESCAPED_SLASHES));
+            fflush($handle);
+            flock($handle, LOCK_UN);
+        }
+        fclose($handle);
+    } catch (Throwable $e) {
+        // Deliberately swallowed.
+    }
+}
+
+/**
+ * The daily counts, newest first, with installs estimated from the request volume.
+ *
+ * An install polls every FEED_POLL_MINUTES minutes, so a day of being switched on is a
+ * known number of requests. Dividing by that gives installs without ever having needed to
+ * know who or where anyone is. It reads low rather than high: an instance that is off for
+ * part of the day counts as the fraction of the day it was on.
+ */
+function read_feed_stats(int $days): array
+{
+    $expected_per_day = (24 * 60) / FEED_POLL_MINUTES;
+    $out = [];
+    for ($i = 0; $i < $days; $i++) {
+        $date = date('Y-m-d', strtotime("-$i day"));
+        $data = read_json_file(cache_dir() . '/stats/' . $date . '.json');
+        if ($data === []) {
+            continue;
+        }
+        $requests = (int)($data['requests'] ?? 0);
+        $out[] = [
+            'date' => $date,
+            'requests' => $requests,
+            'estimated_installs' => (int)round($requests / $expected_per_day),
+            'versions' => $data['versions'] ?? new stdClass(),
+            'consumers' => $data['consumers'] ?? new stdClass(),
+        ];
+    }
+    return $out;
+}
+
+/** Drop daily counts older than the retention window. */
+function prune_feed_stats(int $keep_days): void
+{
+    $dir = cache_dir() . '/stats';
+    $cutoff = date('Y-m-d', strtotime("-$keep_days day"));
+    foreach ((array)@glob($dir . '/*.json') as $path) {
+        if (basename($path, '.json') < $cutoff) {
+            @unlink($path);
+        }
+    }
+}
+
 function log_feed_access(string $consumer): void
 {
     try {
@@ -653,12 +764,31 @@ function main(): void
             if ($consumer !== 'integration' && $consumer !== 'anyone') {
                 log_feed_access($consumer);
             }
+            // Counted for every consumer, unlike the access log above, which exists to
+            // make named token use visible rather than to measure anything.
+            record_feed_hit($consumer);
             respond(200, [
                 'generated_at' => $now->format(DATE_ATOM),
                 'source' => 'power_perks',
                 'sessions' => build_sessions($now),
             ]);
             // no break
+
+        case 'stats':
+            // Owner only. The numbers are harmless but they are nobody else's business.
+            require_token($config);
+            prune_feed_stats(STATS_RETENTION_DAYS);
+            $days = max(1, min(400, (int)($_GET['days'] ?? 30)));
+            respond(200, [
+                'ok' => true,
+                'poll_minutes' => FEED_POLL_MINUTES,
+                'expected_requests_per_install_per_day' => (24 * 60) / FEED_POLL_MINUTES,
+                'note' => 'Installs are estimated from request volume, not addresses. '
+                    . 'A partial day of uptime counts as a fraction of an install, so the '
+                    . 'estimate reads low rather than high.',
+                'days' => read_feed_stats($days),
+            ]);
+            // no break: respond() exits
 
         case 'parse':
             if (!within_rate_limit($config)) {
