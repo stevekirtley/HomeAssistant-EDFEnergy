@@ -1,3 +1,12 @@
+## Unreleased
+
+
+### Bug Fixes
+
+* Fixed the integration failing to load entirely on Python 3.13, which affects anyone on a Home Assistant version older than the ones built on Python 3.14. A function introduced in 19.2.4 was placed above the imports of the module it lives in, and the type in its signature is imported further down. Python 3.14 does not evaluate annotations until they are asked for, so it loaded there and the tests passed; Python 3.13 evaluates them as the function is defined and raised `NameError`, taking the whole integration down with it. Anyone on 19.2.4 or 19.2.5 who saw the integration stop working should update.
+* Added a check that no module defines anything above its imports, so the difference between the two Python versions cannot hide this again.
+
+
 ## [19.2.5](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.5) (2026-10-06)
 
 

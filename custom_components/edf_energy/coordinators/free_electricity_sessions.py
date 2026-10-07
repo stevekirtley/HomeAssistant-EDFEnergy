@@ -1,37 +1,3 @@
-def _normalise_flextras_hours(result: FlextrasHoursCoordinatorResult | None) -> list[FreeElectricitySession]:
-  if result is None:
-    return []
-  return list(result.sessions)
-
-
-# Sources whose sessions can be taken away again before they start: EDF can cancel a Power
-# Perks event, and a customer can move or hand back the Flextras hours they booked.
-_RETRACTABLE_SOURCES = ("power_perks", "flextras_hours")
-
-
-def _retract_withdrawn_sessions(
-  history: list[FreeElectricitySession],
-  states: list[tuple[str, bool, set[str]]],
-  current: datetime,
-) -> list[FreeElectricitySession]:
-  """Drop sessions a source no longer offers, provided they have not started.
-
-  History normally only grows, so a finished session stays in the day's feed until the day
-  rolls over. But a session that has not begun must follow its source, or a window the
-  customer has cancelled would go on driving a battery all day. Only sources that answered
-  this tick are considered, so an outage never deletes anything, and a session already
-  under way is always kept.
-  """
-  reachable = {source: published for source, available, published in states if available}
-  return [
-    s for s in history
-    if s.source not in _RETRACTABLE_SOURCES
-    or s.source not in reachable
-    or s.start <= current
-    or s.code in reachable[s.source]
-  ]
-
-
 import logging
 from datetime import datetime, timedelta
 from typing import Callable, Any
@@ -107,6 +73,12 @@ def _normalise_football(result: EventFreeElectricityCoordinatorResult | None) ->
   return sessions
 
 
+def _normalise_flextras_hours(result: FlextrasHoursCoordinatorResult | None) -> list[FreeElectricitySession]:
+  if result is None:
+    return []
+  return list(result.sessions)
+
+
 def _normalise_power_perks(result: PowerPerksCoordinatorResult | None) -> list[FreeElectricitySession]:
   if result is None:
     return []
@@ -133,6 +105,34 @@ def _retract_withdrawn_power_perks(
   return [
     s for s in history
     if s.source != "power_perks" or s.start <= current or s.code in published
+  ]
+
+
+# Sources whose sessions can be taken away again before they start: EDF can cancel a Power
+# Perks event, and a customer can move or hand back the Flextras hours they booked.
+_RETRACTABLE_SOURCES = ("power_perks", "flextras_hours")
+
+
+def _retract_withdrawn_sessions(
+  history: list[FreeElectricitySession],
+  states: list[tuple[str, bool, set[str]]],
+  current: datetime,
+) -> list[FreeElectricitySession]:
+  """Drop sessions a source no longer offers, provided they have not started.
+
+  History normally only grows, so a finished session stays in the day's feed until the day
+  rolls over. But a session that has not begun must follow its source, or a window the
+  customer has cancelled would go on driving a battery all day. Only sources that answered
+  this tick are considered, so an outage never deletes anything, and a session already
+  under way is always kept.
+  """
+  reachable = {source: published for source, available, published in states if available}
+  return [
+    s for s in history
+    if s.source not in _RETRACTABLE_SOURCES
+    or s.source not in reachable
+    or s.start <= current
+    or s.code in reachable[s.source]
   ]
 
 
