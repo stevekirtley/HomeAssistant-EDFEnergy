@@ -130,5 +130,61 @@ if ($utc !== '2026-09-19 03:00') {
     echo "ok    BST offset: 4am local = {$utc}Z\n";
 }
 
+// ── Feed counter ─────────────────────────────────────────────────────────────
+// Counts feed reads per day and per release, so active installs can be estimated from
+// request volume. Volume rather than distinct addresses, because most home connections
+// are dynamic and an install that changes address still makes the same number of calls.
+// The two cases that really matter: nothing identifying is written, and a damaged
+// counter file never takes the feed down with it.
+
+function expect(string $name, bool $ok): void
+{
+    global $total, $failures;
+    $total++;
+    if ($ok) {
+        echo "ok    {$name}\n";
+    } else {
+        $failures++;
+        echo "FAIL  {$name}\n";
+    }
+}
+
+function feed_hit(string $ua, string $consumer): void
+{
+    $_SERVER['HTTP_USER_AGENT'] = $ua;
+    record_feed_hit($consumer);
+}
+
+$statsdir = cache_dir() . '/stats';
+@array_map('unlink', (array)glob($statsdir . '/*.json'));
+
+for ($i = 0; $i < 96; $i++) {
+    feed_hit('stevekirtley-ha-edf-energy/19.2.6', 'integration');
+}
+for ($i = 0; $i < 192; $i++) {
+    feed_hit('stevekirtley-ha-edf-energy/19.2.2', 'integration');
+}
+feed_hit('curl/8.7.1', 'app-dev');
+feed_hit('', 'integration');
+
+$today = read_feed_stats(3)[0];
+expect('counter: counts every read', $today['requests'] === 290);
+expect('counter: estimates installs from volume', $today['estimated_installs'] === 3);
+expect('counter: splits by release', $today['versions']['19.2.6'] === 96 && $today['versions']['19.2.2'] === 192);
+expect('counter: buckets foreign agents as other', ($today['versions']['other'] ?? 0) === 2);
+expect('counter: reads no version out of curl/8.7.1', !isset($today['versions']['8.7.1']));
+expect('counter: splits by consumer', $today['consumers']['integration'] === 289 && $today['consumers']['app-dev'] === 1);
+
+$raw = (string)file_get_contents($statsdir . '/' . date('Y-m-d') . '.json');
+expect('counter: writes no addresses', preg_match('/\\d+\\.\\d+\\.\\d+\\.\\d+/', $raw) === 0);
+expect('counter: writes counts and nothing else',
+    array_keys((array)json_decode($raw, true)) === ['requests', 'versions', 'consumers']);
+
+file_put_contents($statsdir . '/' . date('Y-m-d') . '.json', 'not json at all');
+feed_hit('stevekirtley-ha-edf-energy/19.2.6', 'integration');
+expect('counter: survives a corrupt counter file', read_feed_stats(1)[0]['requests'] === 1);
+
+@array_map('unlink', (array)glob($statsdir . '/*.json'));
+
 echo "\n" . ($total - $failures) . "/{$total} passed\n";
 exit($failures === 0 ? 0 : 1);
