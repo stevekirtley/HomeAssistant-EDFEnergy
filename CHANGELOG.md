@@ -1,3 +1,12 @@
+## Unreleased
+
+
+### Bug Fixes
+
+* The panel opens on today again. It picked whichever date it had most data for, newest first, which was always today or tomorrow until Flextras hours arrived - those are booked up to three weeks ahead, so the panel started opening on a date weeks away while looking like today's view.
+* Dates in the future are marked "upcoming" in the date picker. The picker only lists days it has data for, so a booking three weeks out sits directly after tomorrow with nothing in between, which read as missing days rather than days EDF has not published rates for yet.
+
+
 ## [19.2.6](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.6) (2026-10-07)
 
 

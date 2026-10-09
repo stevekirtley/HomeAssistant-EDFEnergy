@@ -8,6 +8,21 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
+  // Today if there is anything to show for it, otherwise the most recent day that has
+  // already happened. Only if every date is in the future - a fresh install whose first
+  // data is a booking - does it fall back to the earliest of those.
+  function defaultDateKey(dates) {
+    if (!dates.length) return null;
+    const today = localDateKey(new Date());
+    if (dates.includes(today)) return today;
+    const past = dates.filter(k => k < today);        // dates are newest first
+    return past.length ? past[0] : dates[dates.length - 1];
+  }
+
+  function isFutureDateKey(key) {
+    return !!key && key > localDateKey(new Date());
+  }
+
   function formatDateLabel(key) {
     const [y, m, d] = key.split('-').map(Number);
     return new Date(y, m-1, d).toLocaleDateString(undefined, {
@@ -1333,8 +1348,12 @@
       const freeSessionWindows  = this._parseFreeSessionWindows(fse);
       const dates               = this._allDates(dispatches, offPeakWindows, sundaySaverWindows, freeSessionWindows);
 
+      // Open on today, not on dates[0]. The list is newest first, and until Flextras the
+      // newest date was always today or tomorrow, so dates[0] was a reasonable default.
+      // Flextras hours are booked up to three weeks ahead, so dates[0] became a date far
+      // in the future and the panel opened on it looking like today's view.
       if (!this._selectedDateKey || !dates.includes(this._selectedDateKey))
-        this._selectedDateKey = dates[0] || null;
+        this._selectedDateKey = defaultDateKey(dates);
 
       const idx      = dates.indexOf(this._selectedDateKey);
       const canOlder = idx < dates.length - 1;
@@ -1406,7 +1425,13 @@
                   </button>
                   <select class="date-select" id="date-select">
                     ${dates.map(dk =>
-                      `<option value="${esc(dk)}"${dk === this._selectedDateKey ? ' selected' : ''}>${esc(formatDateLabel(dk))}</option>`
+                      // Upcoming dates are marked, because the list only holds days that
+                      // have data and future ones are sparse: a booking three weeks out
+                      // sits straight after tomorrow, with nothing between. Without the
+                      // marker that gap reads as missing days rather than days that have
+                      // simply not been priced yet.
+                      `<option value="${esc(dk)}"${dk === this._selectedDateKey ? ' selected' : ''}>${
+                        esc(formatDateLabel(dk))}${isFutureDateKey(dk) ? ' — upcoming' : ''}</option>`
                     ).join('')}
                   </select>
                   <button class="nav-btn" id="btn-newer" ${!canNewer ? 'disabled' : ''} title="Newer">
