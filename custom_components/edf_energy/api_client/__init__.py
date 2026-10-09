@@ -28,6 +28,17 @@ from .agreement_tariffs import (
   parse_applicable_rates,
   DAY_NIGHT as AGREEMENT_DAY_NIGHT,
 )
+from .measurements import (
+  FALLBACK_DAYS as MEASUREMENT_FALLBACK_DAYS,
+  MINIMUM_PAGE_SIZE as MEASUREMENT_MINIMUM_PAGE_SIZE,
+  EXPORT as MEASUREMENT_EXPORT,
+  IMPORT as MEASUREMENT_IMPORT,
+  PAGE_SIZE as MEASUREMENT_PAGE_SIZE,
+  TIMEZONE as MEASUREMENT_TIMEZONE,
+  measurements_query,
+  next_cursor,
+  parse_measurements,
+)
 from .intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches
 from .intelligent_device_settings import IntelligentDeviceSettingPreferenceSchedule, IntelligentDeviceSettings
 
@@ -1565,7 +1576,54 @@ class EDFEnergyApiClient:
     else:
       return await self.async_get_electricity_standard_rates(product_code, tariff_code, period_from, period_to)
       
-  async def async_get_electricity_consumption(self, mpan: str, serial_number: str, period_from: datetime | None = None, period_to: datetime | None = None, page_size: int | None = None):
+  async def async_get_electricity_measurements(self, mpan: str, period_from: datetime, period_to: datetime, is_export: bool = False):
+    """Half-hourly readings for a meter point from Kraken, following every page.
+
+    The fallback for issue #43, where the REST consumption endpoint answers nothing for an
+    export meter. Asked by meter number and direction, so it needs no serial number.
+    """
+    if self._account_id is None or mpan is None:
+      return None
+
+    await self.async_refresh_token()
+    results = []
+    cursor = None
+    # A day is 48 readings, so a page covers two; the guard is only there to make sure a
+    # cursor EDF never stop handing back cannot spin forever.
+    for _ in range(40):
+      try:
+        request_context = "electricity-measurements"
+        client = self._create_client_session()
+        url = f'{self._base_url}/v1/graphql/'
+        payload = {
+          "query": measurements_query,
+          "variables": {
+            "accountNumber": self._account_id,
+            "mpxn": str(mpan),
+            "direction": MEASUREMENT_EXPORT if is_export else MEASUREMENT_IMPORT,
+            "startAt": period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "endAt": period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "first": MEASUREMENT_PAGE_SIZE,
+            "cursor": cursor,
+            "timezone": MEASUREMENT_TIMEZONE,
+          },
+        }
+        headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
+        async with client.post(url, json=payload, headers=headers) as response:
+          response_body = await self.__async_read_response__(response, url)
+      except TimeoutError:
+        _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
+        raise TimeoutException()
+
+      results = results + parse_measurements(response_body, period_from, period_to)
+      cursor = next_cursor(response_body)
+      if cursor is None:
+        break
+
+    results.sort(key=self.__get_interval_end)
+    return results
+
+  async def async_get_electricity_consumption(self, mpan: str, serial_number: str, period_from: datetime | None = None, period_to: datetime | None = None, page_size: int | None = None, is_export: bool = False):
     """Get the current electricity consumption"""
 
     try:
@@ -1590,9 +1648,10 @@ class EDFEnergyApiClient:
       async with client.get(url, auth=auth, headers=headers) as response:
         
         data = await self.__async_read_response__(response, url)
-        if (data is not None and "results" in data):
+        rest_answered = data is not None and "results" in data
+        results = []
+        if rest_answered:
           data = data["results"]
-          results = []
           for item in data:
             item = self.__process_consumption(item)
 
@@ -1603,13 +1662,45 @@ class EDFEnergyApiClient:
               _LOGGER.debug(f'Skipping gas consumption item due to outside requested scope - period_from: {period_from}; period_to: {period_to}; item: {item}; mpan: {mpan}; serial_number: {serial_number}')
           
           results.sort(key=self.__get_interval_end)
-          return results
-        
-        return None
+          if len(results) > 0:
+            return results
+
+        # Nothing from REST. Reported for export meters on some accounts (issue #43), where
+        # Kraken's measurements connection has the readings REST will not give up.
+        fallback_from, fallback_to = period_from, period_to
+        if fallback_from is None or fallback_to is None:
+          # The previous-consumption sensors ask by page size rather than by period, then
+          # pick the latest whole day out of what comes back, so the fallback has to invent
+          # a window wide enough to hold one. A probe asking for a reading or two is left
+          # alone - diagnostics only wants to know whether the endpoint answers at all.
+          if page_size is not None and page_size < MEASUREMENT_MINIMUM_PAGE_SIZE:
+            return results if rest_answered else None
+          fallback_to = now()
+          fallback_from = fallback_to - timedelta(days=MEASUREMENT_FALLBACK_DAYS)
+
+        measurements = await self.async_get_electricity_measurements(mpan, fallback_from, fallback_to, is_export)
+        if measurements:
+          self._log_consumption_from_measurements(mpan, is_export)
+          return measurements
+
+        # An empty list and None mean different things to the callers: one is "the meter
+        # recorded nothing", the other is "we could not find out".
+        return results if rest_answered else None
         
     except TimeoutError:
       _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
       raise TimeoutException()
+
+  def _log_consumption_from_measurements(self, mpan: str, is_export: bool):
+    """Say once per meter that REST had nothing and where the readings came from instead."""
+    key = f"measurements:{mpan}"
+    if key in self._hidden_products_logged:
+      return
+    self._hidden_products_logged.add(key)
+    _LOGGER.warning(
+      f"The EDF consumption endpoint returned no readings for {'export' if is_export else 'import'} meter "
+      f"point {mpan}. Reading them from your account instead."
+    )
 
   async def async_get_gas_rates(self, product_code: str, tariff_code: str, period_from: datetime, period_to: datetime):
     """Get the gas rates"""

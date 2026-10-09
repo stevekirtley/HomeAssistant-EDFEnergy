@@ -107,7 +107,8 @@ async def async_fetch_consumption_and_rates(
   dispatches_results: dict[str, IntelligentDispatchesCoordinatorResult] = None,
   tariff_override: Tariff = None,
   intelligent_rate_mode: str = CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES,
-  manual_rates_config: dict | None = None
+  manual_rates_config: dict | None = None,
+  is_export: bool = False
 ):
   """Fetch the previous consumption and rates"""
 
@@ -122,7 +123,7 @@ async def async_fetch_consumption_and_rates(
 
     try:
       if (is_electricity == True):
-        consumption_data = await client.async_get_electricity_consumption(identifier, serial_number, page_size=52)
+        consumption_data = await client.async_get_electricity_consumption(identifier, serial_number, page_size=52, is_export=is_export)
         consumption_data = get_latest_day(consumption_data)
 
         if consumption_data is not None:
@@ -289,7 +290,8 @@ async def async_create_previous_consumption_and_rates_coordinator(
     is_smart_meter: bool,
     intelligent_rate_mode: str,
     tariff_override: Tariff = None,
-    manual_rates_config: dict | None = None):
+    manual_rates_config: dict | None = None,
+    is_export: bool = False):
   """Create reading coordinator"""
   previous_consumption_data_key = f'{identifier}_{serial_number}_previous_consumption_and_rates'
 
@@ -314,7 +316,8 @@ async def async_create_previous_consumption_and_rates_coordinator(
       dispatches,
       tariff_override,
       intelligent_rate_mode,
-      manual_rates_config
+      manual_rates_config,
+      is_export
     )
 
     if (result is not None):

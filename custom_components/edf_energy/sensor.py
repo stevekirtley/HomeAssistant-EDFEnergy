@@ -322,7 +322,8 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
             meter["is_smart_meter"],
             intelligent_rate_mode,
             debug_override.tariff if debug_override is not None else None,
-            config.get(CONFIG_MAIN_MANUAL_TARIFF_RATES)
+            config.get(CONFIG_MAIN_MANUAL_TARIFF_RATES),
+            meter.get("is_export", False)
           )
           entities.append(EDFEnergyPreviousAccumulativeElectricityConsumption(hass, client, previous_consumption_coordinator, account_id, meter, point))
           entities.append(EDFEnergyPreviousAccumulativeElectricityCost(hass, previous_consumption_coordinator, meter, point))

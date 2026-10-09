@@ -1,8 +1,15 @@
 ## Unreleased
 
 
+### Features
+
+* Days of consumption statistics missed while the integration was not running are now filled in. The energy dashboard used to keep a permanent hole for any day Home Assistant spent switched off, because nothing in the normal path ever looked further back than yesterday. On startup the integration checks how far behind each meter's statistics have fallen and imports what is missing, up to a fortnight at a time. Meters with no statistics at all are left alone, so a fresh install does not silently import history.
+* Half-hourly readings can now come from your account when EDF's consumption endpoint has nothing to give. One export meter has been reported returning no readings there at all; the account carries the same readings, so the integration asks for those instead rather than leaving the sensors empty. The usual endpoint is still tried first.
+
+
 ### Bug Fixes
 
+* The integration now retries when it cannot reach EDF while starting up. A connection that failed because the network was not up yet - the normal state of affairs for a few seconds after a reboot - left the integration marked as failed and stranded there until somebody reloaded it by hand, with nothing in the logs to say why. Home Assistant is now told to try again, and a cached copy of your account is used in the meantime if there is one.
 * The panel opens on today again. It picked whichever date it had most data for, newest first, which was always today or tomorrow until Flextras hours arrived - those are booked up to three weeks ahead, so the panel started opening on a date weeks away while looking like today's view.
 * Dates in the future are marked "upcoming" in the date picker. The picker only lists days it has data for, so a booking three weeks out sits directly after tomorrow with nothing in between, which read as missing days rather than days EDF has not published rates for yet.
 

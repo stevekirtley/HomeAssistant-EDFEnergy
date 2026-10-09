@@ -27,8 +27,14 @@ async def async_refresh_previous_electricity_consumption_data(
   mpan: str,
   serial_number: str,
   is_smart_meter: bool,
-  is_export: bool
+  is_export: bool,
+  notify: bool = True
 ):
+  """Import a day at a time from start_date up to now.
+
+  notify is turned off when the integration starts this itself to fill in days missed while
+  it wasn't running (issue #42) - a notification nobody asked for is just noise.
+  """
   # Inputs from automations can include quotes, so remove these
   trimmed_date = start_date.strip('\"')
   matches = re.search(REGEX_DATE, trimmed_date)
@@ -40,11 +46,12 @@ async def async_refresh_previous_electricity_consumption_data(
   if account_info is None:
     raise vol.Invalid(f"Failed to find account information")
   
-  persistent_notification.async_create(
-    hass,
-    title="Consumption data refreshing started",
-    message=f"Consumption data from {start_date} for electricity meter {serial_number}/{mpan} has started"
-  )
+  if notify:
+    persistent_notification.async_create(
+      hass,
+      title="Consumption data refreshing started",
+      message=f"Consumption data from {start_date} for electricity meter {serial_number}/{mpan} has started"
+    )
 
   period_from = parse_datetime(f'{trimmed_date}T00:00:00Z')
 
@@ -62,7 +69,7 @@ async def async_refresh_previous_electricity_consumption_data(
       )
       return
 
-    consumption_data = await client.async_get_electricity_consumption(mpan, serial_number, period_from, period_to)
+    consumption_data = await client.async_get_electricity_consumption(mpan, serial_number, period_from, period_to, is_export=is_export)
     rates = await client.async_get_electricity_rates(tariff.product, tariff.code, is_smart_meter, period_from, period_to)
 
     consumption_and_cost = calculate_electricity_consumption_and_cost(
@@ -99,11 +106,12 @@ async def async_refresh_previous_electricity_consumption_data(
 
     period_from = period_to
 
-  persistent_notification.async_create(
-    hass,
-    title="Consumption data refreshed",
-    message=f"Consumption data from {start_date} for electricity meter {serial_number}/{mpan} has finished"
-  )
+  if notify:
+    persistent_notification.async_create(
+      hass,
+      title="Consumption data refreshed",
+      message=f"Consumption data from {start_date} for electricity meter {serial_number}/{mpan} has finished"
+    )
 
 async def async_refresh_previous_gas_consumption_data(
   hass: HomeAssistant,
@@ -113,8 +121,10 @@ async def async_refresh_previous_gas_consumption_data(
   mprn: str,
   serial_number: str,
   consumption_units: str,
-  calorific_value: float
+  calorific_value: float,
+  notify: bool = True
 ):
+  """See async_refresh_previous_electricity_consumption_data for notify."""
   # Inputs from automations can include quotes, so remove these
   trimmed_date = start_date.strip('\"')
   matches = re.search(REGEX_DATE, trimmed_date)
@@ -126,11 +136,12 @@ async def async_refresh_previous_gas_consumption_data(
   if account_info is None:
     raise vol.Invalid(f"Failed to find account information")
   
-  persistent_notification.async_create(
-    hass,
-    title="Consumption data refreshing started",
-    message=f"Consumption data from {start_date} for gas meter {serial_number}/{mprn} has started"
-  )
+  if notify:
+    persistent_notification.async_create(
+      hass,
+      title="Consumption data refreshing started",
+      message=f"Consumption data from {start_date} for gas meter {serial_number}/{mprn} has started"
+    )
   
   period_from = parse_datetime(f'{trimmed_date}T00:00:00Z')
   previous_m3_consumption_result = None
@@ -199,8 +210,9 @@ async def async_refresh_previous_gas_consumption_data(
 
     period_from = period_to
 
-  persistent_notification.async_create(
-    hass,
-    title="Consumption data refreshed",
-    message=f"Consumption data from {start_date} for gas meter {serial_number}/{mprn} has finished"
-  )
+  if notify:
+    persistent_notification.async_create(
+      hass,
+      title="Consumption data refreshed",
+      message=f"Consumption data from {start_date} for gas meter {serial_number}/{mprn} has finished"
+    )

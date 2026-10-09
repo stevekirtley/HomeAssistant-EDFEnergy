@@ -291,3 +291,73 @@ def test_agreement_carries_the_meter_number_for_applicable_rates():
 
   assert tariffs["E-1R-EDF_EV_FIX_GOELEC_18M_HH-K"]["mpxn"] == "1234567890123"
   assert tariffs["G-1R-EDF_SIMPLY_FIXED_2YR_SEP2028_V5-B"]["mpxn"] == "9876543210"
+
+
+# ── Export ──────────────────────────────────────────────────────────────────
+
+# EDF don't publish export tariffs through the pricing API at all: every product and
+# tariff-code spelling of EDF_EXPORT_SEG_12M answers 404, which is why export rates had to
+# be typed in by hand. The account's agreement carries the rate all the same, so the same
+# path that rescues a hidden import product prices export as well. Taken verbatim from a
+# live account on 9 October 2026 - note the agreement's tariff code says _HH while its
+# product code doesn't, so nothing can be derived from one to find the other.
+EXPORT_RESPONSE = {
+  "data": {
+    "account": {
+      "electricityAgreements": [
+        {
+          "validFrom": "2026-06-02T23:00:00+00:00",
+          "validTo": "2027-06-02T23:00:00+00:00",
+          "meterPoint": {"mpan": "1234567890124"},
+          "tariff": {
+            "__typename": "StandardTariff",
+            "productCode": "EDF_EXPORT_SEG_12M",
+            "tariffCode": "E-1R-EDF_EXPORT_SEG_12M_HH-K",
+            "standingCharge": 0.0,
+            "preVatStandingCharge": 0.0,
+            "unitRate": 15.0,
+          },
+        },
+      ],
+    },
+  },
+}
+
+EXPORT_TARIFF_CODE = "E-1R-EDF_EXPORT_SEG_12M_HH-K"
+
+
+def test_an_export_agreement_is_indexed_like_any_other():
+  tariffs = parse_agreement_tariffs(EXPORT_RESPONSE)
+
+  info = tariffs[EXPORT_TARIFF_CODE]
+  assert info["type"] == "StandardTariff"
+  assert info["unit_rate"] == 15.0
+  assert info["mpxn"] == "1234567890124"
+
+
+def test_an_export_tariff_is_priced_without_the_manual_fallback():
+  """The whole point: rates come out, so the hand-typed rate is never needed."""
+  info = parse_agreement_tariffs(EXPORT_RESPONSE)[EXPORT_TARIFF_CODE]
+
+  rates = agreement_rates_to_results(info, PERIOD_FROM, PERIOD_TO, None, None)
+
+  assert len(rates) == 96
+  assert {rate["value_inc_vat"] for rate in rates} == {15.0}
+  assert {rate["tariff_code"] for rate in rates} == {EXPORT_TARIFF_CODE}
+
+
+def test_an_export_standing_charge_of_zero_is_kept_rather_than_dropped():
+  """Zero is a real answer for export and must not be mistaken for a missing one."""
+  info = parse_agreement_tariffs(EXPORT_RESPONSE)[EXPORT_TARIFF_CODE]
+
+  standing_charge = agreement_standing_charge(info)
+
+  assert standing_charge is not None
+  assert standing_charge["value_inc_vat"] == 0.0
+
+
+def test_a_flat_export_agreement_covers_older_periods_too():
+  """So pricing last week's export never has to reach for applicableRates."""
+  info = parse_agreement_tariffs(EXPORT_RESPONSE)[EXPORT_TARIFF_CODE]
+
+  assert agreement_covers_period(info, datetime(2026, 10, 4, tzinfo=timezone.utc), datetime(2026, 10, 5, tzinfo=timezone.utc))

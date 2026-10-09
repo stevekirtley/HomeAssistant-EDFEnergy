@@ -31,6 +31,7 @@ from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoo
 from ..api_client import EDFEnergyApiClient
 from ..statistics.consumption import async_import_external_statistics_from_consumption, get_gas_consumption_statistic_unique_id
 from ..statistics.refresh import async_refresh_previous_gas_consumption_data
+from ..statistics.backfill import async_get_first_missing_day
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -175,6 +176,41 @@ class EDFEnergyPreviousAccumulativeGasConsumptionCubicMeters(CoordinatorEntity, 
       self._attributes = dict_to_typed_dict(state.attributes)
     
       _LOGGER.debug(f'Restored EDFEnergyPreviousAccumulativeGasConsumption state: {self._state}')
+
+    self._hass.async_create_background_task(
+      self._async_backfill_missed_days(),
+      name=f"edf_energy_backfill_{self._mprn}_{self._serial_number}"
+    )
+
+  async def _async_backfill_missed_days(self):
+    """Import any days of statistics missed while we weren't running (issue #42).
+
+    In the background: it talks to EDF a day at a time and startup must not wait for it.
+    """
+    try:
+      start_date = await async_get_first_missing_day(
+        self._hass,
+        get_gas_consumption_statistic_unique_id(self._serial_number, self._mprn),
+        utcnow()
+      )
+      if start_date is None:
+        return
+
+      await async_refresh_previous_gas_consumption_data(
+        self._hass,
+        self._client,
+        self._account_id,
+        start_date,
+        self._mprn,
+        self._serial_number,
+        self._native_consumption_units,
+        self._calorific_value,
+        notify=False
+      )
+    except Exception as e:
+      # Never let filling in history stop a sensor working. The gap stays, and the next
+      # restart has another go.
+      _LOGGER.warning(f"Failed to backfill statistics for {self._mprn}/{self._serial_number}: {e}")
 
   @callback
   async def async_refresh_previous_consumption_data(self, start_date):

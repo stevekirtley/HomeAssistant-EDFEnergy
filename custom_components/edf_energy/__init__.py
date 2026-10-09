@@ -49,7 +49,7 @@ from .config.main import async_migrate_main_config
 from .config.cost_tracker import async_migrate_cost_tracker_config
 from .utils import get_active_tariff, get_tariff_parts
 from .utils.debug_overrides import async_get_account_debug_override, async_get_meter_debug_override
-from .utils.error import api_exception_to_string
+from .utils.error import RETRYABLE_EXCEPTIONS, api_exception_to_string
 from .storage.account import async_load_cached_account, async_save_cached_account
 from .storage.intelligent_device import async_load_cached_intelligent_devices, async_save_cached_intelligent_devices
 from .storage.intelligent_dispatches import async_load_cached_intelligent_dispatches
@@ -609,7 +609,12 @@ async def async_setup_dependencies(hass, entry, config):
       raise ConfigEntryNotReady(f"Failed to retrieve account information")
     await async_save_cached_account(hass, account_id, account_info)
   except Exception as e:
-    if isinstance(e, ApiException) == False:
+    # Connection errors get the same treatment as our own ApiException: fall back to the
+    # cached account if there is one, otherwise tell Home Assistant we aren't ready so it
+    # retries. Letting them escape marks the entry as failed outright, which is how a
+    # momentary blip during a restart used to take the whole integration out until the
+    # user reloaded it themselves.
+    if isinstance(e, (ApiException, *RETRYABLE_EXCEPTIONS)) == False:
       raise
 
     if isinstance(e, AuthenticationException):
