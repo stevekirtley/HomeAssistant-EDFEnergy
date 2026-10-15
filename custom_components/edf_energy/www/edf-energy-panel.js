@@ -472,6 +472,12 @@
       }
       this._lastChanged = token;
       this._hass = hass;
+
+      // Nothing on the account tab moves with the dispatch entities, and re-rendering
+      // under it tears the chart out of the DOM and rebuilds it for no reason. The tab
+      // switch renders anyway, so it catches up the moment it matters.
+      if (this._activeTab === 'account' && this.shadowRoot.children.length > 0) return;
+
       this._render();
     }
 
@@ -1756,11 +1762,20 @@
         if (!this._consumptionCard)
           this._consumptionCard = document.createElement('edf-energy-consumption-card');
         if (!slot.contains(this._consumptionCard)) slot.appendChild(this._consumptionCard);
-        this._consumptionCard.hass = this._hass;
-        this._consumptionCard.meters = [
-          ...(this._account.electricity || []),
-          ...(this._account.gas || []),
-        ];
+
+        const card = this._consumptionCard;
+        const feed = () => {
+          card.hass = this._hass;
+          card.meters = [
+            ...(this._account.electricity || []),
+            ...(this._account.gas || []),
+          ];
+        };
+        // The card's script is loaded alongside this one and may not have defined the
+        // element yet. Setting properties on it before then would shadow its setters and
+        // the card would never draw, so wait for the definition the first time.
+        if (customElements.get('edf-energy-consumption-card')) feed();
+        else customElements.whenDefined('edf-energy-consumption-card').then(feed);
       }
 
       // ── Tab switching ─────────────────────────────────────────────────────

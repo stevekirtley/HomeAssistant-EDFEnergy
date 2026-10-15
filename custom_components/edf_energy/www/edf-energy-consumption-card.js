@@ -92,7 +92,7 @@
       this._loading = false;
       this._error = null;
       this._fetchToken = 0;
-      this._built = false;
+      this._metersKey = null;
     }
 
     set hass(hass) {
@@ -370,7 +370,30 @@
       chart.render();
     }
 
+    connectedCallback() {
+      // The panel may well have set hass and meters before this script finished loading.
+      // Assigning to a custom element that has not been upgraded yet leaves own data
+      // properties sitting on top of the prototype setters, which then never run again -
+      // so the card would stay empty forever. Take those values back and feed them
+      // through the setters properly.
+      this._upgradeProperty('hass');
+      this._upgradeProperty('meters');
+
+      // A panel re-render rebuilds its shadow DOM, so this element gets moved into the
+      // fresh slot - a disconnect and reconnect, not a teardown. Put the chart back.
+      if (this._data !== null) { this._render(); this._draw(); }
+    }
+
+    _upgradeProperty(name) {
+      if (!Object.prototype.hasOwnProperty.call(this, name)) return;
+      const value = this[name];
+      delete this[name];
+      this[name] = value;
+    }
+
     disconnectedCallback() {
+      // Only the chart instance goes; _data is kept so a reconnect can redraw without
+      // going back to the recorder.
       if (this._chart) { this._chart.destroy(); this._chart = null; }
     }
   }
