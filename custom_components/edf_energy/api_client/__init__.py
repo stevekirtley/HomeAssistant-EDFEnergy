@@ -39,6 +39,24 @@ from .measurements import (
   next_cursor,
   parse_measurements,
 )
+from .billing import (
+  BILLS_PAGE_SIZE,
+  REFERRALS_PAGE_SIZE,
+  TRANSACTIONS_PAGE_SIZE,
+  bill_attachment_query,
+  billing_summary_query,
+  bills_query,
+  build_idempotency_key,
+  parse_bill_attachment,
+  parse_billing_summary,
+  parse_bills,
+  parse_referrals,
+  parse_repayment_request,
+  parse_transactions,
+  referrals_query,
+  submit_repayment_mutation,
+  transactions_query,
+)
 from .intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches
 from .intelligent_device_settings import IntelligentDeviceSettingPreferenceSchedule, IntelligentDeviceSettings
 
@@ -2202,6 +2220,101 @@ class EDFEnergyApiClient:
       _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
       raise TimeoutException()
   
+  async def _async_graphql(self, query: str, variables: dict, request_context: str):
+    """POST a GraphQL query and hand back the parsed body.
+
+    The billing queries all take variables and differ only in which one they send, so they
+    share this rather than each repeating the session, the url and the auth header.
+    """
+    await self.async_refresh_token()
+
+    try:
+      client = self._create_client_session()
+      url = f'{self._base_url}/v1/graphql/'
+      payload = { "query": query, "variables": variables }
+      headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
+      async with client.post(url, json=payload, headers=headers) as response:
+        return await self.__async_read_response__(response, url)
+    except TimeoutError:
+      _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
+      raise TimeoutException()
+
+  async def async_get_billing_summary(self, account_id: str):
+    """Balance, latest statement, payment schedule and refund position in one call."""
+    response = await self._async_graphql(
+      billing_summary_query, { "accountNumber": account_id }, "billing-summary"
+    )
+    return parse_billing_summary(response)
+
+  async def async_get_bills(self, account_id: str, first: int = BILLS_PAGE_SIZE, cursor: str = None):
+    """A page of statements, newest first.
+
+    No attachment links come back with these - see async_get_bill_attachment.
+    """
+    response = await self._async_graphql(
+      bills_query,
+      { "accountNumber": account_id, "first": first, "cursor": cursor },
+      "bills",
+    )
+    return parse_bills(response)
+
+  async def async_get_bill_attachment(self, account_id: str, bill_id: str, bill_type: str = "STATEMENT"):
+    """The pre-signed PDF link for one statement, fetched at the moment it is opened.
+
+    The bill type is not optional: `bill(id:)` on its own answers null however valid the
+    id is, so the caller passes back the type the list gave it.
+    """
+    response = await self._async_graphql(
+      bill_attachment_query,
+      { "accountNumber": account_id, "billId": str(bill_id), "billType": bill_type },
+      "bill-attachment",
+    )
+    return parse_bill_attachment(response)
+
+  async def async_get_transactions(self, account_id: str, first: int = TRANSACTIONS_PAGE_SIZE, cursor: str = None):
+    """A page of the account ledger, newest first."""
+    response = await self._async_graphql(
+      transactions_query,
+      { "accountNumber": account_id, "first": first, "cursor": cursor },
+      "transactions",
+    )
+    return parse_transactions(response)
+
+  async def async_get_referrals(self, account_id: str, first: int = REFERRALS_PAGE_SIZE):
+    """The referral scheme in force and everyone who has joined on the account's link."""
+    response = await self._async_graphql(
+      referrals_query,
+      { "accountNumber": account_id, "first": first },
+      "referrals",
+    )
+    return parse_referrals(response)
+
+  async def async_submit_repayment_request(self, account_id: str, amount_in_pounds: float, current: datetime):
+    """Ask EDF to refund part of a credit balance.
+
+    This spends real money out of the account, so the caller is expected to have checked
+    the amount against maximumRefund and to have had the request confirmed by a person.
+    The idempotency key means a repeated submission of the same amount on the same day is
+    the same request rather than a second refund.
+    """
+    amount_in_pence = int(round(amount_in_pounds * 100))
+    if amount_in_pence <= 0:
+      raise RequestException("A refund has to be for more than nothing", [])
+
+    response = await self._async_graphql(
+      submit_repayment_mutation,
+      {
+        "input": {
+          "accountNumber": account_id,
+          "amountInMinorUnit": amount_in_pence,
+          "method": "BANK_TRANSFER",
+          "idempotencyKey": build_idempotency_key(account_id, amount_in_pence, current),
+        }
+      },
+      "submit-repayment",
+    )
+    return parse_repayment_request(response)
+
   async def async_get_sunday_saver(self, account_id: str, week_start_date: str):
     """Get Sunday Saver free energy slot data for the given week anchor date."""
     await self.async_refresh_token()

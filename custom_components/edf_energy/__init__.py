@@ -32,6 +32,7 @@ from .coordinators.intelligent_dispatches import IntelligentDispatchesCoordinato
 from .coordinators.intelligent_settings import async_setup_intelligent_settings_coordinator
 from .coordinators.electricity_rates import async_setup_electricity_rates_coordinator
 from .coordinators.sunday_saver import async_setup_sunday_saver_coordinator
+from .coordinators.billing import async_setup_billing_coordinator
 from .coordinators.flextras import async_setup_flextras_coordinator, get_property_id
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
 from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
@@ -102,6 +103,8 @@ from .const import (
   CONFIG_MAIN_REFRESH_TOKEN,
   REPAIR_AUTH_TOKEN_EXPIRING_SOON,
   CONFIG_ACCOUNT_ID,
+  DATA_BILLING,
+  DATA_BILLING_COORDINATOR,
   CONFIG_MAIN_ELECTRICITY_PRICE_CAP,
   CONFIG_MAIN_GAS_PRICE_CAP,
 
@@ -134,6 +137,7 @@ COST_TRACKER_PLATFORMS = ["sensor"]
 TARIFF_COMPARISON_PLATFORMS = ["sensor"]
 
 from .api_client import ApiException, AuthenticationException, EDFEnergyApiClient
+from .api_client.billing import BILL_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -353,6 +357,219 @@ async def websocket_flextras_book_hours(hass, connection, msg):
   connection.send_result(msg["id"], result)
 
 
+def _client_for_panel(hass, account_id: str):
+  """The API client for an account that is actually loaded."""
+  return hass.data.get(DOMAIN, {}).get(account_id, {}).get(DATA_CLIENT)
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/billing_summary",
+  vol.Required("account_id"): str,
+})
+@callback
+def websocket_billing_summary(hass, connection, msg):
+  """Balance, latest statement, payment schedule and refund position.
+
+  Served from the billing coordinator's cache, which is the same data behind the four
+  billing sensors - the tab opening should not cost a round trip for numbers that are
+  already in hand.
+  """
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  if account_id is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  result = hass.data.get(DOMAIN, {}).get(account_id, {}).get(DATA_BILLING.format(account_id))
+  summary = getattr(result, "summary", None) if result is not None else None
+  if summary is None:
+    connection.send_error(msg["id"], "not_loaded", "Billing information is not available yet")
+    return
+
+  connection.send_result(msg["id"], summary)
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/bills",
+  vol.Required("account_id"): str,
+  vol.Optional("cursor"): vol.Any(str, None),
+})
+@websocket_api.async_response
+async def websocket_bills(hass, connection, msg):
+  """A page of statements, fetched when the tab is opened rather than polled.
+
+  No PDF links come back with the list. Those are short lived and are asked for one at a
+  time, when somebody opens a statement.
+  """
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  client = _client_for_panel(hass, account_id) if account_id is not None else None
+  if client is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  try:
+    result = await client.async_get_bills(account_id, cursor=msg.get("cursor"))
+  except ApiException as err:
+    connection.send_error(msg["id"], "fetch_failed", str(err))
+    return
+
+  connection.send_result(msg["id"], result or {"bills": [], "has_more": False, "cursor": None})
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/bill_url",
+  vol.Required("account_id"): str,
+  vol.Required("bill_id"): str,
+  vol.Optional("bill_type", default="STATEMENT"): vol.In(BILL_TYPES),
+})
+@websocket_api.async_response
+async def websocket_bill_url(hass, connection, msg):
+  """A one-shot link to a statement PDF, for the browser to open or save.
+
+  Admin only, and fetched fresh every time: the link EDF hand back is pre-signed and
+  expires within the hour, so there is nothing worth keeping and nothing is kept. The
+  expiry comes back with it so the panel can say so rather than hand over a dead link.
+  """
+  if not connection.user.is_admin:
+    connection.send_error(msg["id"], "unauthorized", "Admin required")
+    return
+
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  client = _client_for_panel(hass, account_id) if account_id is not None else None
+  if client is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  try:
+    attachment = await client.async_get_bill_attachment(account_id, msg["bill_id"], msg["bill_type"])
+  except ApiException as err:
+    connection.send_error(msg["id"], "fetch_failed", str(err))
+    return
+
+  if attachment is None:
+    connection.send_error(msg["id"], "not_found", "That statement has no document attached")
+    return
+
+  connection.send_result(msg["id"], attachment)
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/transactions",
+  vol.Required("account_id"): str,
+  vol.Optional("cursor"): vol.Any(str, None),
+})
+@websocket_api.async_response
+async def websocket_transactions(hass, connection, msg):
+  """A page of the account ledger, fetched on demand and not persisted anywhere."""
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  client = _client_for_panel(hass, account_id) if account_id is not None else None
+  if client is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  try:
+    result = await client.async_get_transactions(account_id, cursor=msg.get("cursor"))
+  except ApiException as err:
+    connection.send_error(msg["id"], "fetch_failed", str(err))
+    return
+
+  connection.send_result(msg["id"], result or {"transactions": [], "has_more": False, "cursor": None})
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/referrals",
+  vol.Required("account_id"): str,
+})
+@websocket_api.async_response
+async def websocket_referrals(hass, connection, msg):
+  """The referral scheme and who has joined on the account's link.
+
+  These are other people's names, so they are fetched while the tab is open and rendered -
+  never written to an entity, an attribute or the recorder.
+  """
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  client = _client_for_panel(hass, account_id) if account_id is not None else None
+  if client is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  try:
+    result = await client.async_get_referrals(account_id)
+  except ApiException as err:
+    connection.send_error(msg["id"], "fetch_failed", str(err))
+    return
+
+  connection.send_result(msg["id"], result or {"referrals": [], "scheme": None, "total": 0})
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/request_refund",
+  vol.Required("account_id"): str,
+  vol.Required("amount"): vol.Coerce(float),
+})
+@websocket_api.async_response
+async def websocket_request_refund(hass, connection, msg):
+  """Ask EDF to refund part of a credit balance. Admin only.
+
+  This moves real money, so three things are checked before it is sent: that EDF say the
+  account can request one at all, that the amount is positive, and that it is within the
+  maximum EDF themselves quote. The panel confirms with the user before calling this; the
+  checks here are the ones that matter, since a websocket command is reachable without the
+  panel.
+  """
+  if not connection.user.is_admin:
+    connection.send_error(msg["id"], "unauthorized", "Admin required")
+    return
+
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  client = _client_for_panel(hass, account_id) if account_id is not None else None
+  if client is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  result = hass.data.get(DOMAIN, {}).get(account_id, {}).get(DATA_BILLING.format(account_id))
+  summary = getattr(result, "summary", None) if result is not None else None
+  refund = (summary or {}).get("refund") or {}
+
+  if refund.get("can_request") == False:
+    connection.send_error(
+      msg["id"], "not_eligible",
+      f"EDF are not accepting a refund request on this account ({refund.get('reason') or 'no reason given'})"
+    )
+    return
+
+  amount = round(float(msg["amount"]), 2)
+  if amount <= 0:
+    connection.send_error(msg["id"], "invalid_amount", "A refund has to be for more than nothing")
+    return
+
+  maximum = refund.get("maximum")
+  if maximum is not None and amount > maximum:
+    connection.send_error(
+      msg["id"], "invalid_amount",
+      f"EDF will only refund up to \u00a3{maximum:.2f} on this account"
+    )
+    return
+
+  try:
+    submitted = await client.async_submit_repayment_request(account_id, amount, utcnow())
+  except ApiException as err:
+    connection.send_error(msg["id"], "request_failed", str(err))
+    return
+
+  if submitted is None:
+    connection.send_error(msg["id"], "request_failed", "EDF did not acknowledge the request")
+    return
+
+  # Refresh so the refund sensor and the tab pick the new request up now rather than at the
+  # next scheduled poll, which could be two hours away.
+  coordinator = hass.data.get(DOMAIN, {}).get(account_id, {}).get(DATA_BILLING_COORDINATOR.format(account_id))
+  if coordinator is not None:
+    hass.data[DOMAIN][account_id][DATA_BILLING.format(account_id)] = None
+    await coordinator.async_request_refresh()
+
+  connection.send_result(msg["id"], submitted)
+
+
 async def async_remove_config_entry_device(
   hass, config_entry, device_entry
 ) -> bool:
@@ -429,6 +646,12 @@ async def async_setup_entry(hass, entry):
     websocket_api.async_register_command(hass, websocket_flextras_bookable_days)
     websocket_api.async_register_command(hass, websocket_flextras_day_slots)
     websocket_api.async_register_command(hass, websocket_flextras_book_hours)
+    websocket_api.async_register_command(hass, websocket_billing_summary)
+    websocket_api.async_register_command(hass, websocket_bills)
+    websocket_api.async_register_command(hass, websocket_bill_url)
+    websocket_api.async_register_command(hass, websocket_transactions)
+    websocket_api.async_register_command(hass, websocket_referrals)
+    websocket_api.async_register_command(hass, websocket_request_refund)
     www_dir = os.path.join(os.path.dirname(__file__), "www")
     static_paths = []
 
@@ -828,6 +1051,7 @@ async def async_setup_dependencies(hass, entry, config):
   await async_setup_account_info_coordinator(hass, account_id, entry)
   await async_setup_sunday_saver_coordinator(hass, account_id, entry)
   await async_setup_flextras_coordinator(hass, account_id, entry)
+  await async_setup_billing_coordinator(hass, account_id, entry)
   await async_setup_event_free_electricity_coordinator(hass, account_id)
   await async_setup_power_perks_coordinator(hass, account_id, entry)
   await async_setup_flextras_hours_coordinator(hass, account_id, entry)

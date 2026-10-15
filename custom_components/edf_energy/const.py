@@ -11,6 +11,9 @@ REFRESH_RATE_IN_MINUTES_SUNDAY_SAVER = 60
 REFRESH_RATE_IN_MINUTES_FLEXTRAS = 60
 REFRESH_RATE_IN_MINUTES_EVENT_FREE_ELECTRICITY = 240
 REFRESH_RATE_IN_MINUTES_FREE_ELECTRICITY_SESSIONS = 60
+# Statements are issued monthly and the balance moves once a day at most, so this is as
+# often as it is worth asking. The panel refetches on demand when a tab is opened.
+REFRESH_RATE_IN_MINUTES_BILLING = 120
 # EDF text Power Perks sessions the day before, occasionally the same day, so the relay is
 # polled often enough that a same-day text still lands well ahead of the window.
 REFRESH_RATE_IN_MINUTES_POWER_PERKS = 15
@@ -129,6 +132,9 @@ DATA_FLEXTRAS_HOURS_COORDINATOR = "FLEXTRAS_HOURS_COORDINATOR_{}"
 # Bookings can be changed up to the Thursday before, so this is polled more often than the
 # hour-ish most things use, without being so eager it hammers EDF.
 REFRESH_RATE_IN_MINUTES_FLEXTRAS_HOURS = 30
+
+DATA_BILLING = "BILLING_{}"
+DATA_BILLING_COORDINATOR = "BILLING_COORDINATOR_{}"
 
 DATA_POWER_PERKS = "POWER_PERKS_{}"
 DATA_POWER_PERKS_COORDINATOR = "POWER_PERKS_COORDINATOR_{}"
