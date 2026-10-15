@@ -449,12 +449,23 @@ async def async_setup_entry(hass, entry):
     panel_cache_bust = ""
     if register_panel:
       static_paths.append(StaticPathConfig("/edf_energy/edf-energy-panel.js", panel_path, False))
-      # Hash the file so the js_url changes whenever the panel changes, forcing
+      # Hash the files so the js_url changes whenever the panel changes, forcing
       # browsers and the companion app's service worker to fetch the new version
-      # instead of serving a stale cached copy.
+      # instead of serving a stale cached copy. The cards the panel pulls in are hashed
+      # alongside it, because a change to one of those does not touch the panel itself -
+      # the panel would keep its old url and the browser would go on serving the card it
+      # already had.
+      def _read_panel_assets():
+        digest = hashlib.md5()
+        for name in ("edf-energy-panel.js", "edf-energy-consumption-card.js"):
+          asset = os.path.join(www_dir, name)
+          if os.path.isfile(asset):
+            with open(asset, "rb") as fh:
+              digest.update(fh.read())
+        return digest.hexdigest()[:8]
+
       try:
-        panel_bytes = await hass.async_add_executor_job(lambda: open(panel_path, "rb").read())
-        panel_cache_bust = f"?v={hashlib.md5(panel_bytes).hexdigest()[:8]}"
+        panel_cache_bust = f"?v={await hass.async_add_executor_job(_read_panel_assets)}"
       except OSError:
         pass
 

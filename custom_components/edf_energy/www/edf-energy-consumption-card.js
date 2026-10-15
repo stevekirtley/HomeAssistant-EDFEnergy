@@ -36,6 +36,15 @@
     gas:    { label: 'Gas',         colour: '#e4567c' },
   };
 
+  // Rough luminance of a CSS colour, used only to decide light or dark chrome. Anything
+  // it cannot parse falls back to light, which is what the card looked like before.
+  function isDark(colour) {
+    const m = String(colour || '').match(/\d+(\.\d+)?/g);
+    if (!m || m.length < 3) return false;
+    const [r, g, b] = m.slice(0, 3).map(Number);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) < 128;
+  }
+
   const PERIODS = [
     { id: 'day',   label: 'Day' },
     { id: 'month', label: 'Month' },
@@ -93,6 +102,8 @@
       this._error = null;
       this._fetchToken = 0;
       this._metersKey = null;
+      this._resizeObserver = null;
+      this._drawnWidth = 0;
     }
 
     set hass(hass) {
@@ -330,12 +341,32 @@
       });
     }
 
-    async _draw() {
+    /** Width of the chart area, or 0 while the browser has yet to lay it out. */
+    _measure(container) {
+      const width = container.getBoundingClientRect().width || container.clientWidth || 0;
+      return Math.floor(width);
+    }
+
+    async _draw(attempt = 0) {
       const container = this.shadowRoot.getElementById('chart');
       if (!container || !this._data) return;
 
       const kinds = Object.keys(this._data.byKind);
       if (!kinds.some(k => this._data.byKind[k].some(v => v !== 0))) return;
+
+      // ApexCharts works its own width out by walking offsetParent and computed styles,
+      // which does not resolve inside a shadow root - it ends up with NaN and throws
+      // while writing the svg's width attribute, so no chart appears and the only sign
+      // is a console error. Measuring here and handing it an explicit pixel width takes
+      // that guesswork away from it entirely.
+      const width = this._measure(container);
+      if (width <= 0) {
+        // Laid out on a later frame - a tab that was just switched to, say. Give it a
+        // few frames rather than forever, so a container that is genuinely never shown
+        // does not leave a callback spinning.
+        if (attempt < 10) requestAnimationFrame(() => this._draw(attempt + 1));
+        return;
+      }
 
       let ApexCharts;
       try {
@@ -348,10 +379,18 @@
       if (this._chart) { this._chart.destroy(); this._chart = null; }
 
       const unit = this._unit;
+      // Follow whatever theme Home Assistant is wearing rather than guessing from the
+      // operating system, which gets it wrong for anyone running a dark HA theme on a
+      // light desktop. The card's own background colour is the honest signal.
+      const styles = getComputedStyle(this);
+      const foreColor = (styles.getPropertyValue('--primary-text-color') || '').trim();
+      const dark = isDark(styles.getPropertyValue('--card-background-color'));
+
       const chart = new ApexCharts(container, {
-        chart: { type: 'bar', height: 280, stacked: true, toolbar: { show: false },
-                 fontFamily: 'inherit', background: 'transparent', animations: { enabled: false } },
-        theme: { mode: 'light' },
+        chart: { type: 'bar', width, height: 280, stacked: true, toolbar: { show: false },
+                 fontFamily: 'inherit', background: 'transparent',
+                 foreColor: foreColor || undefined, animations: { enabled: false } },
+        theme: { mode: dark ? 'dark' : 'light' },
         series: kinds.map(k => ({ name: SERIES[k].label, data: this._data.byKind[k].map(v => +v.toFixed(3)) })),
         colors: kinds.map(k => SERIES[k].colour),
         xaxis: { categories: this._data.categories, tickPlacement: 'on',
@@ -361,13 +400,38 @@
         dataLabels: { enabled: false },
         grid: { borderColor: 'rgba(127,127,127,0.18)' },
         tooltip: {
+          // Bar charts default intersect to true, and ApexCharts throws outright rather
+          // than warning if that is left on with a shared tooltip. All the fuels want
+          // reading together for one day, so shared stays and intersect goes.
           shared: true,
+          intersect: false,
           y: { formatter: v => (v == null ? '—' : (unit === 'cost' ? `£${Number(v).toFixed(2)}` : `${Number(v).toFixed(2)} kWh`)) },
         },
         plotOptions: { bar: { columnWidth: '68%', borderRadius: 2 } },
       });
       this._chart = chart;
+      this._drawnWidth = width;
       chart.render();
+      this._watchWidth(container);
+    }
+
+    /** Redraw at the new size when the panel is resized, since the width is now fixed. */
+    _watchWidth(container) {
+      if (typeof ResizeObserver === 'undefined') return;
+      // Every render rebuilds the card's markup, so #chart is a new node each time and
+      // an observer kept from last time would be watching one that is no longer there.
+      if (this._resizeObserver) this._resizeObserver.disconnect();
+      this._resizeObserver = new ResizeObserver(() => {
+        const slot = this.shadowRoot.getElementById('chart');
+        if (!slot || !this._chart) return;
+        const width = this._measure(slot);
+        // Only on a real change, or the observer's own redraw would retrigger it.
+        if (width > 0 && Math.abs(width - (this._drawnWidth || 0)) > 8) {
+          this._drawnWidth = width;
+          this._chart.updateOptions({ chart: { width } }, false, false);
+        }
+      });
+      this._resizeObserver.observe(container);
     }
 
     connectedCallback() {
@@ -395,6 +459,7 @@
       // Only the chart instance goes; _data is kept so a reconnect can redraw without
       // going back to the recorder.
       if (this._chart) { this._chart.destroy(); this._chart = null; }
+      if (this._resizeObserver) { this._resizeObserver.disconnect(); this._resizeObserver = null; }
     }
   }
 

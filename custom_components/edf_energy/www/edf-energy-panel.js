@@ -5,8 +5,12 @@
   // library's worth of code for a tab most people never open.
   (function () {
     if (customElements.get('edf-energy-consumption-card')) return;
+    // Carry this file's own ?v= across to the card. The backend hashes both files into
+    // that value, so whenever either changes the card is fetched afresh rather than
+    // served out of the browser's cache against an unchanged url.
+    const version = (document.currentScript && document.currentScript.src.split('?')[1]) || '';
     const s = document.createElement('script');
-    s.src = '/edf_energy/edf-energy-consumption-card.js';
+    s.src = '/edf_energy/edf-energy-consumption-card.js' + (version ? '?' + version : '');
     document.head.appendChild(s);
   })();
 
