@@ -135,6 +135,42 @@ async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, exi
 
 ignored_attributes = ['mpan', 'mprn', 'serial_number', 'friendly_name', 'icon', 'unit_of_measurement', 'device_class', 'state_class', 'account_id']
 
+# Diagnostics get pasted into public issues, so the billing sensors are not reported in
+# full. What somebody's account is in credit by, what their last bill came to and what
+# their direct debit is are nobody else's business and never needed to reproduce a fault -
+# whether the sensor has a figure at all is. The identifiers are dropped outright; the
+# amounts are replaced with a note of their shape.
+REDACTED_BILLING_SUFFIXES = (
+  "_account_balance", "_last_bill_amount", "_next_payment_amount", "_refund_status",
+)
+REDACTED_BILLING_ATTRIBUTES = ("amount", "closing_balance", "maximum_refund", "bill_id")
+
+
+def redact_billing_entity(unique_id: str, info: dict) -> dict:
+  """Strip the figures out of a billing sensor's diagnostics entry.
+
+  Everything useful for diagnosing one of these - does it have a value, is it unavailable,
+  when did it last update, what reason did EDF give - survives.
+  """
+  if not any(unique_id.endswith(suffix) for suffix in REDACTED_BILLING_SUFFIXES):
+    return info
+
+  state = info.get("state")
+  redacted = dict(info)
+  # "None requested" and the refund statuses are EDF's own words rather than money, so they
+  # are kept; a number is reduced to the fact that there was one.
+  if state not in (None, "unknown", "unavailable") and unique_id.endswith("_refund_status") == False:
+    redacted["state"] = "**REDACTED**"
+
+  attributes = info.get("attributes")
+  if isinstance(attributes, dict):
+    redacted["attributes"] = {
+      key: ("**REDACTED**" if key in REDACTED_BILLING_ATTRIBUTES and value is not None else value)
+      for key, value in attributes.items()
+    }
+
+  return redacted
+
 async def async_get_device_diagnostics(hass, entry, device):
     """Return diagnostics for a device."""
 
@@ -164,12 +200,12 @@ async def async_get_device_diagnostics(hass, entry, device):
           for key in redacted_mappings.keys():
             unique_id = unique_id.lower().replace(key.lower(), f"{redacted_mappings[key]}")
           
-          entity_info[unique_id] = {
+          entity_info[unique_id] = redact_billing_entity(unique_id, {
             "state": state.state if state is not None else None,
             "attributes": dict_to_typed_dict(state.attributes, ignored_attributes) if state is not None else None,
             "last_updated": state.last_updated if state is not None else None,
             "last_changed": state.last_changed if state is not None else None
-          }
+          })
 
       return entity_info
 

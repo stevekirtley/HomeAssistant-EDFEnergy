@@ -55,6 +55,12 @@ from .api_client.intelligent_device import IntelligentDevice
 from .intelligent.current_state import EDFEnergyIntelligentCurrentState
 from .intelligent import get_intelligent_features
 from .sunday_saver.sensor import EDFEnergySundaySaverStartSensor, EDFEnergySundaySaverEndSensor
+from .billing.sensor import (
+  EDFEnergyAccountBalance,
+  EDFEnergyLastBillAmount,
+  EDFEnergyNextPaymentAmount,
+  EDFEnergyRefundStatus,
+)
 from .flextras.sensor import EDFEnergyFlextrasBonusHours
 from .flextras.hours_sensor import EDFEnergyFlextrasHoursRemaining
 from .events.sensor import EDFEnergyEventFreeStartSensor, EDFEnergyEventFreeEndSensor
@@ -97,6 +103,7 @@ from .const import (
   DATA_INTELLIGENT_DISPATCHES_COORDINATOR,
   DATA_INTELLIGENT_SETTINGS_COORDINATOR,
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
+  DATA_BILLING_COORDINATOR,
   DATA_FLEXTRAS_COORDINATOR,
   DATA_FLEXTRAS_HOURS_COORDINATOR,
   DATA_SUNDAY_SAVER_COORDINATOR,
@@ -241,6 +248,13 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
   if sunday_saver_coordinator is not None:
     entities.append(EDFEnergySundaySaverStartSensor(hass, sunday_saver_coordinator, account_id))
     entities.append(EDFEnergySundaySaverEndSensor(hass, sunday_saver_coordinator, account_id))
+
+  billing_coordinator = hass.data[DOMAIN][account_id].get(DATA_BILLING_COORDINATOR.format(account_id))
+  if billing_coordinator is not None:
+    entities.append(EDFEnergyAccountBalance(hass, billing_coordinator, account_id))
+    entities.append(EDFEnergyLastBillAmount(hass, billing_coordinator, account_id))
+    entities.append(EDFEnergyNextPaymentAmount(hass, billing_coordinator, account_id))
+    entities.append(EDFEnergyRefundStatus(hass, billing_coordinator, account_id))
 
   flextras_coordinator = hass.data[DOMAIN][account_id].get(DATA_FLEXTRAS_COORDINATOR.format(account_id))
   if flextras_coordinator is not None:
