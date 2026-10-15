@@ -550,6 +550,13 @@ class EDFEnergyApiClient:
     self._agreement_tariffs_cache: tuple[datetime, dict] | None = None
     self._hidden_products_logged: set[str] = set()
 
+    # Endpoints we have already complained about. EDF's REST endpoints throw the odd 500
+    # that clears itself within the hour (issue #48), and the callers all cope - the hours
+    # coordinator keeps the bookings it already has and backs off. A warning on every retry
+    # turns a blip EDF fixed by themselves into something that looks like a fault here, so
+    # only the first one is raised and the rest go to debug.
+    self._rest_failures_logged: set[str] = set()
+
     self._electricity_price_cap = electricity_price_cap
     self._gas_price_cap = gas_price_cap
     self._favour_direct_debit_rates = favour_direct_debit_rates
@@ -872,17 +879,35 @@ class EDFEnergyApiClient:
       client = self._create_client_session()
       async with client.get(url, headers=headers) as response:
         if response.status == 200:
+          self._rest_failures_logged.discard(request_context)
           return await response.json(content_type=None)
         if response.status == 404:
           return None
         body = await response.text()
-        _LOGGER.warning(
-          "%s returned HTTP %s. Body: %s", request_context, response.status, body[:500]
+        self._log_rest_failure(
+          request_context,
+          "%s returned HTTP %s. Body: %s", request_context, response.status, body[:500],
         )
         return None
     except Exception as e:
-      _LOGGER.warning("%s failed: %s (%s)", request_context, e, type(e).__name__)
+      self._log_rest_failure(
+        request_context, "%s failed: %s (%s)", request_context, e, type(e).__name__
+      )
       return None
+
+  def _log_rest_failure(self, key: str, message: str, *args):
+    """Warn the first time an endpoint fails, then keep the repeats at debug.
+
+    The key is the request context, which already names the endpoint and the account, so
+    each endpoint gets one warning rather than one per retry. A success clears it, so a
+    fault that comes back later is reported again.
+    """
+    if key in self._rest_failures_logged:
+      _LOGGER.debug(message, *args)
+      return
+
+    self._rest_failures_logged.add(key)
+    _LOGGER.warning(message, *args)
 
   async def async_get_flextras_status(self, account_id: str):
     """Fetch Flextras registration state for an account.

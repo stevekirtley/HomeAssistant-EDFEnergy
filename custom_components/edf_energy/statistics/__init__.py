@@ -56,13 +56,20 @@ def build_consumption_statistics(current: datetime, consumptions, rates, consump
 
   return total_statistics
 
-def build_cost_statistics(current: datetime, consumptions, rates, consumption_key: str, latest_total_sum: float, target_rate = None):
+def build_cost_statistics(current: datetime, consumptions, rates, consumption_key: str, latest_total_sum: float, target_rate = None, standing_charge_in_pence: float = 0):
   last_reset = consumptions[0]["start"].replace(minute=0, second=0, microsecond=0)
+
+  # The standing charge is charged once for the day rather than per slot, so it is seeded
+  # before the first half hour instead of being spread across the forty eight. Callers hand
+  # us one day at a time, which is what makes that safe - a batch spanning two days would
+  # only pick it up once. It is also deliberately left out of the peak/off peak breakdowns,
+  # since a daily charge does not belong to one band or the other.
+  standing_charge = pence_to_pounds_pence_accurate(standing_charge_in_pence) if target_rate is None else 0
   sums = {
-    "total": latest_total_sum
+    "total": latest_total_sum + standing_charge
   }
   states = {
-    "total": 0
+    "total": standing_charge
   }
   
   total_statistics = []

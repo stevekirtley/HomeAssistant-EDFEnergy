@@ -207,6 +207,14 @@ Due to limitation of HA entities, the data will be updated as a single record, w
 
     This retrieves the data reported directly by the meter which is used to calculate your bill.
 
+!!! info "The sensor and the statistics differ on the standing charge"
+
+    This sensor includes the standing charge. Of the two statistics behind the
+    [energy dashboard](../setup/energy_dashboard.md#previous-day-consumption), only
+    `..._previous_accumulative_cost_includingsc` does - the plain
+    `..._previous_accumulative_cost` statistic is the energy cost alone. Comparing this
+    sensor against that statistic will always leave you a standing charge short.
+
 !!! warning
 
     This data won't necessarily be available at the stroke of midnight. This integration has no control of this and is at the mercy of when the data is available by EDF Energy. 

@@ -26,7 +26,10 @@ from .base import (EDFEnergyGasSensor)
 from ..utils.attributes import dict_to_typed_dict
 from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult
 
-from ..statistics.cost import async_import_external_statistics_from_cost, get_gas_cost_statistic_unique_id
+from ..statistics.cost import (async_import_external_statistics_from_cost,
+                              get_gas_cost_including_standing_charge_statistic_name,
+                              get_gas_cost_including_standing_charge_statistic_unique_id,
+                              get_gas_cost_statistic_unique_id)
 
 _LOGGER = logging.getLogger(__name__)
   
@@ -134,7 +137,10 @@ class EDFEnergyPreviousAccumulativeGasCost(CoordinatorEntity, EDFEnergyGasSensor
         consumption_and_cost["charges"],
         rate_data,
         "GBP",
-        "consumption_kwh"
+        "consumption_kwh",
+        standing_charge_in_pence=standing_charge,
+        including_standing_charge_unique_id=get_gas_cost_including_standing_charge_statistic_unique_id(self._serial_number, self._mprn),
+        including_standing_charge_name=get_gas_cost_including_standing_charge_statistic_name(self._serial_number, self._mprn)
       )
 
       self._last_reset = consumption_and_cost["last_reset"]

@@ -14,7 +14,13 @@ from homeassistant.util.dt import (now, parse_datetime)
 from ..api_client import EDFEnergyApiClient
 from ..const import DATA_ACCOUNT, DOMAIN, REGEX_DATE
 from .consumption import async_import_external_statistics_from_consumption, get_electricity_consumption_statistic_name, get_electricity_consumption_statistic_unique_id, get_gas_consumption_statistic_name, get_gas_consumption_statistic_unique_id
-from .cost import async_import_external_statistics_from_cost, get_electricity_cost_statistic_name, get_electricity_cost_statistic_unique_id, get_gas_cost_statistic_name, get_gas_cost_statistic_unique_id
+from .cost import (async_import_external_statistics_from_cost,
+                  get_electricity_cost_including_standing_charge_statistic_name,
+                  get_electricity_cost_including_standing_charge_statistic_unique_id,
+                  get_electricity_cost_statistic_name, get_electricity_cost_statistic_unique_id,
+                  get_gas_cost_including_standing_charge_statistic_name,
+                  get_gas_cost_including_standing_charge_statistic_unique_id,
+                  get_gas_cost_statistic_name, get_gas_cost_statistic_unique_id)
 from ..electricity import calculate_electricity_consumption_and_cost
 from ..gas import calculate_gas_consumption_and_cost
 from ..coordinators import get_electricity_meter_tariff, get_gas_meter_tariff
@@ -72,6 +78,14 @@ async def async_refresh_previous_electricity_consumption_data(
     consumption_data = await client.async_get_electricity_consumption(mpan, serial_number, period_from, period_to, is_export=is_export)
     rates = await client.async_get_electricity_rates(tariff.product, tariff.code, is_smart_meter, period_from, period_to)
 
+    # Needed for the cost-including-standing-charge statistic only, so a day EDF cannot
+    # price the standing charge for still imports everything else rather than stopping.
+    # Export meters have no standing charge of their own, so none is asked for.
+    standing_charge = None
+    if is_export == False:
+      standing_charge_data = await client.async_get_electricity_standing_charge(tariff.product, tariff.code, period_from, period_to)
+      standing_charge = standing_charge_data["value_inc_vat"] if standing_charge_data is not None else None
+
     consumption_and_cost = calculate_electricity_consumption_and_cost(
       consumption_data,
       rates,
@@ -101,7 +115,10 @@ async def async_refresh_previous_electricity_consumption_data(
         rates,
         "GBP",
         "consumption",
-        initial_statistics=previous_cost_result
+        initial_statistics=previous_cost_result,
+        standing_charge_in_pence=standing_charge,
+        including_standing_charge_unique_id=get_electricity_cost_including_standing_charge_statistic_unique_id(serial_number, mpan, is_export),
+        including_standing_charge_name=get_electricity_cost_including_standing_charge_statistic_name(serial_number, mpan, is_export)
       )
 
     period_from = period_to
@@ -162,6 +179,9 @@ async def async_refresh_previous_gas_consumption_data(
     consumption_data = await client.async_get_gas_consumption(mprn, serial_number, period_from, period_to)
     rates = await client.async_get_gas_rates(tariff.product, tariff.code, period_from, period_to)
 
+    standing_charge_data = await client.async_get_gas_standing_charge(tariff.product, tariff.code, period_from, period_to)
+    standing_charge = standing_charge_data["value_inc_vat"] if standing_charge_data is not None else None
+
     consumption_and_cost = calculate_gas_consumption_and_cost(
       consumption_data,
       rates,
@@ -205,7 +225,10 @@ async def async_refresh_previous_gas_consumption_data(
         rates,
         "GBP",
         "consumption_kwh",
-        previous_cost_result
+        previous_cost_result,
+        standing_charge_in_pence=standing_charge,
+        including_standing_charge_unique_id=get_gas_cost_including_standing_charge_statistic_unique_id(serial_number, mprn),
+        including_standing_charge_name=get_gas_cost_including_standing_charge_statistic_name(serial_number, mprn)
       )
 
     period_from = period_to

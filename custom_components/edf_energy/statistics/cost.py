@@ -25,13 +25,34 @@ def get_gas_cost_statistic_unique_id(serial_number: str, mpan: str):
 def get_gas_cost_statistic_name(serial_number: str, mpan: str):
   return f"Gas {serial_number} {mpan} Previous Accumulative Cost"
 
+# EDF bill a daily standing charge on top of what the meter records, so the cost statistic
+# above - consumption times rate, nothing more - always reads low against the bill by that
+# amount. Rather than change a statistic people already have years of history in, the full
+# figure is published alongside it under its own id, and the energy dashboard docs point at
+# whichever one the reader wants. See issue #47.
+STANDING_CHARGE_SUFFIX = "includingsc"
+
+def get_electricity_cost_including_standing_charge_statistic_unique_id(serial_number: str, mpan: str, is_export: bool):
+  return f"{get_electricity_cost_statistic_unique_id(serial_number, mpan, is_export)}_{STANDING_CHARGE_SUFFIX}"
+
+def get_electricity_cost_including_standing_charge_statistic_name(serial_number: str, mpan: str, is_export: bool):
+  return f"{get_electricity_cost_statistic_name(serial_number, mpan, is_export)} Including Standing Charge"
+
+def get_gas_cost_including_standing_charge_statistic_unique_id(serial_number: str, mpan: str):
+  return f"{get_gas_cost_statistic_unique_id(serial_number, mpan)}_{STANDING_CHARGE_SUFFIX}"
+
+def get_gas_cost_including_standing_charge_statistic_name(serial_number: str, mpan: str):
+  return f"{get_gas_cost_statistic_name(serial_number, mpan)} Including Standing Charge"
+
 class ImportCostStatisticsResult:
   total: float
   peak_totals: "dict[str, float]"
+  total_including_standing_charge: float
 
-  def __init__(self, total: float, peak_totals: "dict[str, float]"):
+  def __init__(self, total: float, peak_totals: "dict[str, float]", total_including_standing_charge: float = 0):
     self.total = total
     self.peak_totals = peak_totals
+    self.total_including_standing_charge = total_including_standing_charge
 
 async def async_import_external_statistics_from_cost(
     current: datetime,
@@ -42,7 +63,10 @@ async def async_import_external_statistics_from_cost(
     rates,
     unit_of_measurement: str,
     consumption_key: str,
-    initial_statistics: ImportCostStatisticsResult = None
+    initial_statistics: ImportCostStatisticsResult = None,
+    standing_charge_in_pence: float = None,
+    including_standing_charge_unique_id: str = None,
+    including_standing_charge_name: str = None
   ):
   if (consumptions is None or len(consumptions) < 1 or rates is None or len(rates) < 1):
     return
@@ -104,5 +128,45 @@ async def async_import_external_statistics_from_cost(
 
       peak_totals[peak_type] = peak_statistics[-1]["sum"] if len(peak_statistics) > 0 and peak_statistics[-1] is not None else 0
 
+  # The same day over again, with the standing charge folded in. Published as its own
+  # statistic so the energy dashboard can show what EDF actually bill without the figure
+  # above - which plenty of people already use, and which other integrations compare
+  # against - moving under them. Skipped entirely when the caller has no standing charge
+  # to hand, so nothing half populated gets written.
+  # Carried over rather than reset when there is nothing to write, so a day EDF could not
+  # price the standing charge for leaves a gap instead of restarting the running total from
+  # zero and taking every day after it down with it.
+  total_including_standing_charge = initial_statistics.total_including_standing_charge if initial_statistics is not None else 0
+  if standing_charge_in_pence is not None and including_standing_charge_unique_id is not None:
+    including_statistic_id = f"{DOMAIN}:{including_standing_charge_unique_id}".lower()
+    latest_including_sum = (
+      initial_statistics.total_including_standing_charge
+      if initial_statistics is not None
+      else await async_get_last_sum(hass, consumptions[0]["start"], including_statistic_id)
+    )
+
+    including_statistics = build_cost_statistics(
+      current, consumptions, rates, consumption_key, latest_including_sum,
+      standing_charge_in_pence=standing_charge_in_pence
+    )
+
+    async_add_external_statistics(
+      hass,
+      StatisticMetaData(
+        has_mean=False,
+        has_sum=True,
+        name=including_standing_charge_name,
+        source=DOMAIN,
+        statistic_id=including_statistic_id,
+        unit_of_measurement=unit_of_measurement,
+        mean_type=StatisticMeanType.NONE,
+        unit_class=None,
+      ),
+      including_statistics
+    )
+
+    total_including_standing_charge = including_statistics[-1]["sum"] if len(including_statistics) > 0 and including_statistics[-1] is not None else 0
+
   return ImportCostStatisticsResult(statistics[-1]["sum"] if len(statistics) > 0 and statistics[-1] is not None else 0,
-                                    peak_totals)
+                                    peak_totals,
+                                    total_including_standing_charge)
