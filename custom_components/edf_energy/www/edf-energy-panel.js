@@ -71,6 +71,10 @@
   // Sunday Saver was retired in 2026 and replaced by Flextras. The card is hidden
   // rather than deleted so it can be brought back if EDF revive the scheme, or
   // reused for whatever Weekend Saver turns into. Flip to true to restore it.
+  // The tabs built from entity state, which therefore want re-rendering when a coordinator
+  // refreshes. The rest are fed from the websocket commands and sit still until asked.
+  const LIVE_TABS = ['overview', 'charging'];
+
   const SHOW_SUNDAY_SAVER_CARD = false;
 
   function formatDateOnly(v) {
@@ -88,6 +92,63 @@
     if (!source) return '';
     return source.toLowerCase().replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
+
+  // Everything in the billing payloads is already in pounds - the integration converts the
+  // pence EDF serve on the way through - so this only has to format.
+  function money(value, { signed = false } = {}) {
+    if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+    const n = Number(value);
+    // Grouped, because a credit balance on a smart meter account runs to four figures
+    // and \u00a31234.56 is harder to read at a glance than \u00a31,234.10.
+    const body = `\u00a3${Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (!signed) return n < 0 ? `-${body}` : body;
+    return n < 0 ? `-${body}` : `+${body}`;
+  }
+
+  // EDF give a payment schedule as a day of the month, so it reads as "on the 1st".
+  function ordinal(day) {
+    const n = Number(day);
+    if (!Number.isFinite(n)) return String(day);
+    const suffix = (n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+    return `${n}${suffix}`;
+  }
+
+  function moneyClass(value) {
+    if (value === null || value === undefined || Number.isNaN(Number(value))) return '';
+    return Number(value) < 0 ? ' out' : ' in';
+  }
+
+  // Bills, transactions and referrals carry plain 'YYYY-MM-DD' dates as well as full
+  // timestamps, and new Date('2026-10-07') is parsed as UTC midnight - which in a British
+  // summer still renders as the 7th, but the same trick in a negative offset timezone
+  // would show the 6th. Date-only values are therefore split rather than parsed.
+  function formatDay(value) {
+    if (!value) return '—';
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+    if (match) {
+      const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime())
+      ? String(value)
+      : parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // EDF's refund statuses come through as enum spellings. Title case reads better in a
+  // list and an unrecognised one still renders, just without the tidying.
+  function humanise(value) {
+    if (!value) return '—';
+    return String(value)
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  const TRANSACTION_ICON = {
+    Charge: 'mdi:flash', Payment: 'mdi:bank-transfer-in',
+    Credit: 'mdi:plus-circle-outline', Refund: 'mdi:cash-refund',
+  };
 
   function esc(str) {
     return String(str)
@@ -414,6 +475,53 @@
       background: var(--divider-color, #e0e0e0); color: var(--secondary-text-color);
       white-space: nowrap;
     }
+
+    /* ── Money, statements, ledger, referrals ── */
+    .figures {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 1px; background: var(--divider-color, #ececec);
+    }
+    .figure { background: var(--card-background-color, #fff); padding: 12px 16px; }
+    .figure .label {
+      font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--secondary-text-color); margin-bottom: 4px;
+    }
+    .figure .amount { font-size: 1.32em; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .figure .sub { font-size: 0.82em; color: var(--secondary-text-color); margin-top: 2px; }
+    .row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 16px; border-bottom: 1px solid var(--divider-color, #ececec);
+    }
+    .row:last-child { border-bottom: none; }
+    .row .main { flex: 1; min-width: 0; }
+    .row .title { font-weight: 500; word-break: break-word; }
+    .row .sub { font-size: 0.82em; color: var(--secondary-text-color); margin-top: 2px; }
+    .row .figure-right { text-align: right; white-space: nowrap; }
+    .money { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .money.out { color: var(--label-badge-red, #df4c1e); }
+    .money.in { color: var(--label-badge-green, #3fae4a); }
+    .btn-link {
+      border: 1px solid var(--divider-color, #e0e0e0); background: none; cursor: pointer;
+      font: inherit; font-size: 0.86em; color: var(--primary-color, #3d5afe);
+      border-radius: 6px; padding: 5px 10px; white-space: nowrap;
+    }
+    .btn-link:hover { background: var(--secondary-background-color, #f5f5f5); }
+    .btn-link[disabled] { opacity: 0.5; cursor: default; }
+    .amount-input {
+      font: inherit; padding: 8px 10px; border-radius: 6px; width: 110px;
+      border: 1px solid var(--divider-color, #e0e0e0);
+      background: var(--card-background-color, #fff); color: var(--primary-text-color);
+    }
+    .refund-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 16px 14px; }
+    .notice {
+      margin: 0 16px 14px; padding: 10px 12px; border-radius: 8px; font-size: 0.88em;
+      background: var(--secondary-background-color, #f5f5f5); color: var(--secondary-text-color);
+    }
+    .notice.warn {
+      background: rgba(255, 152, 0, 0.12); color: var(--primary-text-color);
+      border-left: 3px solid #ff9800;
+    }
+    .load-more { padding: 10px 16px 14px; text-align: center; }
   `;
 
   // ── Panel element ─────────────────────────────────────────────────────────────
@@ -444,11 +552,35 @@
       // throw the user back to the first tab.
       this._beta = null;
       this._betaLoading = false;
-      this._activeTab = 'charging';
+      this._activeTab = 'overview';
       this._account = null;
       this._accountLoading = false;
       this._accountError = null;
       this._consumptionCard = null;
+      // The money side of the account. Each of these is asked for once, when the tab that
+      // needs it is first opened, and then held - none of it changes more than daily and
+      // re-fetching on every coordinator refresh would mean a GraphQL round trip a minute
+      // for a list nobody is looking at. The refresh button on each card is the way back.
+      this._billing = null;
+      this._billingLoading = false;
+      this._billingError = null;
+      this._bills = null;
+      this._billsLoading = false;
+      this._billsError = null;
+      this._billBusyId = null;
+      this._transactions = null;
+      this._transactionsLoading = false;
+      this._transactionsError = null;
+      this._referrals = null;
+      this._referralsLoading = false;
+      this._referralsError = null;
+      // Refund request state. The amount is held here so a re-render mid-typing does not
+      // throw it away, and the confirm step is deliberately separate from the button that
+      // sends it - this moves real money out of the account.
+      this._refundAmount = '';
+      this._refundConfirm = false;
+      this._refundBusy = false;
+      this._refundResult = null;
     }
 
     set hass(hass) {
@@ -477,10 +609,11 @@
       this._lastChanged = token;
       this._hass = hass;
 
-      // Nothing on the account tab moves with the dispatch entities, and re-rendering
-      // under it tears the chart out of the DOM and rebuilds it for no reason. The tab
-      // switch renders anyway, so it catches up the moment it matters.
-      if (this._activeTab === 'account' && this.shadowRoot.children.length > 0) return;
+      // Only the overview and smart charging tabs are built from these entities. The
+      // others move with the websocket payloads instead, and re-rendering under them tears
+      // the consumption chart out of the DOM and rebuilds it for nothing. The tab switch
+      // renders anyway, so they catch up the moment it matters.
+      if (!LIVE_TABS.includes(this._activeTab) && this.shadowRoot.children.length > 0) return;
 
       this._render();
     }
@@ -1433,13 +1566,19 @@
       return this._beta !== null && this._beta.show_account_tab === true;
     }
 
+    // The tab bar only appears with the beta flag on. With it off the panel is exactly the
+    // page it has always been: one screen, no chrome above it, nothing moved.
     _renderTabs() {
       if (!this._showAccountTab()) return '';
-      const tab = (id, label, beta) => `
-        <button class="tab${this._activeTab === id ? ' active' : ''}" data-tab="${id}">
-          ${label}${beta ? '<span class="beta">beta</span>' : ''}
-        </button>`;
-      return `<div class="tabs">${tab('charging', 'Smart Charging', false)}${tab('account', 'Account', true)}</div>`;
+      const tab = (id, label) => `
+        <button class="tab${this._activeTab === id ? ' active' : ''}" data-tab="${id}">${label}</button>`;
+      return `<div class="tabs">
+        ${tab('overview', 'Overview')}
+        ${tab('charging', 'Charging')}
+        ${tab('usage', 'Usage')}
+        ${tab('perks', 'Perks')}
+        ${tab('account', 'Account')}
+      </div>`;
     }
 
     _renderAgreement(agreement) {
@@ -1487,6 +1626,426 @@
         </div>`;
     }
 
+    // ── Money: billing, statements, ledger, referrals, refunds ──────────────────
+
+    // One shape for all of them: ask once, hold the answer, hold the error, and let a
+    // refresh button clear it. `force` is what that button passes.
+    async _loadBilling(force = false) {
+      if (this._billingLoading || (this._billing !== null && !force)) return;
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId) { this._billingError = 'No EDF account found.'; return; }
+      this._billingLoading = true;
+      try {
+        this._billing = await this._hass.callWS({
+          type: 'edf_energy/billing_summary', account_id: accountId,
+        });
+        this._billingError = null;
+      } catch (e) {
+        this._billingError = e?.message || 'Could not load the billing summary.';
+      }
+      this._billingLoading = false;
+      this._render();
+    }
+
+    async _loadBills(force = false) {
+      if (this._billsLoading || (this._bills !== null && !force)) return;
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId) return;
+      this._billsLoading = true;
+      try {
+        const result = await this._hass.callWS({
+          type: 'edf_energy/bills', account_id: accountId,
+        });
+        this._bills = result;
+        this._billsError = null;
+      } catch (e) {
+        this._billsError = e?.message || 'Could not load statements.';
+      }
+      this._billsLoading = false;
+      this._render();
+    }
+
+    // Paging appends rather than replaces, so "older statements" grows the list the way
+    // scrolling one would.
+    async _loadMoreBills() {
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId || this._billsLoading || !this._bills?.has_more) return;
+      this._billsLoading = true;
+      this._render();
+      try {
+        const page = await this._hass.callWS({
+          type: 'edf_energy/bills', account_id: accountId, cursor: this._bills.cursor,
+        });
+        this._bills = {
+          bills: [...(this._bills.bills || []), ...(page.bills || [])],
+          cursor: page.cursor,
+          has_more: page.has_more,
+        };
+      } catch (e) {
+        this._billsError = e?.message || 'Could not load more statements.';
+      }
+      this._billsLoading = false;
+      this._render();
+    }
+
+    // The link EDF hand back is pre-signed and expires within the hour, so it is fetched
+    // at the moment it is wanted and opened straight away. Nothing holds on to it.
+    async _openBill(billId, billType) {
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId) return;
+      this._billBusyId = billId;
+      this._render();
+      try {
+        const attachment = await this._hass.callWS({
+          type: 'edf_energy/bill_url', account_id: accountId,
+          bill_id: String(billId), bill_type: billType || 'STATEMENT',
+        });
+        if (attachment?.url) window.open(attachment.url, '_blank', 'noopener');
+        else this._toast('EDF have no document for that statement');
+      } catch (e) {
+        this._toast(e?.message || 'Could not open that statement');
+      }
+      this._billBusyId = null;
+      this._render();
+    }
+
+    async _loadTransactions(force = false) {
+      if (this._transactionsLoading || (this._transactions !== null && !force)) return;
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId) return;
+      this._transactionsLoading = true;
+      try {
+        this._transactions = await this._hass.callWS({
+          type: 'edf_energy/transactions', account_id: accountId,
+        });
+        this._transactionsError = null;
+      } catch (e) {
+        this._transactionsError = e?.message || 'Could not load transactions.';
+      }
+      this._transactionsLoading = false;
+      this._render();
+    }
+
+    async _loadMoreTransactions() {
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId || this._transactionsLoading || !this._transactions?.has_more) return;
+      this._transactionsLoading = true;
+      this._render();
+      try {
+        const page = await this._hass.callWS({
+          type: 'edf_energy/transactions', account_id: accountId, cursor: this._transactions.cursor,
+        });
+        this._transactions = {
+          transactions: [...(this._transactions.transactions || []), ...(page.transactions || [])],
+          cursor: page.cursor,
+          has_more: page.has_more,
+        };
+      } catch (e) {
+        this._transactionsError = e?.message || 'Could not load more transactions.';
+      }
+      this._transactionsLoading = false;
+      this._render();
+    }
+
+    async _loadReferrals(force = false) {
+      if (this._referralsLoading || (this._referrals !== null && !force)) return;
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId) return;
+      this._referralsLoading = true;
+      try {
+        this._referrals = await this._hass.callWS({
+          type: 'edf_energy/referrals', account_id: accountId,
+        });
+        this._referralsError = null;
+      } catch (e) {
+        this._referralsError = e?.message || 'Could not load referrals.';
+      }
+      this._referralsLoading = false;
+      this._render();
+    }
+
+    // Sent only after the confirm step, and the backend checks the amount against EDF's
+    // own maximum again before it goes anywhere.
+    async _requestRefund() {
+      const accountId = this._findAccountId(this._hass);
+      const amount = Number(this._refundAmount);
+      if (!accountId || !Number.isFinite(amount) || amount <= 0) {
+        this._toast('Enter the amount you want refunded');
+        return;
+      }
+      this._refundBusy = true;
+      this._refundConfirm = false;
+      this._render();
+      try {
+        const result = await this._hass.callWS({
+          type: 'edf_energy/request_refund', account_id: accountId, amount,
+        });
+        this._refundResult = result;
+        this._refundAmount = '';
+        this._toast(`Refund requested — ${humanise(result?.status)}`);
+        // The backend clears its cache and re-polls, so pull the new position in rather
+        // than leaving the card showing the state from before the request.
+        this._billing = null;
+        await this._loadBilling(true);
+      } catch (e) {
+        this._toast(e?.message || 'EDF would not accept that refund request');
+      }
+      this._refundBusy = false;
+      this._render();
+    }
+
+    _renderRefreshButton(target) {
+      return `<button class="btn-link" data-refresh="${target}">Refresh</button>`;
+    }
+
+    _renderBillingFigures() {
+      if (this._billingError)
+        return `<div class="card"><div class="no-entity">${esc(this._billingError)}</div></div>`;
+      if (this._billing === null)
+        return `<div class="card"><div class="empty">Loading account balance…</div></div>`;
+
+      const b = this._billing;
+      const bill = b.last_bill || {};
+      const schedule = b.payment_schedule || {};
+      const refund = b.refund || {};
+
+      // A variable schedule means EDF collect whatever the period came to, so there is no
+      // figure to show until the statement is cut - saying so beats showing £0.00.
+      const paymentAmount = schedule.is_variable === true
+        ? 'Varies'
+        : money(schedule.amount);
+      const paymentSub = schedule.day
+        ? `${schedule.frequency ? humanise(schedule.frequency) : 'Monthly'}, on the ${ordinal(schedule.day)}`
+        : 'No payment schedule';
+
+      return `
+        <div class="card">
+          <div class="figures">
+            <div class="figure">
+              <div class="label">Balance</div>
+              <div class="amount">${money(b.balance)}</div>
+              <div class="sub">${b.balance >= 0 ? 'In credit' : 'Owed'}</div>
+            </div>
+            <div class="figure">
+              <div class="label">Last bill</div>
+              <div class="amount">${money(bill.amount)}</div>
+              <div class="sub">${bill.issued_date ? esc(formatDay(bill.issued_date)) : 'No statements yet'}</div>
+            </div>
+            <div class="figure">
+              <div class="label">Next payment</div>
+              <div class="amount">${esc(paymentAmount)}</div>
+              <div class="sub">${esc(paymentSub)}</div>
+            </div>
+            <div class="figure">
+              <div class="label">Refundable</div>
+              <div class="amount">${money(refund.maximum)}</div>
+              <div class="sub">${refund.can_request === true ? 'Available to request' : 'Not available'}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    _renderBillsCard() {
+      const bills = this._bills?.bills || [];
+      return `
+        <div class="card">
+          <div class="section-title" style="display:flex;align-items:center;gap:8px">
+            <span style="flex:1">Statements</span>
+            ${this._renderRefreshButton('bills')}
+          </div>
+          ${this._billsError ? `<div class="notice warn">${esc(this._billsError)}</div>` : ''}
+          ${this._bills === null
+            ? '<div class="empty">Loading statements…</div>'
+            : bills.length === 0
+              ? '<div class="empty">No statements on this account yet.</div>'
+              : bills.map(bill => `
+                  <div class="row">
+                    <div class="main">
+                      <div class="title">${esc(formatDay(bill.from_date))} – ${esc(formatDay(bill.to_date))}</div>
+                      <div class="sub">
+                        Issued ${esc(formatDay(bill.issued_date))}${bill.due_date ? ` · due ${esc(formatDay(bill.due_date))}` : ''}
+                        ${bill.is_final === true ? ' · final bill' : ''}
+                      </div>
+                    </div>
+                    <div class="figure-right">
+                      <div class="money">${money(bill.charges)}</div>
+                      <div class="sub">bal ${money(bill.closing_balance)}</div>
+                    </div>
+                    <button class="btn-link" data-bill="${esc(String(bill.id))}" data-bill-type="${esc(bill.bill_type || 'STATEMENT')}"
+                      ${this._billBusyId === bill.id ? 'disabled' : ''}>
+                      ${this._billBusyId === bill.id ? 'Opening…' : 'Open'}
+                    </button>
+                  </div>`).join('')
+          }
+          ${this._bills?.has_more
+            ? `<div class="load-more">
+                 <button class="btn-link" data-action="more-bills" ${this._billsLoading ? 'disabled' : ''}>
+                   ${this._billsLoading ? 'Loading…' : 'Older statements'}
+                 </button>
+               </div>`
+            : ''}
+          <div class="section-info">Statements open as a PDF straight from EDF. The link is created when you press Open and stops working shortly after, so nothing is stored here.</div>
+        </div>`;
+    }
+
+    _renderTransactionsCard() {
+      const transactions = this._transactions?.transactions || [];
+      return `
+        <div class="card">
+          <div class="section-title" style="display:flex;align-items:center;gap:8px">
+            <span style="flex:1">Transactions</span>
+            ${this._renderRefreshButton('transactions')}
+          </div>
+          ${this._transactionsError ? `<div class="notice warn">${esc(this._transactionsError)}</div>` : ''}
+          ${this._transactions === null
+            ? '<div class="empty">Loading transactions…</div>'
+            : transactions.length === 0
+              ? '<div class="empty">No transactions on this account yet.</div>'
+              : transactions.map(t => `
+                  <div class="row">
+                    <div class="main">
+                      <div class="title">${esc(t.title || humanise(t.type))}</div>
+                      <div class="sub">
+                        ${esc(formatDay(t.posted_date || t.created_at))}
+                        ${t.note ? ` · ${esc(t.note)}` : ''}
+                        ${t.is_reversed === true ? ' · reversed' : ''}
+                      </div>
+                    </div>
+                    <div class="figure-right">
+                      <div class="money${moneyClass(t.signed_amount)}">${money(t.signed_amount, { signed: true })}</div>
+                      ${t.balance_carried_forward !== null && t.balance_carried_forward !== undefined
+                        ? `<div class="sub">bal ${money(t.balance_carried_forward)}</div>` : ''}
+                    </div>
+                  </div>`).join('')
+          }
+          ${this._transactions?.has_more
+            ? `<div class="load-more">
+                 <button class="btn-link" data-action="more-transactions" ${this._transactionsLoading ? 'disabled' : ''}>
+                   ${this._transactionsLoading ? 'Loading…' : 'Older transactions'}
+                 </button>
+               </div>`
+            : ''}
+        </div>`;
+    }
+
+    _renderRefundCard() {
+      if (this._billing === null) return '';
+      const refund = this._billing.refund || {};
+      const requests = refund.requests || [];
+      const maximum = refund.maximum;
+      const canRequest = refund.can_request === true;
+
+      return `
+        <div class="card">
+          <div class="section-title">Refunds</div>
+          <div style="padding:0 16px 10px">
+            <div class="kv"><span class="k">Available to refund</span><span class="v">${money(maximum)}</span></div>
+            <div class="kv"><span class="k">Account balance</span><span class="v">${money(this._billing.balance)}</span></div>
+          </div>
+          <div class="section-info">EDF only refund what has been paid in by direct debit, which is why the refundable amount is usually well below the balance.</div>
+          ${canRequest
+            ? `
+              <div class="refund-row">
+                <input class="amount-input" id="refund-amount" type="number" inputmode="decimal"
+                  min="0.01" step="0.01" ${maximum ? `max="${maximum}"` : ''}
+                  placeholder="0.00" value="${esc(this._refundAmount)}">
+                ${maximum ? `<button class="btn-link" data-action="refund-max">Max (${money(maximum)})</button>` : ''}
+                <button class="btn-apply${this._refundConfirm ? ' danger' : ''}" data-action="refund-request"
+                  ${this._refundBusy ? 'disabled' : ''}>
+                  ${this._refundBusy
+                    ? 'Sending…'
+                    : this._refundConfirm
+                      ? `Confirm ${money(Number(this._refundAmount))}`
+                      : 'Request refund'}
+                </button>
+              </div>
+              ${this._refundConfirm
+                ? `<div class="notice warn">This asks EDF to pay ${money(Number(this._refundAmount))} back to your bank account. Press confirm to send it.</div>`
+                : ''}`
+            : `<div class="notice warn">
+                 EDF are not accepting a refund request on this account at the moment${refund.reason ? ` — ${esc(humanise(refund.reason))}` : ''}.
+               </div>`
+          }
+          ${requests.length
+            ? `
+              <div class="section-title" style="margin-top:4px">Past requests</div>
+              ${requests.map(r => `
+                <div class="row">
+                  <div class="main">
+                    <div class="title">${money(r.amount)}</div>
+                    <div class="sub">
+                      ${r.reason ? esc(humanise(r.reason)) : 'Refund'}
+                      ${r.payment_date ? ` · ${esc(formatDay(r.payment_date))}` : ''}
+                    </div>
+                  </div>
+                  <span class="${(r.status || '').toUpperCase() === 'PAID' ? 'pill-live' : 'pill-past'}">${esc(humanise(r.status))}</span>
+                </div>`).join('')}`
+            : '<div class="empty">No refund requests on this account.</div>'
+          }
+        </div>`;
+    }
+
+    _renderReferralsCard() {
+      const scheme = this._referrals?.scheme;
+      const referrals = this._referrals?.referrals || [];
+
+      return `
+        <div class="card">
+          <div class="section-title" style="display:flex;align-items:center;gap:8px">
+            <span style="flex:1">Referrals</span>
+            ${this._renderRefreshButton('referrals')}
+          </div>
+          ${this._referralsError ? `<div class="notice warn">${esc(this._referralsError)}</div>` : ''}
+          ${this._referrals === null
+            ? '<div class="empty">Loading referrals…</div>'
+            : `
+              ${scheme ? `
+                <div class="figures">
+                  <div class="figure">
+                    <div class="label">Joined on your link</div>
+                    <div class="amount">${this._referrals.total ?? referrals.length}</div>
+                    <div class="sub">${this._referrals.total_earned !== null && this._referrals.total_earned !== undefined
+                      ? `${money(this._referrals.total_earned)} earned` : ''}</div>
+                  </div>
+                  <div class="figure">
+                    <div class="label">You get</div>
+                    <div class="amount">${money(scheme.referrer_reward)}</div>
+                    <div class="sub">per sign up</div>
+                  </div>
+                  <div class="figure">
+                    <div class="label">They get</div>
+                    <div class="amount">${money(scheme.referred_reward)}</div>
+                    <div class="sub">${scheme.code ? esc(scheme.code) : ''}</div>
+                  </div>
+                </div>
+                ${scheme.url ? `
+                  <div class="refund-row" style="padding-top:12px">
+                    <div class="main" style="flex:1;min-width:0;word-break:break-all">${esc(scheme.display_url || scheme.url)}</div>
+                    <button class="btn-link" data-action="copy-referral">Copy link</button>
+                  </div>` : ''}
+              ` : ''}
+              ${referrals.length === 0
+                ? '<div class="empty">Nobody has joined on your link yet.</div>'
+                : referrals.map(r => `
+                    <div class="row">
+                      <div class="main">
+                        <div class="title">${esc(r.name || 'Unnamed')}</div>
+                        <div class="sub">
+                          Joined ${esc(formatDay(r.joined))}
+                          ${r.payment_date ? ` · paid ${esc(formatDay(r.payment_date))}` : ''}
+                        </div>
+                      </div>
+                      <div class="figure-right"><div class="money">${money(r.reward)}</div></div>
+                      <span class="${(r.status || '').toLowerCase() === 'paid' ? 'pill-live' : 'pill-past'}">${esc(r.status || 'Pending')}</span>
+                    </div>`).join('')
+              }`
+          }
+          <div class="section-info">Referral names come from EDF when this tab is open and are not stored in Home Assistant — there is no sensor or attribute holding them.</div>
+        </div>`;
+    }
+
+    // ── Tab bodies ──────────────────────────────────────────────────────────────
+
     _renderAccountView() {
       if (this._accountError)
         return `<div class="card"><div class="no-entity">${esc(this._accountError)}</div></div>`;
@@ -1497,17 +2056,271 @@
       const gas = this._account.gas || [];
 
       return `
+        ${this._renderBillingFigures()}
         <div class="card">
           <div class="section-title">Account</div>
           <div style="padding:0 16px 12px">
             <div class="kv"><span class="k">Account number</span><span class="v">${esc(this._account.account_id || '—')}</span></div>
+            ${this._billing?.status ? `<div class="kv"><span class="k">Status</span><span class="v">${esc(humanise(this._billing.status))}</span></div>` : ''}
           </div>
         </div>
-        <div id="consumption-slot"></div>
+        ${this._renderBillsCard()}
+        ${this._renderTransactionsCard()}
+        ${this._renderRefundCard()}
+        <div class="section-title" style="padding-top:4px">Tariffs &amp; meters</div>
         ${electricity.map(p => this._renderMeterPoint(p, false)).join('')}
         ${gas.map(p => this._renderMeterPoint(p, true)).join('')}
         ${!electricity.length && !gas.length
-          ? '<div class="card"><div class="empty">No meter points on this account.</div></div>' : ''}`;
+          ? '<div class="card"><div class="empty">No meter points on this account.</div></div>' : ''}
+        ${this._renderApiKeyCard()}`;
+    }
+
+    // Usage is the consumption chart and nothing else competing with it. The chart needs
+    // the meter list from the account summary, so it says so rather than drawing empty.
+    _renderUsageView() {
+      if (this._accountError)
+        return `<div class="card"><div class="no-entity">${esc(this._accountError)}</div></div>`;
+      if (this._account === null)
+        return `<div class="card"><div class="empty">Loading meters…</div></div>`;
+
+      return `
+        <div id="consumption-slot"></div>
+        <div class="card">
+          <div class="section-info">
+            Consumption comes from the statistics this integration records, which are built from
+            EDF's own half hourly readings. EDF publish those a day or two behind the meter, so the
+            most recent day or two will usually be missing.
+          </div>
+        </div>`;
+    }
+
+    // Everything the account earns rather than spends: the schemes, the free hours, and
+    // the referral link. The cards are the overview's own, so a change to one shows up in
+    // both places.
+    _renderPerksView(dayFreeSessions) {
+      return `
+        ${this._renderWorldCupCard()}
+        ${this._renderFlextrasCard()}
+        ${this._renderFlextrasHoursCard()}
+        ${this._renderSundaySaverCard()}
+        ${this._renderFreeSessionsCard(dayFreeSessions)}
+        ${this._renderReferralsCard()}`;
+    }
+
+    // ── History cards ───────────────────────────────────────────────────────────
+    // Lifted out of the one template render used to be, so the same cards can appear on
+    // the overview and on the charging tab without being written twice.
+
+    _renderDateNavCard(dates, canOlder, canNewer) {
+      return `
+              <div class="card">
+                <div class="section-title">Off-Peak &amp; Dispatch History</div>
+                <div class="section-info">A record of off-peak windows, Sunday Saver events, free electricity sessions, and smart charging dispatches for up to the past 60 days, accumulated as data is refreshed.</div>
+                <div class="nav-row">
+                  <button class="nav-btn" id="btn-older" ${!canOlder ? 'disabled' : ''} title="Older">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                    </svg>
+                  </button>
+                  <select class="date-select" id="date-select">
+                    ${dates.map(dk =>
+                      // Upcoming dates are marked, because the list only holds days that
+                      // have data and future ones are sparse: a booking three weeks out
+                      // sits straight after tomorrow, with nothing between. Without the
+                      // marker that gap reads as missing days rather than days that have
+                      // simply not been priced yet.
+                      `<option value="${esc(dk)}"${dk === this._selectedDateKey ? ' selected' : ''}>${
+                        esc(formatDateLabel(dk))}${isFutureDateKey(dk) ? ' — upcoming' : ''}</option>`
+                    ).join('')}
+                  </select>
+                  <button class="nav-btn" id="btn-newer" ${!canNewer ? 'disabled' : ''} title="Newer">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+      `;
+    }
+
+    _renderOffPeakCard(dayOffPeak) {
+      return `
+              <div class="card">
+                <div class="section-title">Off-Peak Windows</div>
+                ${dayOffPeak.length === 0
+                  ? `<div class="empty">No off-peak windows recorded for this date.</div>`
+                  : dayOffPeak.map(w => {
+                      const colour = w.is_intelligent_adjusted ? '#7B1FA2' : '#1565C0';
+                      const label  = w.is_intelligent_adjusted ? 'Smart Charging Extended' : 'Standard Tariff';
+                      return `
+                        <div class="item">
+                          <div class="dot" style="background:${colour}"></div>
+                          <div class="info">
+                            <div class="time-str">
+                              ${formatTime(w.start)} – ${formatTime(w.end)}
+                              <span class="duration">(${formatDuration(w.start, w.end)})</span>
+                            </div>
+                            <div class="meta">
+                              <span class="badge" style="background:${colour}">${label}</span>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')
+                }
+              </div>
+      `;
+    }
+
+    _renderSundaySaverWindowsCard(se, daySundaySaver) {
+      return `
+              ${se && daySundaySaver.length > 0 ? `<div class="card">
+                <div class="section-title">Sunday Saver Windows</div>
+                ${daySundaySaver.length === 0
+                  ? `<div class="empty">No Sunday Saver events recorded for this date.</div>`
+                  : daySundaySaver.map(w => {
+                      const status = dispatchStatus(w.start, w.end);
+                      const colour = DISPATCH_COLOUR[status];
+                      return `
+                        <div class="item">
+                          <div class="dot" style="background:${colour}"></div>
+                          <div class="info">
+                            <div class="time-str">
+                              ${formatTime(w.start)} – ${formatTime(w.end)}
+                              <span class="duration">(${formatDuration(w.start, w.end)})</span>
+                            </div>
+                            <div class="meta">
+                              ${w.free_hours != null ? `<span>${w.free_hours}h free</span>` : ''}
+                              <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')
+                }
+              </div>` : ''}
+      `;
+    }
+
+    _renderFreeSessionsCard(dayFreeSessions) {
+      return `
+              ${dayFreeSessions.length ? `<div class="card">
+                <div class="section-title">Free Electricity Sessions</div>
+                ${dayFreeSessions.map(w => {
+                      const status = dispatchStatus(w.start, w.end);
+                      const colour = DISPATCH_COLOUR[status];
+                      return `
+                        <div class="item">
+                          <div class="dot" style="background:${colour}"></div>
+                          <div class="info">
+                            <div class="time-str">
+                              ${formatTime(w.start)} – ${formatTime(w.end)}
+                              <span class="duration">(${formatDuration(w.start, w.end)})</span>
+                            </div>
+                            <div class="meta">
+                              <span>${esc(freeSessionSourceLabel(w.source))}</span>
+                              <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')
+                }
+              </div>` : ''}
+      `;
+    }
+
+    _renderDispatchesCard(de, dayDispatches, startedDispatches) {
+      return `
+              ${de ? `<div class="card">
+                <div class="section-title">Smart Charging Dispatch Windows</div>
+                ${dayDispatches.length === 0
+                  ? `<div class="empty">No dispatch windows recorded for this date.</div>`
+                  : dayDispatches.map(d => {
+                      const status = dispatchStatus(d.start, d.end, startedDispatches);
+                      const colour = DISPATCH_COLOUR[status];
+                      return `
+                        <div class="item">
+                          <div class="dot" style="background:${colour}"></div>
+                          <div class="info">
+                            <div class="time-str">
+                              ${formatTime(d.start)} – ${formatTime(d.end)}
+                              <span class="duration">(${formatDuration(d.start, d.end)})</span>
+                            </div>
+                            <div class="meta">
+                              ${d.charge_in_kwh != null && status !== 'cancelled' ? `<span>${Number(d.charge_in_kwh).toFixed(1)} kWh</span>` : ''}
+                              ${d.source ? `<span>${esc(formatSource(d.source))}</span>` : ''}
+                              <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')
+                }
+              </div>` : ''}
+      `;
+    }
+
+    // The day-by-day record: which day is being looked at, then what happened on it.
+    _renderHistory(ctx) {
+      if (ctx.dates.length === 0)
+        return `<div class="card"><div class="empty">No data yet — check back after the next rate refresh.</div></div>`;
+
+      return `
+        ${this._renderDateNavCard(ctx.dates, ctx.canOlder, ctx.canNewer)}
+        ${this._renderOffPeakCard(ctx.dayOffPeak)}
+        ${this._renderSundaySaverWindowsCard(ctx.se, ctx.daySundaySaver)}
+        ${this._renderFreeSessionsCard(ctx.dayFreeSessions)}
+        ${this._renderDispatchesCard(ctx.de, ctx.dayDispatches, ctx.startedDispatches)}`;
+    }
+
+    // The overview is the page this panel has always been, unchanged. Everything the beta
+    // tabs show is either a cut of this or new material of its own - nothing was taken
+    // off here to make room for them.
+    _renderOverviewView(ctx) {
+      if (!ctx.hasAny)
+        return `<div class="card"><div class="no-entity">No EDF Energy entities found. Check the integration is set up correctly.</div></div>`;
+
+      return `
+        ${this._renderAuthExpiryBanner()}
+        ${this._renderControls(ctx.ids)}
+        ${this._renderWorldCupCard()}
+        ${this._renderFlextrasCard()}
+        ${this._renderFlextrasHoursCard()}
+        ${this._renderSundaySaverCard()}
+        ${this._renderApiKeyCard()}
+        ${this._renderHistory(ctx)}`;
+    }
+
+    // The charging tab is the overview with the perks and the account furniture taken
+    // away: the car controls and the windows that drive them, nothing else.
+    _renderChargingView(ctx) {
+      if (!ctx.hasAny)
+        return `<div class="card"><div class="no-entity">No EDF Energy entities found. Check the integration is set up correctly.</div></div>`;
+
+      return `
+        ${this._renderAuthExpiryBanner()}
+        ${this._renderControls(ctx.ids)}
+        ${this._renderDateNavCard(ctx.dates, ctx.canOlder, ctx.canNewer)}
+        ${this._renderOffPeakCard(ctx.dayOffPeak)}
+        ${this._renderDispatchesCard(ctx.de, ctx.dayDispatches, ctx.startedDispatches)}`;
+    }
+
+    // What each beta tab needs before it can draw. Fetched when the tab is first opened
+    // rather than up front, so turning the flag on does not cost five GraphQL calls to
+    // somebody who only ever looks at the charging screen.
+    _loadForTab(tab) {
+      if (tab === 'account') {
+        this._loadBilling();
+        this._loadBills();
+        this._loadTransactions();
+      } else if (tab === 'perks') {
+        this._loadReferrals();
+      } else if (tab === 'overview') {
+        // The at-a-glance figures at the top of the account tab are cheap and come from a
+        // coordinator that is polling anyway, so the overview asks for them too.
+        this._loadBilling();
+      }
     }
 
     _render() {
@@ -1524,6 +2337,8 @@
         this._accountLoading = true;
         this._loadAccountSummary();
       }
+
+      if (this._showAccountTab()) this._loadForTab(this._activeTab);
 
       // Fetched over the websocket rather than from an entity, because the bookable days
       // and their slots are far too much state to put in attributes. Fired once; the card
@@ -1578,6 +2393,26 @@
       const isActive    = de?.state === 'on';
       const hasAny      = de || oe || se || fse;
 
+      const ctx = {
+        de, oe, se, fse, ids, dates, idx, canOlder, canNewer, hasAny,
+        dispatches, startedDispatches, dayDispatches, dayOffPeak, daySundaySaver, dayFreeSessions,
+      };
+
+      // With the flag off there is one tab and it is the overview, so the switch below
+      // collapses to the page as it was.
+      const tab = this._showAccountTab() ? this._activeTab : 'overview';
+      let body;
+      if (tab === 'account')      body = this._renderAccountView();
+      else if (tab === 'usage')   body = this._renderUsageView();
+      else if (tab === 'perks')   body = this._renderPerksView(dayFreeSessions);
+      else if (tab === 'charging') body = this._renderChargingView(ctx);
+      else                        body = this._renderOverviewView(ctx);
+
+      // The toolbar names the tab rather than always claiming to be the charging screen,
+      // which is what it did when it was the only thing here.
+      const tabTitle = { account: 'Account', usage: 'Usage', perks: 'Perks', charging: 'Smart Charging' }[tab]
+        || (de ? 'Smart Charging' : null);
+
       this.shadowRoot.innerHTML = `
         <style>${STYLES}</style>
 
@@ -1591,7 +2426,7 @@
             <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
           </svg>
           <div style="flex:1;min-width:0">
-            <div class="toolbar-title">EDF Energy${de ? ' · Smart Charging' : ''}</div>
+            <div class="toolbar-title">EDF Energy${tabTitle ? ` \u00b7 ${esc(tabTitle)}` : ''}</div>
             ${deviceLabel ? `<div class="toolbar-sub">${esc(deviceLabel)}</div>` : ''}
           </div>
           ${stateLabel ? `<div class="status-pill${isActive ? ' on' : ''}">${esc(stateLabel)}</div>` : ''}
@@ -1599,157 +2434,7 @@
 
         ${this._renderTabs()}
 
-        ${this._showAccountTab() && this._activeTab === 'account'
-          ? `<div class="content">${this._renderAccountView()}</div>`
-          : `
-        <div class="content">
-          ${!hasAny
-            ? `<div class="card"><div class="no-entity">No EDF Energy entities found. Check the integration is set up correctly.</div></div>`
-            : `
-            ${this._renderAuthExpiryBanner()}
-            ${this._renderControls(ids)}
-            ${this._renderWorldCupCard()}
-            ${this._renderFlextrasCard()}
-            ${this._renderFlextrasHoursCard()}
-            ${this._renderSundaySaverCard()}
-            ${this._renderApiKeyCard()}
-
-            ${dates.length === 0
-              ? `<div class="card"><div class="empty">No data yet — check back after the next rate refresh.</div></div>`
-              : `
-              <div class="card">
-                <div class="section-title">Off-Peak &amp; Dispatch History</div>
-                <div class="section-info">A record of off-peak windows, Sunday Saver events, free electricity sessions, and smart charging dispatches for up to the past 60 days, accumulated as data is refreshed.</div>
-                <div class="nav-row">
-                  <button class="nav-btn" id="btn-older" ${!canOlder ? 'disabled' : ''} title="Older">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-                    </svg>
-                  </button>
-                  <select class="date-select" id="date-select">
-                    ${dates.map(dk =>
-                      // Upcoming dates are marked, because the list only holds days that
-                      // have data and future ones are sparse: a booking three weeks out
-                      // sits straight after tomorrow, with nothing between. Without the
-                      // marker that gap reads as missing days rather than days that have
-                      // simply not been priced yet.
-                      `<option value="${esc(dk)}"${dk === this._selectedDateKey ? ' selected' : ''}>${
-                        esc(formatDateLabel(dk))}${isFutureDateKey(dk) ? ' — upcoming' : ''}</option>`
-                    ).join('')}
-                  </select>
-                  <button class="nav-btn" id="btn-newer" ${!canNewer ? 'disabled' : ''} title="Newer">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div class="card">
-                <div class="section-title">Off-Peak Windows</div>
-                ${dayOffPeak.length === 0
-                  ? `<div class="empty">No off-peak windows recorded for this date.</div>`
-                  : dayOffPeak.map(w => {
-                      const colour = w.is_intelligent_adjusted ? '#7B1FA2' : '#1565C0';
-                      const label  = w.is_intelligent_adjusted ? 'Smart Charging Extended' : 'Standard Tariff';
-                      return `
-                        <div class="item">
-                          <div class="dot" style="background:${colour}"></div>
-                          <div class="info">
-                            <div class="time-str">
-                              ${formatTime(w.start)} – ${formatTime(w.end)}
-                              <span class="duration">(${formatDuration(w.start, w.end)})</span>
-                            </div>
-                            <div class="meta">
-                              <span class="badge" style="background:${colour}">${label}</span>
-                            </div>
-                          </div>
-                        </div>
-                      `;
-                    }).join('')
-                }
-              </div>
-
-              ${se && daySundaySaver.length > 0 ? `<div class="card">
-                <div class="section-title">Sunday Saver Windows</div>
-                ${daySundaySaver.length === 0
-                  ? `<div class="empty">No Sunday Saver events recorded for this date.</div>`
-                  : daySundaySaver.map(w => {
-                      const status = dispatchStatus(w.start, w.end);
-                      const colour = DISPATCH_COLOUR[status];
-                      return `
-                        <div class="item">
-                          <div class="dot" style="background:${colour}"></div>
-                          <div class="info">
-                            <div class="time-str">
-                              ${formatTime(w.start)} – ${formatTime(w.end)}
-                              <span class="duration">(${formatDuration(w.start, w.end)})</span>
-                            </div>
-                            <div class="meta">
-                              ${w.free_hours != null ? `<span>${w.free_hours}h free</span>` : ''}
-                              <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
-                            </div>
-                          </div>
-                        </div>
-                      `;
-                    }).join('')
-                }
-              </div>` : ''}
-
-              ${dayFreeSessions.length ? `<div class="card">
-                <div class="section-title">Free Electricity Sessions</div>
-                ${dayFreeSessions.map(w => {
-                      const status = dispatchStatus(w.start, w.end);
-                      const colour = DISPATCH_COLOUR[status];
-                      return `
-                        <div class="item">
-                          <div class="dot" style="background:${colour}"></div>
-                          <div class="info">
-                            <div class="time-str">
-                              ${formatTime(w.start)} – ${formatTime(w.end)}
-                              <span class="duration">(${formatDuration(w.start, w.end)})</span>
-                            </div>
-                            <div class="meta">
-                              <span>${esc(freeSessionSourceLabel(w.source))}</span>
-                              <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
-                            </div>
-                          </div>
-                        </div>
-                      `;
-                    }).join('')
-                }
-              </div>` : ''}
-
-              ${de ? `<div class="card">
-                <div class="section-title">Smart Charging Dispatch Windows</div>
-                ${dayDispatches.length === 0
-                  ? `<div class="empty">No dispatch windows recorded for this date.</div>`
-                  : dayDispatches.map(d => {
-                      const status = dispatchStatus(d.start, d.end, startedDispatches);
-                      const colour = DISPATCH_COLOUR[status];
-                      return `
-                        <div class="item">
-                          <div class="dot" style="background:${colour}"></div>
-                          <div class="info">
-                            <div class="time-str">
-                              ${formatTime(d.start)} – ${formatTime(d.end)}
-                              <span class="duration">(${formatDuration(d.start, d.end)})</span>
-                            </div>
-                            <div class="meta">
-                              ${d.charge_in_kwh != null && status !== 'cancelled' ? `<span>${Number(d.charge_in_kwh).toFixed(1)} kWh</span>` : ''}
-                              ${d.source ? `<span>${esc(formatSource(d.source))}</span>` : ''}
-                              <span class="badge" style="background:${colour}">${DISPATCH_LABEL[status]}</span>
-                            </div>
-                          </div>
-                        </div>
-                      `;
-                    }).join('')
-                }
-              </div>` : ''}
-            `}
-          `}
-        </div>
-        `}
+        <div class="content">${body}</div>
       `;
 
       this._attachListeners(ids, dates, idx, canOlder, canNewer);
@@ -1788,6 +2473,81 @@
           this._activeTab = btn.dataset.tab;
           this._render();
         });
+      });
+
+      // ── Statements, ledger, referrals, refunds ────────────────────────────
+      root.querySelectorAll('[data-refresh]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.refresh;
+          if (target === 'bills') { this._bills = null; this._loadBills(true); }
+          else if (target === 'transactions') { this._transactions = null; this._loadTransactions(true); }
+          else if (target === 'referrals') { this._referrals = null; this._loadReferrals(true); }
+          this._billing = null;
+          this._loadBilling(true);
+        });
+      });
+
+      root.querySelectorAll('[data-bill]').forEach(btn => {
+        btn.addEventListener('click', () => this._openBill(btn.dataset.bill, btn.dataset.billType));
+      });
+
+      root.querySelector('[data-action="more-bills"]')?.addEventListener('click', () => this._loadMoreBills());
+      root.querySelector('[data-action="more-transactions"]')?.addEventListener('click', () => this._loadMoreTransactions());
+
+      root.querySelector('[data-action="copy-referral"]')?.addEventListener('click', async () => {
+        const url = this._referrals?.scheme?.url;
+        if (!url) return;
+        try {
+          await navigator.clipboard.writeText(url);
+          this._toast('Referral link copied');
+        } catch (err) {
+          this._toast('Copy failed — select the link and copy it manually');
+        }
+      });
+
+      // Held in state rather than read off the input when the button is pressed, because a
+      // coordinator refresh can re-render between typing the amount and sending it.
+      const refundInput = root.getElementById('refund-amount');
+      refundInput?.addEventListener('input', e => {
+        this._refundAmount = e.target.value;
+        // A changed amount is a different request, so a confirm already armed no longer
+        // applies to it.
+        this._refundConfirm = false;
+      });
+
+      root.querySelector('[data-action="refund-max"]')?.addEventListener('click', () => {
+        const maximum = this._billing?.refund?.maximum;
+        if (maximum === null || maximum === undefined) return;
+        this._refundAmount = String(maximum);
+        this._refundConfirm = false;
+        this._render();
+      });
+
+      root.querySelector('[data-action="refund-request"]')?.addEventListener('click', () => {
+        const amount = Number(this._refundAmount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          this._toast('Enter the amount you want refunded');
+          return;
+        }
+        const maximum = this._billing?.refund?.maximum;
+        if (maximum !== null && maximum !== undefined && amount > maximum) {
+          this._toast(`EDF will only refund up to ${money(maximum)}`);
+          return;
+        }
+        // Two presses, deliberately. The first arms it and says what it is about to do;
+        // the second sends it. Money leaves the account on the second one.
+        if (!this._refundConfirm) {
+          this._refundConfirm = true;
+          this._render();
+          clearTimeout(this._refundConfirmTimer);
+          this._refundConfirmTimer = setTimeout(() => {
+            this._refundConfirm = false;
+            this._render();
+          }, 10000);
+          return;
+        }
+        clearTimeout(this._refundConfirmTimer);
+        this._requestRefund();
       });
 
       // ── Menu button (opens HA navigation sidebar) ─────────────────────────
