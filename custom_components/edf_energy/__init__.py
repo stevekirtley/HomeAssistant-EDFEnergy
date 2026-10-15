@@ -197,6 +197,76 @@ def websocket_beta_features(hass, connection, msg):
 
   connection.send_result(msg["id"], features)
 
+def _agreements_for_panel(agreements, current):
+  """Agreements newest first, each flagged with whether it is the one in force.
+
+  The account query already asks for inactive agreements, so this is the whole tariff
+  history - nothing extra is fetched to build it.
+  """
+  active = get_active_tariff(current, agreements)
+  out = []
+  for agreement in sorted(agreements, key=lambda a: a.get("start") or "", reverse=True):
+    out.append({
+      "start": agreement.get("start"),
+      "end": agreement.get("end"),
+      "tariff_code": agreement.get("tariff_code"),
+      "product_code": agreement.get("product_code"),
+      "is_active": active is not None and agreement.get("tariff_code") == active.code,
+    })
+  return out
+
+
+def _meters_for_panel(meters):
+  return [{
+    "serial_number": meter.get("serial_number"),
+    "is_smart_meter": meter.get("is_smart_meter"),
+    "manufacturer": meter.get("manufacturer"),
+    "model": meter.get("model"),
+    "firmware": meter.get("firmware"),
+    "active_from": meter["active_from"].isoformat() if meter.get("active_from") is not None else None,
+    "active_to": meter["active_to"].isoformat() if meter.get("active_to") is not None else None,
+  } for meter in meters]
+
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/account_summary",
+  vol.Required("account_id"): str,
+})
+@callback
+def websocket_account_summary(hass, connection, msg):
+  """Meter points, meters and the full tariff history for the account tab.
+
+  Served from the account coordinator's cache rather than a fresh call - all of this
+  already arrives with the account and changes a few times a year at most.
+  """
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  if account_id is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  account_result = hass.data.get(DOMAIN, {}).get(account_id, {}).get(DATA_ACCOUNT)
+  account = getattr(account_result, "account", None) if account_result is not None else None
+  if account is None:
+    connection.send_error(msg["id"], "not_loaded", "Account information is not available yet")
+    return
+
+  current = utcnow()
+
+  connection.send_result(msg["id"], {
+    "account_id": account_id,
+    "electricity": [{
+      "mpan": point.get("mpan"),
+      "is_export": any(meter.get("is_export") == True for meter in point.get("meters") or []),
+      "meters": _meters_for_panel(point.get("meters") or []),
+      "agreements": _agreements_for_panel(point.get("agreements") or [], current),
+    } for point in account.get("electricity_meter_points") or []],
+    "gas": [{
+      "mprn": point.get("mprn"),
+      "meters": _meters_for_panel(point.get("meters") or []),
+      "agreements": _agreements_for_panel(point.get("agreements") or [], current),
+    } for point in account.get("gas_meter_points") or []],
+  })
+
 def _account_id_for_panel(hass, account_id: str):
   """Match the loosely-formatted account id the panel derives from entity slugs."""
   def _norm(value):
@@ -355,11 +425,20 @@ async def async_setup_entry(hass, entry):
     hass.data[DOMAIN]["_frontend_registered"] = True
     websocket_api.async_register_command(hass, websocket_get_api_key)
     websocket_api.async_register_command(hass, websocket_beta_features)
+    websocket_api.async_register_command(hass, websocket_account_summary)
     websocket_api.async_register_command(hass, websocket_flextras_bookable_days)
     websocket_api.async_register_command(hass, websocket_flextras_day_slots)
     websocket_api.async_register_command(hass, websocket_flextras_book_hours)
     www_dir = os.path.join(os.path.dirname(__file__), "www")
     static_paths = []
+
+    # Vendored rather than pulled from a CDN at runtime: the panel has to work on an
+    # install with no outbound internet, and a third party script tag is not something to
+    # add to somebody's Home Assistant without asking.
+    for asset in ("vendor/apexcharts.min.js", "edf-energy-consumption-card.js"):
+      asset_path = os.path.join(www_dir, *asset.split("/"))
+      if os.path.isfile(asset_path):
+        static_paths.append(StaticPathConfig(f"/edf_energy/{asset}", asset_path, False))
 
     card_path = os.path.join(www_dir, "edf-energy-dispatches-card.js")
     if os.path.isfile(card_path):

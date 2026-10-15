@@ -10,6 +10,7 @@ nav:
     - ./setup/cost_tracker.md
     - ./setup/tariff_comparison.md
     - ./setup/energy_dashboard.md
+    - ./setup/account_tab.md
   - Entities:
     - Electricity: ./entities/electricity.md
     - Gas: ./entities/gas.md

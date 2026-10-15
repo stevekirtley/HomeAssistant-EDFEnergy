@@ -1,6 +1,15 @@
 (function () {
   'use strict';
 
+  // The consumption card lives in its own file so the panel does not carry a charting
+  // library's worth of code for a tab most people never open.
+  (function () {
+    if (customElements.get('edf-energy-consumption-card')) return;
+    const s = document.createElement('script');
+    s.src = '/edf_energy/edf-energy-consumption-card.js';
+    document.head.appendChild(s);
+  })();
+
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   function localDateKey(date) {
@@ -356,6 +365,51 @@
       color: var(--primary-color, #3d5afe);
     }
     .flex-day.edited { border-color: var(--primary-color, #3d5afe); border-style: dashed; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: var(--card-background-color, #fff);
+      border-bottom: 1px solid var(--divider-color, #e0e0e0);
+      position: sticky; top: 0; z-index: 8;
+    }
+    .tab {
+      flex: 1; padding: 12px 8px; border: 0; background: none; cursor: pointer;
+      font: inherit; font-size: 0.92em; font-weight: 500;
+      color: var(--secondary-text-color);
+      border-bottom: 3px solid transparent; margin-bottom: -1px;
+    }
+    .tab.active {
+      color: var(--primary-color, #3d5afe);
+      border-bottom-color: var(--primary-color, #3d5afe);
+    }
+    .tab .beta {
+      font-size: 0.72em; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; opacity: 0.75; margin-left: 5px;
+      border: 1px solid currentColor; border-radius: 3px; padding: 0 3px;
+    }
+
+    /* ── Account tab ── */
+    .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; }
+    .kv + .kv { border-top: 1px solid var(--divider-color, #ececec); }
+    .kv .k { color: var(--secondary-text-color); }
+    .kv .v { text-align: right; font-variant-numeric: tabular-nums; word-break: break-word; }
+    .agreement { padding: 12px 0; }
+    .agreement + .agreement { border-top: 1px solid var(--divider-color, #ececec); }
+    .agreement.past { opacity: 0.62; }
+    .agreement-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .agreement-head .name { font-weight: 600; flex: 1; min-width: 0; word-break: break-word; }
+    .pill-live {
+      font-size: 0.72em; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; padding: 2px 7px; border-radius: 10px;
+      background: var(--label-badge-green, #3fae4a); color: #fff; white-space: nowrap;
+    }
+    .pill-past {
+      font-size: 0.72em; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; padding: 2px 7px; border-radius: 10px;
+      background: var(--divider-color, #e0e0e0); color: var(--secondary-text-color);
+      white-space: nowrap;
+    }
   `;
 
   // ── Panel element ─────────────────────────────────────────────────────────────
@@ -381,6 +435,16 @@
       this._flexBusy = false;
       this._flexLoading = false;
       this._flexConfirmCancel = false;
+      // Beta features, and the account tab they gate. Both are asked for once and held
+      // here, so a coordinator refresh re-rendering the panel does not re-fetch them or
+      // throw the user back to the first tab.
+      this._beta = null;
+      this._betaLoading = false;
+      this._activeTab = 'charging';
+      this._account = null;
+      this._accountLoading = false;
+      this._accountError = null;
+      this._consumptionCard = null;
     }
 
     set hass(hass) {
@@ -1324,8 +1388,132 @@
 
     // ── Full render ─────────────────────────────────────────────────────────────
 
+    // ── Account tab ─────────────────────────────────────────────────────────────
+
+    async _loadBetaFeatures() {
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId) { this._beta = {}; return; }
+      try {
+        this._beta = await this._hass.callWS({
+          type: 'edf_energy/beta_features', account_id: accountId,
+        });
+      } catch (e) {
+        // An older backend than the panel, or an account it cannot match. Either way the
+        // beta tab stays hidden rather than the whole panel failing to draw.
+        this._beta = {};
+      }
+      this._render();
+    }
+
+    async _loadAccountSummary() {
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId) { this._accountError = 'No EDF account found.'; return; }
+      try {
+        this._account = await this._hass.callWS({
+          type: 'edf_energy/account_summary', account_id: accountId,
+        });
+        this._accountError = null;
+      } catch (e) {
+        this._accountError = e?.message || 'Could not load account information.';
+      }
+      this._render();
+    }
+
+    _showAccountTab() {
+      return this._beta !== null && this._beta.show_account_tab === true;
+    }
+
+    _renderTabs() {
+      if (!this._showAccountTab()) return '';
+      const tab = (id, label, beta) => `
+        <button class="tab${this._activeTab === id ? ' active' : ''}" data-tab="${id}">
+          ${label}${beta ? '<span class="beta">beta</span>' : ''}
+        </button>`;
+      return `<div class="tabs">${tab('charging', 'Smart Charging', false)}${tab('account', 'Account', true)}</div>`;
+    }
+
+    _renderAgreement(agreement) {
+      const live = agreement.is_active === true;
+      // EDF only give us the codes here, not the name they market the tariff under. The
+      // product code is the closest thing to a readable name, so it leads and the full
+      // tariff code sits underneath for anyone matching it against a bill.
+      return `
+        <div class="agreement${live ? '' : ' past'}">
+          <div class="agreement-head">
+            <div class="name">${esc(agreement.product_code || agreement.tariff_code || 'Unknown tariff')}</div>
+            <span class="${live ? 'pill-live' : 'pill-past'}">${live ? 'Live' : 'Ended'}</span>
+          </div>
+          <div class="kv"><span class="k">Tariff code</span><span class="v">${esc(agreement.tariff_code || '—')}</span></div>
+          <div class="kv"><span class="k">Valid</span><span class="v">${esc(formatDateOnly(agreement.start) || '—')} – ${agreement.end ? esc(formatDateOnly(agreement.end)) : 'open ended'}</span></div>
+        </div>`;
+    }
+
+    _renderMeterPoint(point, isGas) {
+      const identifier = isGas ? point.mprn : point.mpan;
+      const label = isGas ? 'Gas' : (point.is_export ? 'Electricity — Export' : 'Electricity — Import');
+      const agreements = point.agreements || [];
+      const current = agreements.filter(a => a.is_active === true);
+      const past = agreements.filter(a => a.is_active !== true);
+
+      return `
+        <div class="card">
+          <div class="section-title">${esc(label)}</div>
+          <div style="padding:0 16px 12px">
+            <div class="kv"><span class="k">${isGas ? 'MPRN' : 'MPAN'}</span><span class="v">${esc(identifier || '—')}</span></div>
+            ${(point.meters || []).map(m => `
+              <div class="kv"><span class="k">Meter serial</span><span class="v">${esc(m.serial_number || '—')}</span></div>
+              ${m.manufacturer ? `<div class="kv"><span class="k">Make</span><span class="v">${esc([m.manufacturer, m.model].filter(Boolean).join(' '))}</span></div>` : ''}
+              ${m.firmware ? `<div class="kv"><span class="k">Firmware</span><span class="v">${esc(m.firmware)}</span></div>` : ''}
+              <div class="kv"><span class="k">Smart meter</span><span class="v">${m.is_smart_meter ? 'Yes' : 'No'}</span></div>
+            `).join('')}
+          </div>
+          <div style="padding:0 16px 12px">
+            ${current.length ? current.map(a => this._renderAgreement(a)).join('') : '<div class="empty">No agreement in force.</div>'}
+            ${past.length ? `
+              <div class="section-title" style="padding-left:0;margin-top:10px">Previous</div>
+              ${past.map(a => this._renderAgreement(a)).join('')}
+            ` : ''}
+          </div>
+        </div>`;
+    }
+
+    _renderAccountView() {
+      if (this._accountError)
+        return `<div class="card"><div class="no-entity">${esc(this._accountError)}</div></div>`;
+      if (this._account === null)
+        return `<div class="card"><div class="empty">Loading account information…</div></div>`;
+
+      const electricity = this._account.electricity || [];
+      const gas = this._account.gas || [];
+
+      return `
+        <div class="card">
+          <div class="section-title">Account</div>
+          <div style="padding:0 16px 12px">
+            <div class="kv"><span class="k">Account number</span><span class="v">${esc(this._account.account_id || '—')}</span></div>
+          </div>
+        </div>
+        <div id="consumption-slot"></div>
+        ${electricity.map(p => this._renderMeterPoint(p, false)).join('')}
+        ${gas.map(p => this._renderMeterPoint(p, true)).join('')}
+        ${!electricity.length && !gas.length
+          ? '<div class="card"><div class="empty">No meter points on this account.</div></div>' : ''}`;
+    }
+
     _render() {
       if (!this._hass) return;
+
+      // Asked for once. Until it lands the panel draws exactly as it always has, so a
+      // backend without the command - or with the flag off - is simply the old panel.
+      if (this._beta === null && !this._betaLoading) {
+        this._betaLoading = true;
+        this._loadBetaFeatures();
+      }
+
+      if (this._showAccountTab() && this._account === null && !this._accountLoading && !this._accountError) {
+        this._accountLoading = true;
+        this._loadAccountSummary();
+      }
 
       // Fetched over the websocket rather than from an entity, because the bookable days
       // and their slots are far too much state to put in attributes. Fired once; the card
@@ -1399,6 +1587,11 @@
           ${stateLabel ? `<div class="status-pill${isActive ? ' on' : ''}">${esc(stateLabel)}</div>` : ''}
         </div>
 
+        ${this._renderTabs()}
+
+        ${this._showAccountTab() && this._activeTab === 'account'
+          ? `<div class="content">${this._renderAccountView()}</div>`
+          : `
         <div class="content">
           ${!hasAny
             ? `<div class="card"><div class="no-entity">No EDF Energy entities found. Check the integration is set up correctly.</div></div>`
@@ -1546,6 +1739,7 @@
             `}
           `}
         </div>
+        `}
       `;
 
       this._attachListeners(ids, dates, idx, canOlder, canNewer);
@@ -1553,6 +1747,29 @@
 
     _attachListeners(ids, dates, idx, canOlder, canNewer) {
       const root = this.shadowRoot;
+
+      // ── Consumption card ──────────────────────────────────────────────────
+      // Re-homed rather than recreated on every render, so changing period or unit is not
+      // undone the next time a coordinator refresh redraws the panel.
+      const slot = root.getElementById('consumption-slot');
+      if (slot && this._account) {
+        if (!this._consumptionCard)
+          this._consumptionCard = document.createElement('edf-energy-consumption-card');
+        if (!slot.contains(this._consumptionCard)) slot.appendChild(this._consumptionCard);
+        this._consumptionCard.hass = this._hass;
+        this._consumptionCard.meters = [
+          ...(this._account.electricity || []),
+          ...(this._account.gas || []),
+        ];
+      }
+
+      // ── Tab switching ─────────────────────────────────────────────────────
+      root.querySelectorAll('.tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this._activeTab = btn.dataset.tab;
+          this._render();
+        });
+      });
 
       // ── Menu button (opens HA navigation sidebar) ─────────────────────────
       root.getElementById('menu-btn')?.addEventListener('click', () => {
