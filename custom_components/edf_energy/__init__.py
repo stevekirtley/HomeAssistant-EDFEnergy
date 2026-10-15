@@ -68,6 +68,7 @@ from .const import (
   CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS,
   CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES,
   CONFIG_KIND,
+  CONFIG_MAIN_SHOW_ACCOUNT_TAB,
   CONFIG_KIND_ACCOUNT,
   CONFIG_KIND_ROLLING_TARGET_RATE,
   CONFIG_KIND_TARIFF_COMPARISON,
@@ -170,6 +171,31 @@ def websocket_get_api_key(hass, connection, msg):
       api_key = entry.data.get(CONFIG_MAIN_API_KEY)
       break
   connection.send_result(msg["id"], {"api_key": api_key})
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/beta_features",
+  vol.Required("account_id"): str,
+})
+@callback
+def websocket_beta_features(hass, connection, msg):
+  """Which beta features the user has turned on for an account.
+
+  Read over the websocket rather than baked into the panel's registration config, because a
+  panel's config only reaches the browser when the page loads - toggling the option in the
+  config entry would leave the panel showing the old answer until somebody hit refresh.
+  Asking here means the reload that follows an options change is enough.
+  """
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  features = {"show_account_tab": False}
+
+  if account_id is not None:
+    for entry in hass.config_entries.async_entries(DOMAIN):
+      if (entry.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT
+          and entry.data.get(CONFIG_ACCOUNT_ID) == account_id):
+        features["show_account_tab"] = entry.options.get(CONFIG_MAIN_SHOW_ACCOUNT_TAB, False) == True
+        break
+
+  connection.send_result(msg["id"], features)
 
 def _account_id_for_panel(hass, account_id: str):
   """Match the loosely-formatted account id the panel derives from entity slugs."""
@@ -328,6 +354,7 @@ async def async_setup_entry(hass, entry):
   if not hass.data[DOMAIN].get("_frontend_registered"):
     hass.data[DOMAIN]["_frontend_registered"] = True
     websocket_api.async_register_command(hass, websocket_get_api_key)
+    websocket_api.async_register_command(hass, websocket_beta_features)
     websocket_api.async_register_command(hass, websocket_flextras_bookable_days)
     websocket_api.async_register_command(hass, websocket_flextras_day_slots)
     websocket_api.async_register_command(hass, websocket_flextras_book_hours)

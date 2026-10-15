@@ -61,6 +61,7 @@ from .const import (
   CONFIG_MAIN_API_KEY,
   CONFIG_MAIN_EMAIL,
   CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
+  CONFIG_MAIN_SHOW_ACCOUNT_TAB,
   CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL,
   CONFIG_MAIN_REFRESH_TOKEN,
   CONFIG_KIND_ACCOUNT,
@@ -613,13 +614,11 @@ class EDFEnergyAccountOptionsFlow(OptionsFlow):
     self._entry = config_entry
 
   async def async_step_init(self, user_input=None):
-    # ARCHIVED — World Cup 2026 ended 2026-07-19. Football toggle removed from options UI.
-    # Restore the form below when a new football tournament begins.
-    return self.async_create_entry(title="", data=self._entry.options)
-
-    # ↓↓↓ archived options-flow form ↓↓↓
     if user_input is not None:
-      return self.async_create_entry(title="", data=user_input)
+      # Merge rather than replace. Options the form does not show - the archived football
+      # toggle below, anything a future step adds - would otherwise be dropped the first
+      # time somebody opened this form and pressed submit.
+      return self.async_create_entry(title="", data={**self._entry.options, **user_input})
 
     current = self._entry.options
 
@@ -627,8 +626,17 @@ class EDFEnergyAccountOptionsFlow(OptionsFlow):
       step_id="init",
       data_schema=vol.Schema({
         vol.Required(
-          CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
-          default=current.get(CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY, False),
+          CONFIG_MAIN_SHOW_ACCOUNT_TAB,
+          default=current.get(CONFIG_MAIN_SHOW_ACCOUNT_TAB, False),
         ): bool,
       }),
     )
+
+    # ↓↓↓ archived options-flow fields ↓↓↓
+    # World Cup 2026 ended 2026-07-19, so the football toggle is off the form. Add this
+    # back to the schema above when a new tournament begins - the stored value survives in
+    # the entry options either way, because the step merges rather than replaces.
+    #   vol.Required(
+    #     CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
+    #     default=current.get(CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY, False),
+    #   ): bool,

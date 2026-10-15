@@ -66,6 +66,11 @@ CONFIG_MAX_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = 60
 CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY = "football_free_electricity_enabled"
 CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL = "sunday_saver_auto_enrol"
 
+# Beta features are off unless the user asks for them in the options. They are things that
+# work but are not finished - shapes that may still change, and data that is worth a second
+# pair of eyes before everybody gets it.
+CONFIG_MAIN_SHOW_ACCOUNT_TAB = "show_account_tab_beta"
+
 CONFIG_COST_TRACKER_NAME = "name"
 CONFIG_COST_TRACKER_MPAN = "mpan"
 CONFIG_COST_TRACKER_TARGET_ENTITY_ID = "target_entity_id"

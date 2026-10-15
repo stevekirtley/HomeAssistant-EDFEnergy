@@ -424,10 +424,12 @@
       "init": {
         "title": "EDF Energy Options",
         "data": {
+          "show_account_tab_beta": "Show account tab (beta)",
           "football_free_electricity_enabled": "Include World Cup 2026 free electricity sessions (England & Scotland matches)",
           "sunday_saver_auto_enrol": "Automatically enrol in Sunday Saver"
         },
         "data_description": {
+          "show_account_tab_beta": "Adds an Account tab to the EDF Energy panel with consumption breakdowns and account detail. Still in beta: it is built on the daily statistics, so it lags a day behind like the rest of EDF's data, and the layout may still change between releases. Off by default - turn it on if you want to try it.",
           "football_free_electricity_enabled": "When enabled, free electricity windows are added to the session feed for every England or Scotland World Cup match (2 hours from kick-off). Only enable this if your account is enrolled in EDF's World Cup free electricity offer.",
           "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme."
         }
