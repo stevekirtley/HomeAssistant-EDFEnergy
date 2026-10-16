@@ -488,6 +488,8 @@
     }
     .figure .amount { font-size: 1.32em; font-weight: 600; font-variant-numeric: tabular-nums; }
     .figure .sub { font-size: 0.82em; color: var(--secondary-text-color); margin-top: 2px; }
+    .figure .sub.split { display: flex; justify-content: space-between; gap: 10px; font-variant-numeric: tabular-nums; }
+    .figure .sub.split span:last-child { opacity: 0.7; }
     .row {
       display: flex; align-items: center; gap: 12px;
       padding: 11px 16px; border-bottom: 1px solid var(--divider-color, #ececec);
@@ -2024,26 +2026,14 @@
                   <div class="figure">
                     <div class="label">Joined on your link</div>
                     <div class="amount">${this._referrals.total ?? referrals.length}</div>
-                    <div class="sub">${pendingList.length ? `${pendingList.length} still switching` : 'all settled'}</div>
+                    <div class="sub">${scheme?.code ? esc(scheme.code) : ''}</div>
                   </div>
                   <div class="figure">
-                    <div class="label">Paid so far</div>
-                    <div class="amount">${money(paidTotal)}</div>
-                    <div class="sub">${paidList.length} paid out</div>
+                    <div class="label">Referral total</div>
+                    <div class="amount">${money(schemeTotal ?? paidTotal + expectedTotal)}</div>
+                    <div class="sub split"><span>${money(paidTotal)} paid</span><span>${paidList.length}</span></div>
+                    <div class="sub split"><span>${money(expectedTotal)} pending</span><span>${pendingList.length}</span></div>
                   </div>
-                  <div class="figure">
-                    <div class="label">Expected</div>
-                    <div class="amount">${money(expectedTotal)}</div>
-                    <div class="sub">${pendingList.length
-                      ? `from ${pendingList.length} switching`
-                      : 'nothing outstanding'}</div>
-                  </div>
-                  ${schemeTotal !== null && schemeTotal !== undefined ? `
-                    <div class="figure">
-                      <div class="label">Earned in total</div>
-                      <div class="amount">${money(schemeTotal)}</div>
-                      <div class="sub">EDF's figure</div>
-                    </div>` : ''}
                   ${scheme ? `
                     <div class="figure">
                       <div class="label">You get</div>
@@ -2053,7 +2043,7 @@
                     <div class="figure">
                       <div class="label">They get</div>
                       <div class="amount">${money(scheme.referred_reward)}</div>
-                      <div class="sub">${scheme.code ? esc(scheme.code) : ''}</div>
+                      <div class="sub">when they join</div>
                     </div>` : ''}
                 </div>
                 ${scheme?.url ? `
