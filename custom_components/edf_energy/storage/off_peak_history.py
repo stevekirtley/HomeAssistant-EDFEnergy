@@ -29,12 +29,38 @@ class OffPeakWindowRecord:
       "is_intelligent_adjusted": self.is_intelligent_adjusted,
     }
 
-def merge_off_peak_windows(existing: list, new_windows: list, current: datetime) -> list:
-  """Merge new windows into existing, dedup by (start, end), purge older than 60 days."""
+def merge_off_peak_windows(existing: list, new_windows: list, current: datetime,
+                           span_start: datetime | None = None,
+                           span_end: datetime | None = None) -> list:
+  """Merge new windows into existing, dedup by (start, end), purge older than 60 days.
+
+  A window that has already started is history and is kept whatever the rates say later.
+  A window that has not started yet is a forecast, and forecasts change: a smart charging
+  plan is written in here as soon as EDF publish it, and EDF revoke and reshape plans
+  through the day. So anything still in the future is taken from the new windows rather
+  than remembered - an existing record that the rates no longer carry is dropped.
+
+  That is only safe where the new windows actually have something to say, which is why
+  the span the rates cover has to be passed in to do it. Without it the old behaviour is
+  kept and nothing is dropped, because a refresh holding only today's rates must not be
+  read as tomorrow's windows having been revoked.
+
+  A dispatch revoked while it is running keeps the shape it had, since the part before the
+  revocation did happen. The dispatch history is the record of what actually ran.
+  """
   min_time = (current - timedelta(days=60)).replace(hour=0, minute=0, second=0, microsecond=0)
+  know_span = span_start is not None and span_end is not None
+  new_keys = {(w.start, w.end) for w in new_windows}
+
+  def superseded(window) -> bool:
+    return (know_span
+            and window.start > current
+            and span_start <= window.start < span_end
+            and (window.start, window.end) not in new_keys)
+
   seen = {}
 
-  for w in [*existing, *new_windows]:
+  for w in [*[w for w in existing if not superseded(w)], *new_windows]:
     key = (w.start, w.end)
     # Prefer the intelligent-adjusted record when there's a clash — it carries more information
     if key not in seen or w.is_intelligent_adjusted:

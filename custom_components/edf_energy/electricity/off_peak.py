@@ -115,12 +115,21 @@ class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor,
           self._attributes["next_start"] = time.start
           self._attributes["next_end"] = time.end
 
-      # Accumulate off-peak windows from the current rates data
+      # Accumulate off-peak windows from the current rates data. The span these rates cover
+      # is passed along so that windows inside it which are still to come can be corrected
+      # rather than accumulated - EDF revoke and reshape smart charging plans through the
+      # day, and a plan that no longer stands is not history.
       new_windows = [
         OffPeakWindowRecord(w["start"], w["end"], w["is_intelligent_adjusted"])
         for w in get_off_peak_windows_from_rates(rates)
       ]
-      self._off_peak_history = merge_off_peak_windows(self._off_peak_history, new_windows, current)
+      # An empty rate list says nothing about any window, so the span is withheld and the
+      # history is left exactly as it is rather than being read as everything revoked.
+      self._off_peak_history = merge_off_peak_windows(
+        self._off_peak_history, new_windows, current,
+        span_start=rates[0]["start"] if len(rates) > 0 else None,
+        span_end=rates[-1]["end"] if len(rates) > 0 else None,
+      )
       self._attributes["off_peak_windows"] = self._off_peak_windows_for_attribute(current)
       self._hass.async_create_task(self._async_save_history())
 
