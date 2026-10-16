@@ -1989,6 +1989,19 @@
       const scheme = this._referrals?.scheme;
       const referrals = this._referrals?.referrals || [];
 
+      // A referral counts as paid once EDF put a payment date on it; the status text is a
+      // display string and reads differently between schemes, so the date is the safer test.
+      const isPaid = r => !!r.payment_date || (r.status || '').toLowerCase() === 'paid';
+      const sumRewards = list => list.reduce((total, r) => total + (Number(r.reward) || 0), 0);
+      const paidList = referrals.filter(isPaid);
+      const pendingList = referrals.filter(r => !isPaid(r));
+      // EDF report what they have actually paid out, and it does not always match the sum of
+      // the listed rewards - the older sign ups were paid under earlier, more generous schemes
+      // while every row carries the reward its own scheme pays. Their figure is the real one,
+      // so it wins when they give it; the sum is only a fallback.
+      const paidTotal = this._referrals?.total_earned ?? sumRewards(paidList);
+      const expectedTotal = sumRewards(pendingList);
+
       return `
         <div class="card">
           <div class="section-title" style="display:flex;align-items:center;gap:8px">
@@ -1999,26 +2012,38 @@
           ${this._referrals === null
             ? '<div class="empty">Loading referrals…</div>'
             : `
-              ${scheme ? `
+              ${scheme || referrals.length ? `
                 <div class="figures">
                   <div class="figure">
                     <div class="label">Joined on your link</div>
                     <div class="amount">${this._referrals.total ?? referrals.length}</div>
-                    <div class="sub">${this._referrals.total_earned !== null && this._referrals.total_earned !== undefined
-                      ? `${money(this._referrals.total_earned)} earned` : ''}</div>
+                    <div class="sub">${pendingList.length ? `${pendingList.length} still switching` : 'all settled'}</div>
                   </div>
                   <div class="figure">
-                    <div class="label">You get</div>
-                    <div class="amount">${money(scheme.referrer_reward)}</div>
-                    <div class="sub">per sign up</div>
+                    <div class="label">Paid so far</div>
+                    <div class="amount">${money(paidTotal)}</div>
+                    <div class="sub">${paidList.length} paid out</div>
                   </div>
                   <div class="figure">
-                    <div class="label">They get</div>
-                    <div class="amount">${money(scheme.referred_reward)}</div>
-                    <div class="sub">${scheme.code ? esc(scheme.code) : ''}</div>
+                    <div class="label">Expected</div>
+                    <div class="amount">${money(expectedTotal)}</div>
+                    <div class="sub">${pendingList.length
+                      ? `from ${pendingList.length} switching`
+                      : 'nothing outstanding'}</div>
                   </div>
+                  ${scheme ? `
+                    <div class="figure">
+                      <div class="label">You get</div>
+                      <div class="amount">${money(scheme.referrer_reward)}</div>
+                      <div class="sub">per sign up</div>
+                    </div>
+                    <div class="figure">
+                      <div class="label">They get</div>
+                      <div class="amount">${money(scheme.referred_reward)}</div>
+                      <div class="sub">${scheme.code ? esc(scheme.code) : ''}</div>
+                    </div>` : ''}
                 </div>
-                ${scheme.url ? `
+                ${scheme?.url ? `
                   <div class="refund-row" style="padding-top:12px">
                     <div class="main" style="flex:1;min-width:0;word-break:break-all">${esc(scheme.display_url || scheme.url)}</div>
                     <button class="btn-link" data-action="copy-referral">Copy link</button>
@@ -2400,7 +2425,8 @@
 
       // With the flag off there is one tab and it is the overview, so the switch below
       // collapses to the page as it was.
-      const tab = this._showAccountTab() ? this._activeTab : 'overview';
+      const showTabs = this._showAccountTab();
+      const tab = showTabs ? this._activeTab : 'overview';
       let body;
       if (tab === 'account')      body = this._renderAccountView();
       else if (tab === 'usage')   body = this._renderUsageView();
@@ -2409,9 +2435,13 @@
       else                        body = this._renderOverviewView(ctx);
 
       // The toolbar names the tab rather than always claiming to be the charging screen,
-      // which is what it did when it was the only thing here.
-      const tabTitle = { account: 'Account', usage: 'Usage', perks: 'Perks', charging: 'Smart Charging' }[tab]
-        || (de ? 'Smart Charging' : null);
+      // which is what it did when it was the only thing here. With the tabs hidden there is
+      // no tab to name, so that original title is kept rather than relabelling the one screen
+      // non-beta users see.
+      const tabTitle = showTabs
+        ? ({ overview: 'Overview', account: 'Account', usage: 'Usage', perks: 'Perks', charging: 'Smart Charging' }[tab]
+            || 'Overview')
+        : (de ? 'Smart Charging' : null);
 
       this.shadowRoot.innerHTML = `
         <style>${STYLES}</style>
