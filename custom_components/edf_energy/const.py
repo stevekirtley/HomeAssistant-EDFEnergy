@@ -127,6 +127,16 @@ RELAY_FIXTURES_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=fix
 # relayed to this endpoint (see tools/power_perks_relay) which parses it and publishes
 # the sessions. If it is unreachable the last known sessions are kept.
 POWER_PERKS_FEED_URL = "https://apirelay.sitetest.org.uk/power_perks.php?action=sessions"
+
+# Steve's Power Perks Predictor. Read only while its tab is open - there is no coordinator
+# and no polling, so an install that never opens the tab never contacts the site at all.
+POWER_PERKS_PREDICTOR_SITE = "https://powerperkspredictor.app"
+POWER_PERKS_PREDICTOR_OUTLOOK_URL = f"{POWER_PERKS_PREDICTOR_SITE}/outlook.json"
+POWER_PERKS_PREDICTOR_TOMORROW_URL = f"{POWER_PERKS_PREDICTOR_SITE}/tomorrow.json"
+POWER_PERKS_PREDICTOR_SCORES_URL = f"{POWER_PERKS_PREDICTOR_SITE}/scores.json"
+# Opening and closing the tab, or flicking between tabs, must not refetch each time.
+PREDICTOR_CACHE_MINUTES = 15
+DATA_PREDICTOR = "PREDICTOR_CACHE"
 DATA_FLEXTRAS_HOURS = "FLEXTRAS_HOURS_{}"
 DATA_FLEXTRAS_HOURS_COORDINATOR = "FLEXTRAS_HOURS_COORDINATOR_{}"
 # Bookings can be changed up to the Thursday before, so this is polled more often than the

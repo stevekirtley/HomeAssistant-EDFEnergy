@@ -41,11 +41,31 @@ still reloads, as it always did.
 | **Overview** | Everything that was on the panel before, unchanged: the car controls, the schemes, and the off-peak and dispatch history |
 | **Charging** | Just the car: the smart charge controls, the off-peak windows and the dispatch windows |
 | **Usage** | The consumption chart |
+| **Predictor** | Whether free electricity looks likely, from the Power Perks Predictor |
 | **Perks** | The schemes - World Cup, Flextras free hours, free electricity sessions - and your referrals |
 | **Account** | The money: balance, statements, transactions, refunds, and your tariffs and meters |
 
 Nothing was taken off the Overview to make room. The Charging and Perks tabs are cuts of
 the same cards, so a change in one place shows up in both.
+
+## Predictor
+
+[powerperkspredictor.app](https://powerperkspredictor.app) works out whether EDF are likely
+to give away free electricity, from the day-ahead auction and the week's weather. This tab
+shows tomorrow's call, the week ahead with the reasoning behind each day, and how the
+predictions have actually scored. The site itself is linked at the top of the tab - it is
+the full thing, and it works from anywhere.
+
+!!! info "Nothing is fetched until you open this tab"
+
+    There is no coordinator behind this tab and no entity: the feeds are read when the tab
+    is opened and cached for a quarter of an hour, so flicking between tabs does not keep
+    asking. An install whose owner never opens the tab never contacts the site at all. The
+    artwork is loaded from the site by your browser, so opening the tab is a visit.
+
+    Nothing from it is written to an entity, an attribute or the recorder. It is somebody
+    else's forecast rather than anything belonging to your account, so there is nothing
+    here to automate against - use the free electricity sensors for that.
 
 ## Account
 

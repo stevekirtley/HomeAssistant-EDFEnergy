@@ -145,6 +145,11 @@
       .replace(/\b\w/g, c => c.toUpperCase());
   }
 
+  const PREDICTOR_ICON = {
+    wind: 'mdi:weather-windy', solar: 'mdi:weather-sunny',
+    demand: 'mdi:transmission-tower', weather: 'mdi:thermometer',
+  };
+
   const TRANSACTION_ICON = {
     Charge: 'mdi:flash', Payment: 'mdi:bank-transfer-in',
     Credit: 'mdi:plus-circle-outline', Refund: 'mdi:cash-refund',
@@ -477,6 +482,29 @@
     }
 
     /* ── Money, statements, ledger, referrals ── */
+    /* ── Power Perks Predictor ── */
+    .predictor-head { display: flex; align-items: center; gap: 14px; padding: 14px 16px; flex-wrap: wrap; }
+    .predictor-art { width: 112px; height: auto; flex-shrink: 0; border-radius: 8px; }
+    .predictor-art.small { width: 96px; }
+    .predictor-head > div { flex: 1; min-width: 200px; }
+    .predictor-tomorrow { display: flex; align-items: center; gap: 14px; padding: 4px 16px 10px; flex-wrap: wrap; }
+    .predictor-verdict { font-size: 1.1em; font-weight: 600; margin-bottom: 6px; }
+    .predictor-factors { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; }
+    .factor {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.82em; color: var(--secondary-text-color);
+    }
+    .factor ha-icon { --mdc-icon-size: 16px; width: 16px; height: 16px; }
+    .factor .trend { opacity: 0.8; }
+    .level {
+      font-size: 0.7em; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700;
+      padding: 2px 7px; border-radius: 10px; margin-left: 6px; white-space: nowrap;
+      background: var(--secondary-background-color, rgba(127,127,127,0.18));
+      color: var(--secondary-text-color);
+    }
+    .level.likely, .level.very-likely { background: rgba(76,175,80,0.18); color: #2e7d32; }
+    .level.possible { background: rgba(255,167,38,0.2); color: #ef6c00; }
+    .predictor-day .figure-right { text-align: right; }
     .banner {
       display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
       margin: 0 0 12px; padding: 12px 16px; border-radius: 8px;
@@ -590,6 +618,9 @@
       this._notices = null;
       this._noticesLoading = false;
       this._tabsToggleBusy = false;
+      this._predictor = null;
+      this._predictorLoading = false;
+      this._predictorError = null;
       // Refund request state. The amount is held here so a re-render mid-typing does not
       // throw it away, and the confirm step is deliberately separate from the button that
       // sends it - this moves real money out of the account.
@@ -1635,6 +1666,136 @@
       this._render();
     }
 
+    async _loadPredictor(force = false) {
+      if (this._predictorLoading || (this._predictor !== null && !force)) return;
+      this._predictorLoading = true;
+      try {
+        this._predictor = await this._hass.callWS({ type: 'edf_energy/predictor' });
+        this._predictorError = null;
+      } catch (e) {
+        this._predictorError = e?.message || 'Could not reach the Power Perks Predictor.';
+      }
+      this._predictorLoading = false;
+      this._render();
+    }
+
+    // Steve's predictor, rendered here rather than framed: the site forbids framing, and a
+    // frame would bring its own theme and chrome into a tab that is meant to match
+    // everything around it. The art and the link come from the site so it still looks and
+    // feels like his, and the link is there because the site is the real thing.
+    _renderPredictorView() {
+      const site = this._predictor?.site || 'https://powerperkspredictor.app';
+      const art = u => `${site}/assets/${u}`;
+
+      const header = `
+        <div class="card predictor-head">
+          <img class="predictor-art" src="${esc(art('mascot.webp'))}" alt="" width="180" height="139" loading="lazy">
+          <div>
+            <div class="section-title" style="padding-left:0">Power Perks Predictor</div>
+            <div class="section-info" style="padding:0">
+              Will EDF give away free electricity? This reads the day-ahead auction and the week's
+              weather. Check the latest from anywhere at
+              <a href="${esc(site)}" target="_blank" rel="noopener noreferrer">powerperkspredictor.app</a>.
+            </div>
+          </div>
+        </div>`;
+
+      if (this._predictorError) {
+        return `${header}<div class="card"><div class="notice warn">${esc(this._predictorError)}</div></div>`;
+      }
+      if (this._predictor === null) {
+        return `${header}<div class="card"><div class="empty">Asking the predictor…</div></div>`;
+      }
+
+      return `
+        ${header}
+        ${this._renderPredictorTomorrow(art)}
+        ${this._renderPredictorOutlook()}
+        ${this._renderPredictorRecord()}
+        <div class="section-info" style="padding:0 16px 16px">
+          Fetched from ${esc(site)} only while this tab is open - nothing is polled in the
+          background and nothing is stored.
+        </div>`;
+    }
+
+    _renderPredictorTomorrow(art) {
+      const t = this._predictor?.tomorrow;
+      if (!t) return '';
+      // 'firm' means it has read the published auction rather than forecast it, which is the
+      // difference between a call and a guess - so it is worth saying which this is.
+      const firm = (t.status || '').toLowerCase() === 'firm';
+
+      return `
+        <div class="card">
+          <div class="section-title" style="display:flex;align-items:center;gap:8px">
+            <span style="flex:1">Tomorrow${t.date ? ` - ${esc(formatDay(t.date))}` : ''}</span>
+            ${t.status ? `<span class="${firm ? 'pill-live' : 'pill-past'}">${esc(humanise(t.status))}</span>` : ''}
+          </div>
+          <div class="predictor-tomorrow">
+            ${t.free ? `<img class="predictor-art small" src="${esc(art('next-art.webp'))}" alt="" width="242" height="208" loading="lazy">` : ''}
+            <div style="flex:1;min-width:180px">
+              <div class="predictor-verdict">${t.free ? 'Free electricity expected' : t.marginal ? 'Close, but probably not free' : 'No free electricity expected'}</div>
+              ${t.windows.length
+                ? `<div class="sub">${t.windows.map(w => esc([w.start, w.end].filter(Boolean).join(' - '))).join(' · ')}</div>`
+                : ''}
+              <div class="kv"><span class="k">Cheapest hour</span><span class="v">${t.cheapest_hour ? esc(t.cheapest_hour) : '—'}${
+                t.cheapest_hour_price !== null && t.cheapest_hour_price !== undefined ? ` at ${t.cheapest_hour_price.toFixed(1)}p` : ''}</span></div>
+              ${t.free_hours ? `<div class="kv"><span class="k">Free hours</span><span class="v">${t.free_hours}</span></div>` : ''}
+              ${t.night_block_possible ? `<div class="kv"><span class="k">Overnight block</span><span class="v">Possible</span></div>` : ''}
+            </div>
+          </div>
+          ${t.source ? `<div class="section-info">${esc(t.source)}</div>` : ''}
+        </div>`;
+    }
+
+    _renderPredictorOutlook() {
+      const o = this._predictor?.outlook;
+      if (!o || !o.days.length) return '';
+
+      return `
+        <div class="card">
+          <div class="section-title">The week ahead</div>
+          ${o.days.map(d => `
+            <div class="row predictor-day">
+              <div class="main">
+                <div class="title">${esc(formatDay(d.date))}
+                  ${d.level ? `<span class="level ${d.known_level ? esc(d.level.replace(/\s+/g, '-')) : 'unknown'}">${esc(humanise(d.level))}</span>` : ''}
+                </div>
+                ${d.summary ? `<div class="sub">${esc(d.summary)}</div>` : ''}
+                ${d.factors.length
+                  ? `<div class="predictor-factors">${d.factors.map(f =>
+                      `<span class="factor"><ha-icon icon="${PREDICTOR_ICON[f.kind] || 'mdi:information-outline'}"></ha-icon>${esc(f.text)}${
+                        f.trend ? ` <span class="trend">${f.trend === 'up' ? '↑' : f.trend === 'down' ? '↓' : '→'}</span>` : ''}</span>`).join('')}</div>`
+                  : ''}
+              </div>
+              <div class="figure-right">
+                <div class="money">${d.chance === null || d.chance === undefined ? '—' : `${d.chance}%`}</div>
+                <div class="sub">chance</div>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    _renderPredictorRecord() {
+      const s = this._predictor?.scores;
+      if (!s) return '';
+      const hasTally = s.correct !== null && s.correct !== undefined && s.scored_days;
+
+      return `
+        <div class="card">
+          <div class="section-title">How it has done</div>
+          ${hasTally ? `
+            <div class="figures">
+              <div class="figure">
+                <div class="label">Outlook called right</div>
+                <div class="amount">${s.correct} of ${s.scored_days}</div>
+                <div class="sub">days scored so far</div>
+              </div>
+            </div>` : ''}
+          ${s.note ? `<div class="section-info">${esc(s.note)}</div>` : ''}
+        </div>`;
+    }
+
     // The tab bar only appears with the beta flag on. With it off the panel is exactly the
     // page it has always been: one screen, no chrome above it, nothing moved.
     _renderTabs() {
@@ -1645,6 +1806,7 @@
         ${tab('overview', 'Overview')}
         ${tab('charging', 'Charging')}
         ${tab('usage', 'Usage')}
+        ${tab('predictor', 'Predictor')}
         ${tab('perks', 'Perks')}
         ${tab('account', 'Account')}
       </div>`;
@@ -2481,6 +2643,9 @@
         this._loadTransactions();
       } else if (tab === 'perks') {
         this._loadReferrals();
+      } else if (tab === 'predictor') {
+        // Only here: nothing fetches the predictor unless somebody opens its tab.
+        this._loadPredictor();
       } else if (tab === 'overview') {
         // The at-a-glance figures at the top of the account tab are cheap and come from a
         // coordinator that is polling anyway, so the overview asks for them too.
@@ -2574,6 +2739,7 @@
       let body;
       if (tab === 'account')      body = this._renderAccountView();
       else if (tab === 'usage')   body = this._renderUsageView();
+      else if (tab === 'predictor') body = this._renderPredictorView();
       else if (tab === 'perks')   body = this._renderPerksView(dayFreeSessions);
       else if (tab === 'charging') body = this._renderChargingView(ctx);
       else                        body = this._renderOverviewView(ctx);
@@ -2583,7 +2749,8 @@
       // no tab to name, so that original title is kept rather than relabelling the one screen
       // non-beta users see.
       const tabTitle = showTabs
-        ? ({ overview: 'Overview', account: 'Account', usage: 'Usage', perks: 'Perks', charging: 'Smart Charging' }[tab]
+        ? ({ overview: 'Overview', account: 'Account', usage: 'Usage', perks: 'Perks', charging: 'Smart Charging',
+             predictor: 'Power Perks Predictor' }[tab]
             || 'Overview')
         : (de ? 'Smart Charging' : null);
 

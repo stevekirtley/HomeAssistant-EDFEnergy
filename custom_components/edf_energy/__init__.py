@@ -141,6 +141,7 @@ TARIFF_COMPARISON_PLATFORMS = ["sensor"]
 from .api_client import ApiException, AuthenticationException, EDFEnergyApiClient
 from .api_client.billing import BILL_TYPES
 from .notices import build_release_notice
+from .predictor import async_get_predictor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -265,6 +266,22 @@ def websocket_notices(hass, connection, msg):
       result["notice"] = notice
 
   connection.send_result(msg["id"], result)
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/predictor",
+})
+@websocket_api.async_response
+async def websocket_predictor(hass, connection, msg):
+  """The Power Perks Predictor feeds, fetched only because somebody opened the tab.
+
+  There is no coordinator behind this and nothing is stored: an install whose owner never
+  opens the tab never contacts the site at all.
+  """
+  try:
+    connection.send_result(msg["id"], await async_get_predictor(hass))
+  except Exception as e:
+    _LOGGER.debug("Could not read the predictor feeds: %s", e)
+    connection.send_error(msg["id"], "unavailable", "Could not reach the Power Perks Predictor")
 
 def _agreements_for_panel(agreements, current):
   """Agreements newest first, each flagged with whether it is the one in force.
@@ -716,6 +733,7 @@ async def async_setup_entry(hass, entry):
     websocket_api.async_register_command(hass, websocket_beta_features)
     websocket_api.async_register_command(hass, websocket_notices)
     websocket_api.async_register_command(hass, websocket_set_show_tabs)
+    websocket_api.async_register_command(hass, websocket_predictor)
     websocket_api.async_register_command(hass, websocket_account_summary)
     websocket_api.async_register_command(hass, websocket_flextras_bookable_days)
     websocket_api.async_register_command(hass, websocket_flextras_day_slots)
