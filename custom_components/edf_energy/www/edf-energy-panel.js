@@ -1995,12 +1995,13 @@
       const sumRewards = list => list.reduce((total, r) => total + (Number(r.reward) || 0), 0);
       const paidList = referrals.filter(isPaid);
       const pendingList = referrals.filter(r => !isPaid(r));
-      // EDF report what they have actually paid out, and it does not always match the sum of
-      // the listed rewards - the older sign ups were paid under earlier, more generous schemes
-      // while every row carries the reward its own scheme pays. Their figure is the real one,
-      // so it wins when they give it; the sum is only a fallback.
-      const paidTotal = this._referrals?.total_earned ?? sumRewards(paidList);
+      // EDF's own total is everything the link has earned, settled or not, so it is the two
+      // figures added together rather than what has landed - on an account with 76 paid and 16
+      // still switching it read higher than what has been paid. The split only comes from the
+      // rows, and the total is kept to show alongside them.
+      const paidTotal = sumRewards(paidList);
       const expectedTotal = sumRewards(pendingList);
+      const schemeTotal = this._referrals?.total_earned;
 
       return `
         <div class="card">
@@ -2031,6 +2032,12 @@
                       ? `from ${pendingList.length} switching`
                       : 'nothing outstanding'}</div>
                   </div>
+                  ${schemeTotal !== null && schemeTotal !== undefined ? `
+                    <div class="figure">
+                      <div class="label">Earned in total</div>
+                      <div class="amount">${money(schemeTotal)}</div>
+                      <div class="sub">EDF's figure</div>
+                    </div>` : ''}
                   ${scheme ? `
                     <div class="figure">
                       <div class="label">You get</div>
