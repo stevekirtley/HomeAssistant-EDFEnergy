@@ -150,7 +150,11 @@ async def test_exactly_the_maximum_is_allowed():
 # ── Eligibility ───────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_an_account_edf_have_said_no_to_is_refused_with_their_reason():
+async def test_an_account_edf_have_said_no_to_can_still_request():
+  # EDF's eligibility flag is advisory. It said no to a real account with
+  # HAS_NOT_GIVEN_READINGS_RECENTLY and then accepted and paid two requests made anyway, so
+  # treating it as a gate would block a request that works. The panel shows the reason as a
+  # caveat; whether to refuse is EDF's call when the request reaches them.
   # Arrange
   summary = {"balance": 100, "refund": {"can_request": False, "reason": "HAS_NOT_GIVEN_READINGS_RECENTLY",
                                         "maximum": 50, "requests": []}}
@@ -160,8 +164,21 @@ async def test_an_account_edf_have_said_no_to_is_refused_with_their_reason():
   connection, hass = await ask(10, hass=hass)
 
   # Assert
-  assert connection.error[0] == "not_eligible"
-  assert "HAS_NOT_GIVEN_READINGS_RECENTLY" in connection.error[1]
+  assert connection.error is None
+  assert hass.data[DOMAIN][ACCOUNT_ID][DATA_CLIENT].submitted == [(ACCOUNT_ID, 10)]
+
+@pytest.mark.asyncio
+async def test_the_amount_is_still_checked_when_edf_have_said_no():
+  # Dropping the eligibility gate must not drop the amount checks with it.
+  # Arrange
+  summary = {"balance": 100, "refund": {"can_request": False, "reason": "HAS_NOT_GIVEN_READINGS_RECENTLY",
+                                        "maximum": 50, "requests": []}}
+
+  # Act
+  connection, hass = await ask(60, hass=StubHass(summary))
+
+  # Assert
+  assert connection.error[0] == "invalid_amount"
   assert hass.data[DOMAIN][ACCOUNT_ID][DATA_CLIENT].submitted == []
 
 @pytest.mark.asyncio

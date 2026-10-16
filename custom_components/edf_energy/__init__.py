@@ -530,13 +530,11 @@ async def websocket_request_refund(hass, connection, msg):
   summary = getattr(result, "summary", None) if result is not None else None
   refund = (summary or {}).get("refund") or {}
 
-  if refund.get("can_request") == False:
-    connection.send_error(
-      msg["id"], "not_eligible",
-      f"EDF are not accepting a refund request on this account ({refund.get('reason') or 'no reason given'})"
-    )
-    return
-
+  # EDF's eligibility flag is deliberately not a gate here. It has told this account no -
+  # HAS_NOT_GIVEN_READINGS_RECENTLY - while EDF went on to accept and pay two requests made
+  # anyway, so refusing on their flag would block a request that works. The reason is shown
+  # in the panel as a caveat and the decision is left to EDF, who make it for real when the
+  # request lands. The amount checks below stay, since those are about not sending nonsense.
   amount = round(float(msg["amount"]), 2)
   if amount <= 0:
     connection.send_error(msg["id"], "invalid_amount", "A refund has to be for more than nothing")

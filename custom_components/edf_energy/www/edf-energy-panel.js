@@ -1839,7 +1839,7 @@
             <div class="figure">
               <div class="label">Refundable</div>
               <div class="amount">${money(refund.maximum)}</div>
-              <div class="sub">${refund.can_request === true ? 'Available to request' : 'Not available'}</div>
+              <div class="sub">${refund.can_request === true ? 'Available to request' : 'EDF say not now'}</div>
             </div>
           </div>
         </div>`;
@@ -1933,7 +1933,11 @@
       const refund = this._billing.refund || {};
       const requests = refund.requests || [];
       const maximum = refund.maximum;
-      const canRequest = refund.can_request === true;
+      // EDF's eligibility flag is advisory, not binding: requests have been accepted and paid
+      // out on this account while it said no, with HAS_NOT_GIVEN_READINGS_RECENTLY as the
+      // reason. So the reason is shown as a caveat and the form stays open - it is EDF's
+      // decision to make when the request arrives, not ours to pre-empt.
+      const discouraged = refund.can_request !== true;
 
       return `
         <div class="card">
@@ -1943,8 +1947,13 @@
             <div class="kv"><span class="k">Account balance</span><span class="v">${money(this._billing.balance)}</span></div>
           </div>
           <div class="section-info">EDF only refund what has been paid in by direct debit, which is why the refundable amount is usually well below the balance.</div>
-          ${canRequest
-            ? `
+          ${discouraged
+            ? `<div class="notice warn">
+                 EDF say they are not accepting a refund request on this account${refund.reason ? ` — ${esc(humanise(refund.reason))}` : ''}.
+                 They have paid out despite saying this before, so a request may still be worth making.
+               </div>`
+            : ''}
+          ${`
               <div class="refund-row">
                 <input class="amount-input" id="refund-amount" type="number" inputmode="decimal"
                   min="0.01" step="0.01" ${maximum ? `max="${maximum}"` : ''}
@@ -1962,9 +1971,6 @@
               ${this._refundConfirm
                 ? `<div class="notice warn">This asks EDF to pay ${money(Number(this._refundAmount))} back to your bank account. Press confirm to send it.</div>`
                 : ''}`
-            : `<div class="notice warn">
-                 EDF are not accepting a refund request on this account at the moment${refund.reason ? ` — ${esc(humanise(refund.reason))}` : ''}.
-               </div>`
           }
           ${requests.length
             ? `

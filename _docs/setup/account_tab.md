@@ -59,7 +59,16 @@ possible to check the ledger adds up.
 ### Refunds
 
 How much of your credit balance EDF will actually refund, any past requests and their
-status, and - when EDF say the account is eligible - a box to request one.
+status, and a box to request one.
+
+!!! note "EDF saying no is a caveat, not a block"
+
+    EDF publish an eligibility flag and a reason, and the panel shows the reason when they
+    say no - but it still lets you make the request. The flag has proved unreliable: on one
+    account it read `HAS_NOT_GIVEN_READINGS_RECENTLY` while EDF went on to accept and pay
+    two requests made anyway. Whether to refuse is EDF's decision when the request reaches
+    them, and a request they do refuse is simply declined at their end. Progress shows up
+    under past requests either way.
 
 !!! warning "The refundable amount is not your balance"
 

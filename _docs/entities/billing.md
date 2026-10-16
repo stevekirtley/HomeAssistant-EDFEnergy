@@ -67,9 +67,14 @@ never asked for one. Statuses seen so far run `REQUESTED` → `SUBMITTED` → `P
 | `payment_date` | When it is due to be paid, which moves as the request progresses |
 | `reason` | EDF's reason code for it, e.g. `PARTIAL_CREDIT_REFUND` |
 | `open_requests` | How many requests have not been settled yet |
-| `can_request_refund` | Whether EDF will accept a new request right now |
-| `cannot_request_reason` | EDF's reason when they will not, e.g. `HAS_NOT_GIVEN_READINGS_RECENTLY` |
+| `can_request_refund` | Whether EDF say they will accept a new request right now - advisory, see below |
+| `cannot_request_reason` | EDF's reason when they say they will not, e.g. `HAS_NOT_GIVEN_READINGS_RECENTLY` |
 | `maximum_refund` | **What EDF will actually refund** |
+
+Treat `can_request_refund` as advice rather than a rule. It read false on a real account,
+with `HAS_NOT_GIVEN_READINGS_RECENTLY` as the reason, while EDF accepted and paid two
+requests made in spite of it - so the panel shows the reason but does not withhold the
+request form, and neither does the websocket command behind it.
 
 `maximum_refund` is the figure to automate against. It tracks what has been paid in by
 direct debit and is normally far below the balance - on an account £1,234 in credit it was
