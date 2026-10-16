@@ -95,7 +95,9 @@ from .const import (
   DATA_AUTH_TOKEN_EXPIRY,
   DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
   DATA_POWER_PERKS_COORDINATOR,
+  DATA_POWER_PERKS,
   DOMAIN,
+  INTEGRATION_VERSION,
 
   CONFIG_MAIN_API_KEY,
   CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
@@ -138,6 +140,7 @@ TARIFF_COMPARISON_PLATFORMS = ["sensor"]
 
 from .api_client import ApiException, AuthenticationException, EDFEnergyApiClient
 from .api_client.billing import BILL_TYPES
+from .notices import build_release_notice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -200,6 +203,36 @@ def websocket_beta_features(hass, connection, msg):
         break
 
   connection.send_result(msg["id"], features)
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/notices",
+  vol.Required("account_id"): str,
+})
+@callback
+def websocket_notices(hass, connection, msg):
+  """Anything the panel should put in a banner: a new release, and anything urgent.
+
+  Both are already in this instance - the release from the update entity HACS maintains,
+  the notice from the relay feed the free sessions coordinator polls - so answering costs
+  no request to anybody. An install without HACS gets no release; a relay with nothing to
+  say sends no notice.
+  """
+  result = {"release": None, "notice": None, "version": INTEGRATION_VERSION}
+
+  try:
+    result["release"] = build_release_notice(hass)
+  except Exception as e:
+    # A banner is not worth failing the panel over.
+    _LOGGER.debug("Could not work out whether an update is available: %s", e)
+
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  if account_id is not None:
+    perks = hass.data.get(DOMAIN, {}).get(account_id, {}).get(DATA_POWER_PERKS.format(account_id))
+    notice = getattr(perks, "notice", None)
+    if isinstance(notice, dict):
+      result["notice"] = notice
+
+  connection.send_result(msg["id"], result)
 
 def _agreements_for_panel(agreements, current):
   """Agreements newest first, each flagged with whether it is the one in force.
@@ -640,6 +673,7 @@ async def async_setup_entry(hass, entry):
     hass.data[DOMAIN]["_frontend_registered"] = True
     websocket_api.async_register_command(hass, websocket_get_api_key)
     websocket_api.async_register_command(hass, websocket_beta_features)
+    websocket_api.async_register_command(hass, websocket_notices)
     websocket_api.async_register_command(hass, websocket_account_summary)
     websocket_api.async_register_command(hass, websocket_flextras_bookable_days)
     websocket_api.async_register_command(hass, websocket_flextras_day_slots)

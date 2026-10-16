@@ -46,6 +46,7 @@ class PowerPerksCoordinatorResult(BaseCoordinatorResult):
   sessions: list[FreeElectricitySession]
   manual_sessions: list[FreeElectricitySession]
   feed_available: bool
+  notice: dict | None
 
   def __init__(
     self,
@@ -55,11 +56,13 @@ class PowerPerksCoordinatorResult(BaseCoordinatorResult):
     manual_sessions: list[FreeElectricitySession] | None = None,
     feed_available: bool = True,
     last_error=None,
+    notice: dict | None = None,
   ):
     super().__init__(last_evaluated, request_attempts, REFRESH_RATE_IN_MINUTES_POWER_PERKS, None, last_error)
     self.sessions = sessions
     self.manual_sessions = manual_sessions or []
     self.feed_available = feed_available
+    self.notice = notice
 
   @property
   def all_sessions(self) -> list[FreeElectricitySession]:
@@ -68,6 +71,46 @@ class PowerPerksCoordinatorResult(BaseCoordinatorResult):
     for session in self.manual_sessions:
       by_code[session.code] = session
     return sorted(by_code.values(), key=lambda s: s.start)
+
+
+NOTICE_MAX_MESSAGE = 300
+NOTICE_SEVERITIES = ("info", "urgent")
+
+
+def parse_feed_notice(data) -> dict | None:
+  """The relay's urgent notice, or None.
+
+  HACS only refreshes its catalogue every few hours, which is too slow when a release has
+  to reach people quickly, so the relay can attach a notice to the feed the integration
+  already polls every 15 minutes. The relay decides who sees it - it knows the caller's
+  version from the user agent - and withholds it once the caller has updated.
+
+  This is text from a server rendered in somebody's Home Assistant, so it is bounded here
+  rather than trusted: known severities only, a length limit, and an https url or none. The
+  panel escapes it as well; neither check is a reason to skip the other.
+  """
+  if not isinstance(data, dict):
+    return None
+  notice = data.get("notice")
+  if not isinstance(notice, dict):
+    return None
+
+  message = notice.get("message")
+  if not isinstance(message, str) or not message.strip():
+    return None
+  message = message.strip()[:NOTICE_MAX_MESSAGE]
+
+  severity = notice.get("severity")
+  severity = severity if severity in NOTICE_SEVERITIES else "info"
+
+  url = notice.get("url")
+  # Only https, so a notice cannot point at something plaintext or at a javascript: url.
+  url = url if isinstance(url, str) and url.startswith("https://") else None
+
+  identifier = notice.get("id")
+  identifier = identifier.strip()[:64] if isinstance(identifier, str) and identifier.strip() else message[:64]
+
+  return {"id": identifier, "severity": severity, "message": message, "url": url}
 
 
 def _parse_session_datetime(value) -> datetime | None:
@@ -149,6 +192,7 @@ async def async_refresh_power_perks(
         manual_sessions,
         existing_result.feed_available,
         existing_result.last_error,
+        existing_result.notice,
       )
     return existing_result
 
@@ -167,10 +211,14 @@ async def async_refresh_power_perks(
       manual_sessions,
       feed_available=False,
       last_error=Exception("Power Perks feed unavailable"),
+      # An unreachable relay is not the relay standing a notice down, so the last one is
+      # kept rather than letting a blip clear something urgent off the screen.
+      notice=existing_result.notice if existing_result is not None else None,
     )
 
-  _LOGGER.debug("Power Perks feed returned %d session(s)", len(sessions))
-  return PowerPerksCoordinatorResult(current, 1, sessions, manual_sessions, feed_available=True)
+  notice = parse_feed_notice(data)
+  _LOGGER.debug("Power Perks feed returned %d session(s)%s", len(sessions), " with a notice" if notice else "")
+  return PowerPerksCoordinatorResult(current, 1, sessions, manual_sessions, feed_available=True, notice=notice)
 
 
 def register_manual_session(hass, account_id: str, start: datetime, end: datetime) -> FreeElectricitySession:

@@ -477,6 +477,17 @@
     }
 
     /* ── Money, statements, ledger, referrals ── */
+    .banner {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      margin: 0 0 12px; padding: 12px 16px; border-radius: 8px;
+      background: var(--card-background-color, #fff);
+      border-left: 4px solid var(--primary-color, #03a9f4);
+      box-shadow: var(--ha-card-box-shadow, 0 2px 2px rgba(0,0,0,0.08));
+    }
+    .banner.urgent { border-left-color: var(--error-color, #db4437); }
+    .banner ha-icon { color: var(--primary-color, #03a9f4); flex-shrink: 0; }
+    .banner.urgent ha-icon { color: var(--error-color, #db4437); }
+    .banner-body { flex: 1; min-width: 180px; font-size: 0.95em; line-height: 1.4; }
     .figures {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
       gap: 1px; background: var(--divider-color, #ececec);
@@ -576,6 +587,8 @@
       this._referrals = null;
       this._referralsLoading = false;
       this._referralsError = null;
+      this._notices = null;
+      this._noticesLoading = false;
       // Refund request state. The amount is held here so a re-render mid-typing does not
       // throw it away, and the confirm step is deliberately separate from the button that
       // sends it - this moves real money out of the account.
@@ -1749,6 +1762,75 @@
       this._render();
     }
 
+    // Dismissals live in this browser only - there is nothing here worth a server round
+    // trip, and storage can be unavailable or throw in a private window, so a failure to
+    // read or write it just means the banner shows.
+    _dismissKey(kind, token) { return `edf-energy-dismissed:${kind}:${token}`; }
+
+    _isDismissed(kind, token) {
+      if (!token) return false;
+      try { return localStorage.getItem(this._dismissKey(kind, token)) !== null; }
+      catch (e) { return false; }
+    }
+
+    _dismiss(kind, token) {
+      if (!token) return;
+      try { localStorage.setItem(this._dismissKey(kind, token), '1'); } catch (e) { /* not important enough to report */ }
+      this._render();
+    }
+
+    async _loadNotices(force = false) {
+      if (this._noticesLoading || (this._notices !== null && !force)) return;
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId) return;
+      this._noticesLoading = true;
+      try {
+        this._notices = await this._hass.callWS({ type: 'edf_energy/notices', account_id: accountId });
+      } catch (e) {
+        // An older backend has no such command. There is nothing useful to say about that
+        // on screen, so the banners simply never appear.
+        this._notices = { release: null, notice: null };
+      }
+      this._noticesLoading = false;
+      this._render();
+    }
+
+    // The urgent notice shows on every tab, because it is the one that cannot wait for
+    // somebody to wander back to the overview. The release banner is the overview's alone.
+    _renderBanners(tab) {
+      const data = this._notices;
+      if (!data) return '';
+      let out = '';
+
+      const notice = data.notice;
+      if (notice && notice.message && !this._isDismissed('notice', notice.id)) {
+        const urgent = notice.severity === 'urgent';
+        out += `
+          <div class="banner${urgent ? ' urgent' : ''}">
+            <ha-icon icon="${urgent ? 'mdi:alert' : 'mdi:information-outline'}"></ha-icon>
+            <div class="banner-body">${esc(notice.message)}</div>
+            ${notice.url ? `<a class="btn-link" href="${esc(notice.url)}" target="_blank" rel="noopener noreferrer">Details</a>` : ''}
+            <button class="btn-link" data-dismiss="notice" data-token="${esc(notice.id)}">Dismiss</button>
+          </div>`;
+      }
+
+      const release = data.release;
+      if (tab === 'overview' && release && release.latest && !this._isDismissed('release', release.latest)) {
+        out += `
+          <div class="banner">
+            <ha-icon icon="mdi:package-up"></ha-icon>
+            <div class="banner-body">
+              <strong>EDF Energy ${esc(release.latest)} is available.</strong>
+              You are on ${esc(release.installed)} - update through HACS.
+            </div>
+            ${release.url ? `<a class="btn-link" href="${esc(release.url)}" target="_blank" rel="noopener noreferrer">Release notes</a>` : ''}
+            <button class="btn-link" data-dismiss="release" data-token="${esc(release.latest)}">Dismiss</button>
+          </div>`;
+      }
+
+      return out;
+    }
+
     async _loadReferrals(force = false) {
       if (this._referralsLoading || (this._referrals !== null && !force)) return;
       const accountId = this._findAccountId(this._hass);
@@ -2368,6 +2450,10 @@
 
       if (this._showAccountTab()) this._loadForTab(this._activeTab);
 
+      // Not behind the beta flag: being told about a release, or about something urgent,
+      // is not a beta feature.
+      this._loadNotices();
+
       // Fetched over the websocket rather than from an entity, because the bookable days
       // and their slots are far too much state to put in attributes. Fired once; the card
       // renders empty until it lands and then re-renders itself.
@@ -2467,7 +2553,7 @@
 
         ${this._renderTabs()}
 
-        <div class="content">${body}</div>
+        <div class="content">${this._renderBanners(tab)}${body}</div>
       `;
 
       this._attachListeners(ids, dates, idx, canOlder, canNewer);
@@ -2499,6 +2585,10 @@
         if (customElements.get('edf-energy-consumption-card')) feed();
         else customElements.whenDefined('edf-energy-consumption-card').then(feed);
       }
+
+      root.querySelectorAll('[data-dismiss]').forEach(btn => {
+        btn.addEventListener('click', () => this._dismiss(btn.dataset.dismiss, btn.dataset.token));
+      });
 
       // ── Tab switching ─────────────────────────────────────────────────────
       root.querySelectorAll('.tab').forEach(btn => {

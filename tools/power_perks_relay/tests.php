@@ -186,5 +186,57 @@ expect('counter: survives a corrupt counter file', read_feed_stats(1)[0]['reques
 
 @array_map('unlink', (array)glob($statsdir . '/*.json'));
 
+// ── Urgent notices ────────────────────────────────────────────────────────────
+// HACS can take hours to notice a release. The notice rides on the feed the integration
+// already polls every 15 minutes, and silences itself once the caller has updated.
+
+$cfg = ['feed_user_agent_prefix' => 'stevekirtley-ha-edf-energy/'];
+$noticeNow = new DateTimeImmutable('2026-10-16 12:00:00', new DateTimeZone('UTC'));
+$withNotice = static function (array $extra) use ($cfg): array {
+    return $cfg + ['notice' => $extra + ['message' => 'Update now', 'id' => 'n1']];
+};
+$asAgent = static function (string $agent): void { $_SERVER['HTTP_USER_AGENT'] = $agent; };
+
+$asAgent('stevekirtley-ha-edf-energy/19.2.6');
+expect('notice: reads the version from the user agent', caller_version($cfg) === '19.2.6');
+$asAgent('some-other-client/1.0');
+expect('notice: ignores a version from anyone else', caller_version($cfg) === null);
+$asAgent('stevekirtley-ha-edf-energy/not-a-version');
+expect('notice: ignores a version that is not one', caller_version($cfg) === null);
+
+$asAgent('stevekirtley-ha-edf-energy/19.2.6');
+expect('notice: nothing configured means nothing sent', notice_for($cfg, '19.2.6', $noticeNow) === null);
+expect('notice: an empty message is not a notice',
+    notice_for($cfg + ['notice' => ['message' => '  ']], '19.2.6', $noticeNow) === null);
+
+$below = notice_for($withNotice(['min_version' => '19.3.1']), '19.2.6', $noticeNow);
+expect('notice: sent to an install below min_version', $below !== null && $below['message'] === 'Update now');
+expect('notice: defaults to info severity', $below['severity'] === 'info');
+expect('notice: withheld once the install is on min_version',
+    notice_for($withNotice(['min_version' => '19.3.1']), '19.3.1', $noticeNow) === null);
+expect('notice: withheld from a later version still',
+    notice_for($withNotice(['min_version' => '19.3.1']), '19.4.0', $noticeNow) === null);
+expect('notice: 19.10.0 counts as later than 19.9.0',
+    notice_for($withNotice(['min_version' => '19.9.0']), '19.10.0', $noticeNow) === null);
+
+// Not knowing the version is not a reason to withhold something urgent.
+expect('notice: sent when the version cannot be read',
+    notice_for($withNotice(['min_version' => '19.3.1']), null, $noticeNow) !== null);
+
+expect('notice: withheld once expired',
+    notice_for($withNotice(['expires' => '2026-10-01T00:00:00+00:00']), '19.2.6', $noticeNow) === null);
+expect('notice: sent before it expires',
+    notice_for($withNotice(['expires' => '2026-11-01T00:00:00+00:00']), '19.2.6', $noticeNow) !== null);
+expect('notice: an unreadable expiry withholds rather than runs forever',
+    notice_for($withNotice(['expires' => 'next tuesday-ish']), '19.2.6', $noticeNow) === null);
+
+$urgent = notice_for($withNotice(['severity' => 'urgent', 'url' => 'https://example.invalid/r']), '19.2.6', $noticeNow);
+expect('notice: urgent severity is carried', $urgent['severity'] === 'urgent');
+expect('notice: a url is carried', $urgent['url'] === 'https://example.invalid/r');
+expect('notice: an unknown severity falls back to info',
+    notice_for($withNotice(['severity' => 'screaming']), '19.2.6', $noticeNow)['severity'] === 'info');
+expect('notice: no url reads as none',
+    notice_for($withNotice([]), '19.2.6', $noticeNow)['url'] === null);
+
 echo "\n" . ($total - $failures) . "/{$total} passed\n";
 exit($failures === 0 ? 0 : 1);

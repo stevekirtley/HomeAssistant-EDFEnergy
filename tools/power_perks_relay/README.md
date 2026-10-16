@@ -68,6 +68,46 @@ of casual scrapers and other projects. A per-address rate limit (30 requests per
 minutes by default) keeps any copying cheap. Both are adjustable in `config.php` via
 `feed_user_agent_prefix`, `rate_limit_requests` and `rate_limit_window_seconds`.
 
+## Urgent notices
+
+HACS only refreshes its catalogue every few hours, so a release that needs to reach people
+quickly can sit unnoticed. The integration already polls `sessions` every 15 minutes and
+sends its version in the `User-Agent`, so a notice rides along with that response — no
+extra request, and it lands within a quarter of an hour.
+
+Set one in `config.php`:
+
+```php
+'notice' => [
+    'id'          => '2026-10-dispatch-fix',
+    'severity'    => 'urgent',                  // 'urgent' (red) or 'info'
+    'message'     => 'Update to 19.3.1 - dispatch windows stop updating on 19.3.0.',
+    'url'         => 'https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/19.3.1',
+    'min_version' => '19.3.1',
+    'expires'     => '2026-11-01T00:00:00+00:00',
+],
+```
+
+`min_version` is what stops it becoming a nag: an install already on that version or later
+is never sent the notice, so it quietly stops itself as people update rather than relying on
+anyone remembering to take it down. `expires` is a second stopping point; an expiry that
+cannot be read withholds the notice rather than publishing one that was meant to end. An
+install whose version cannot be read **is** sent the notice — not knowing is not a reason to
+withhold something urgent.
+
+Changing `id` makes it reappear for people who dismissed the previous one, so reuse an id
+when correcting a typo and change it when there is genuinely something new to say.
+
+Notices are shown on every tab of the panel, unlike the ordinary "a new release is
+available" banner, which is the overview's alone and comes from HACS rather than from here.
+
+!!! note
+
+    The message is rendered in somebody else's Home Assistant. It is length-capped and the
+    url must be `https`, both here and again in the integration, and the panel escapes the
+    text — but it is still worth writing as if it will be read by someone who has no idea
+    what is going on, because it will be.
+
 ## The parser
 
 EDF reword their messages, so the parser keys on three things only:

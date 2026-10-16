@@ -506,6 +506,24 @@ function load_config(): array
         // Requests per address per window for the public actions.
         'rate_limit_requests' => 30,
         'rate_limit_window_seconds' => 300,
+        // An urgent notice shown in the integration's panel. HACS only refreshes its
+        // catalogue every few hours, which is too slow when a release has to reach people
+        // quickly, and the integration already polls this feed every 15 minutes - so the
+        // notice rides along with it rather than adding a call.
+        //
+        //   'notice' => [
+        //     'id'          => '2026-10-dispatch-fix',   // changes => shown again to people who dismissed
+        //     'severity'    => 'urgent',                 // 'urgent' or 'info'
+        //     'message'     => 'Update to 19.3.1 - dispatch windows stop updating on 19.3.0.',
+        //     'url'         => 'https://github.com/.../releases/19.3.1',
+        //     'min_version' => '19.3.1',                 // only shown to callers below this
+        //     'expires'     => '2026-11-01T00:00:00+00:00',
+        //   ]
+        //
+        // min_version is what stops it becoming a nag: a caller already on that version or
+        // later is never sent it, so it silences itself as people update instead of relying
+        // on anyone remembering to take it down.
+        'notice' => null,
     ];
     $path = __DIR__ . '/config.php';
     if (is_file($path)) {
@@ -515,6 +533,68 @@ function load_config(): array
         }
     }
     return $defaults;
+}
+
+/**
+ * The integration's version, read from the User-Agent it already sends
+ * ("stevekirtley-ha-edf-energy/19.2.6"). Null when the caller is not the integration or
+ * sent something unexpected.
+ */
+function caller_version(array $config): ?string
+{
+    $prefix = (string)$config['feed_user_agent_prefix'];
+    if ($prefix === '') {
+        return null;
+    }
+    $agent = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    if (strncmp($agent, $prefix, strlen($prefix)) !== 0) {
+        return null;
+    }
+    $version = trim(substr($agent, strlen($prefix)));
+    // Only a plain dotted version is accepted - the value ends up in a comparison and in
+    // the response, and anything else is a caller we do not recognise.
+    return preg_match('/^[0-9]+(\.[0-9]+)*$/', $version) === 1 ? $version : null;
+}
+
+/**
+ * The notice to send this caller, or null. A notice is withheld once the caller is on
+ * min_version or later, and after it expires, so it stops itself rather than needing to be
+ * taken down by hand.
+ */
+function notice_for(array $config, ?string $version, DateTimeImmutable $now): ?array
+{
+    $notice = $config['notice'] ?? null;
+    if (!is_array($notice) || trim((string)($notice['message'] ?? '')) === '') {
+        return null;
+    }
+
+    $expires = trim((string)($notice['expires'] ?? ''));
+    if ($expires !== '') {
+        $at = date_create_immutable($expires);
+        // An unparseable expiry withholds the notice rather than publishing one that was
+        // meant to have a stopping point.
+        if ($at === false || $now >= $at) {
+            return null;
+        }
+    }
+
+    $minimum = trim((string)($notice['min_version'] ?? ''));
+    if ($minimum !== '') {
+        // A caller whose version we cannot read still gets it: not knowing is not a reason
+        // to withhold something urgent.
+        if ($version !== null && version_compare($version, $minimum, '>=')) {
+            return null;
+        }
+    }
+
+    $severity = (string)($notice['severity'] ?? 'info');
+    return [
+        'id' => (string)($notice['id'] ?? md5((string)$notice['message'])),
+        'severity' => $severity === 'urgent' ? 'urgent' : 'info',
+        'message' => (string)$notice['message'],
+        'url' => trim((string)($notice['url'] ?? '')) ?: null,
+        'min_version' => $minimum ?: null,
+    ];
 }
 
 /**
@@ -767,11 +847,16 @@ function main(): void
             // Counted for every consumer, unlike the access log above, which exists to
             // make named token use visible rather than to measure anything.
             record_feed_hit($consumer);
-            respond(200, [
+            $payload = [
                 'generated_at' => $now->format(DATE_ATOM),
                 'source' => 'power_perks',
                 'sessions' => build_sessions($now),
-            ]);
+            ];
+            $notice = notice_for($config, caller_version($config), $now);
+            if ($notice !== null) {
+                $payload['notice'] = $notice;
+            }
+            respond(200, $payload);
             // no break
 
         case 'stats':
