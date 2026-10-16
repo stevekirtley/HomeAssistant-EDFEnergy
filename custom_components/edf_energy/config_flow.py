@@ -627,7 +627,9 @@ class EDFEnergyAccountOptionsFlow(OptionsFlow):
       data_schema=vol.Schema({
         vol.Required(
           CONFIG_MAIN_SHOW_ACCOUNT_TAB,
-          default=current.get(CONFIG_MAIN_SHOW_ACCOUNT_TAB, False),
+          # On by default. Somebody who has turned it off has a stored False, which this
+          # leaves alone - the default only decides for people who have never said.
+          default=current.get(CONFIG_MAIN_SHOW_ACCOUNT_TAB, True),
         ): bool,
       }),
     )

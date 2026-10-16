@@ -1,19 +1,38 @@
 # Panel Tabs (beta)
 
-With the beta flag on, the EDF Energy panel becomes a small dashboard: the page you already
-know becomes the **Overview** tab, and four more sit alongside it.
+The EDF Energy panel is a small dashboard: the page you already know is the **Overview**
+tab, and four more sit alongside it.
 
-It is **off by default** while it is being built out. With it off the panel is exactly the
-single screen it has always been - no tab bar, nothing moved.
+It is **on by default** from 19.3.0. Turning it off puts the panel back to exactly the
+single screen it has always been - no tab bar, nothing moved. If you had turned it off
+while it was opt-in, it stays off: the new default only decides for people who never said
+either way.
 
-## Turning it on
+## Turning it on and off
+
+From the panel, which is the quickest way:
+
+1. Open the EDF Energy panel and scroll to the bottom of the **Overview**
+2. Flip **Dashboard tabs (beta)**
+
+Or from the settings, if you prefer:
 
 1. Go to **Settings > Devices & services > EDF Energy**
 2. Click **Configure** on your account entry
-3. Tick **Show account tab (beta)** and submit
+3. Tick or untick **Show the dashboard tabs (beta)** and submit
 
-The integration reloads itself, and the panel picks the change up on its own - you should
-not need to refresh your browser. Untick it to put the panel back exactly as it was.
+Both write the same stored setting, so they always agree - there is no separate per-browser
+preference to get out of step. The switch is at the foot of the Overview whichever way it
+is set, so the way back is always in the same place.
+
+Changing it takes effect immediately and **does not reload the integration**: nothing in the
+backend reads this setting, so your entities are not disturbed. Changing any other option
+still reloads, as it always did.
+
+!!! note "Administrators only"
+
+    This writes integration configuration, so only an administrator can change it. Everyone
+    else sees how it is set and is told why they cannot change it.
 
 ## The tabs
 

@@ -589,6 +589,7 @@
       this._referralsError = null;
       this._notices = null;
       this._noticesLoading = false;
+      this._tabsToggleBusy = false;
       // Refund request state. The amount is held here so a re-render mid-typing does not
       // throw it away, and the confirm step is deliberately separate from the button that
       // sends it - this moves real money out of the account.
@@ -1581,6 +1582,59 @@
       return this._beta !== null && this._beta.show_account_tab === true;
     }
 
+    // Writes the same stored option as the Configure form, so the two always agree. Shown
+    // at the foot of the overview in both states - the way back has to live somewhere you
+    // can find it, and the overview is the one tab that is always there.
+    _renderTabsToggleCard() {
+      if (this._beta === null) return '';
+      const on = this._showAccountTab();
+      // Only an administrator may change configuration, so for anybody else this is a
+      // statement of how the panel is set up rather than a control.
+      const allowed = this._beta.can_change !== false;
+
+      return `
+        <div class="card">
+          <div class="control-row">
+            <div class="control-label">
+              Dashboard tabs (beta)
+              <div class="control-sub">
+                ${on
+                  ? 'Charging, Usage, Perks and Account alongside this page. Turn off for the single screen.'
+                  : 'Split the panel into Overview, Charging, Usage, Perks and Account. Nothing is taken off this page.'}
+                ${allowed ? '' : ' Only an administrator can change this.'}
+              </div>
+            </div>
+            ${allowed
+              ? `<label class="toggle">
+                   <input type="checkbox" id="tabs-toggle" ${on ? 'checked' : ''} ${this._tabsToggleBusy ? 'disabled' : ''}>
+                   <div class="toggle-track"></div>
+                   <div class="toggle-thumb"></div>
+                 </label>`
+              : `<span class="pill-past">${on ? 'On' : 'Off'}</span>`}
+          </div>
+        </div>`;
+    }
+
+    async _setShowTabs(enabled) {
+      const accountId = this._findAccountId(this._hass);
+      if (!accountId || this._tabsToggleBusy) return;
+      this._tabsToggleBusy = true;
+      // Moved straight away rather than after the round trip, so the switch does not feel
+      // stuck; put back if the write is refused.
+      const previous = this._beta;
+      this._beta = { ...this._beta, show_account_tab: enabled };
+      if (!enabled) this._activeTab = 'overview';
+      this._render();
+      try {
+        await this._hass.callWS({ type: 'edf_energy/set_show_tabs', account_id: accountId, enabled });
+      } catch (e) {
+        this._beta = previous;
+        this._toast(e?.message || 'Could not change that');
+      }
+      this._tabsToggleBusy = false;
+      this._render();
+    }
+
     // The tab bar only appears with the beta flag on. With it off the panel is exactly the
     // page it has always been: one screen, no chrome above it, nothing moved.
     _renderTabs() {
@@ -2399,7 +2453,8 @@
         ${this._renderFlextrasHoursCard()}
         ${this._renderSundaySaverCard()}
         ${this._renderApiKeyCard()}
-        ${this._renderHistory(ctx)}`;
+        ${this._renderHistory(ctx)}
+        ${this._renderTabsToggleCard()}`;
     }
 
     // The charging tab is the overview with the perks and the account furniture taken
@@ -2586,6 +2641,10 @@
         else customElements.whenDefined('edf-energy-consumption-card').then(feed);
       }
 
+      root.getElementById('tabs-toggle')?.addEventListener('change', e => {
+        this._setShowTabs(e.target.checked);
+      });
+
       root.querySelectorAll('[data-dismiss]').forEach(btn => {
         btn.addEventListener('click', () => this._dismiss(btn.dataset.dismiss, btn.dataset.token));
       });
@@ -2721,7 +2780,7 @@
       });
 
       // ── EV control toggle switches ─────────────────────────────────────────
-      root.querySelectorAll('.toggle input[type=checkbox]:not(#football-toggle)').forEach(checkbox => {
+      root.querySelectorAll('.toggle input[type=checkbox]:not(#football-toggle):not(#tabs-toggle)').forEach(checkbox => {
         checkbox.addEventListener('change', e => {
           this._callSwitch(e.target.dataset.entity, e.target.checked);
         });

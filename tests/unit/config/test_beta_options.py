@@ -1,4 +1,8 @@
-"""The 'Show account tab (beta)' option, and how the panel is told about it."""
+"""The dashboard tabs option, and how the panel is told about it.
+
+On by default as of 19.3.0. The default only decides for people who have never said: a
+stored False is still a False, which several of these pin.
+"""
 import pytest
 
 from custom_components.edf_energy import websocket_beta_features
@@ -33,10 +37,15 @@ class StubHass:
   def __init__(self, entries):
     self.config_entries = StubConfigEntries(entries)
 
+class StubUser:
+  def __init__(self, is_admin=True):
+    self.is_admin = is_admin
+
 class StubConnection:
-  def __init__(self):
+  def __init__(self, is_admin=True):
     self.result = None
     self.error = None
+    self.user = StubUser(is_admin)
 
   def send_result(self, msg_id, result):
     self.result = result
@@ -65,7 +74,7 @@ async def test_when_options_opened_then_beta_flag_shown_and_defaults_off():
 
   keys = {str(key): key for key in result["data_schema"].schema}
   assert CONFIG_MAIN_SHOW_ACCOUNT_TAB in keys
-  assert keys[CONFIG_MAIN_SHOW_ACCOUNT_TAB].default() == False
+  assert keys[CONFIG_MAIN_SHOW_ACCOUNT_TAB].default() == True
 
 @pytest.mark.asyncio
 async def test_when_already_turned_on_then_form_shows_it_on():
@@ -106,46 +115,54 @@ async def test_when_submitted_then_the_new_value_wins_over_the_stored_one():
 # ── What the panel is told ────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_when_flag_not_set_then_panel_told_off():
-  assert ask([StubEntry()]) == {"show_account_tab": False}
+async def test_when_flag_not_set_then_panel_told_on():
+  # On by default as of 19.3.0.
+  assert ask([StubEntry()])["show_account_tab"] == True
+
+@pytest.mark.asyncio
+async def test_when_flag_turned_off_then_it_stays_off():
+  # The default only decides for people who have never said. Somebody who turned the tabs
+  # off has said.
+  assert ask([StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: False})])["show_account_tab"] == False
 
 @pytest.mark.asyncio
 async def test_when_flag_set_then_panel_told_on():
-  assert ask([StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True})]) == {"show_account_tab": True}
+  assert ask([StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True})])["show_account_tab"] == True
 
 @pytest.mark.asyncio
 async def test_when_account_id_comes_from_an_entity_slug_then_still_matched():
   """The panel derives the id from entity slugs, so it arrives as 'a_e351b1a8'."""
   # Act/Assert
-  assert ask([StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True})], "a_e351b1a8") == {"show_account_tab": True}
+  assert ask([StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True})], "a_e351b1a8")["show_account_tab"] == True
 
 @pytest.mark.asyncio
-async def test_when_account_unknown_then_panel_told_off_rather_than_erroring():
-  """A panel that cannot be answered must hide the beta tab, not break."""
-  # Act/Assert
-  assert ask([StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True})], "a_someoneelse") == {"show_account_tab": False}
+async def test_when_account_unknown_then_the_default_answers_rather_than_erroring():
+  """A panel that cannot be matched to an entry still gets an answer, not a break."""
+  # Act/Assert - note the entry that does exist has it ON, and must not answer for another
+  # account; the default does.
+  assert ask([StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True})], "a_someoneelse")["show_account_tab"] == True
 
 @pytest.mark.asyncio
 async def test_when_another_account_has_it_on_then_this_one_is_unaffected():
   """The flag is per account entry, so two accounts can disagree."""
   # Arrange
-  other = StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True}, {
+  other = StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: False}, {
     CONFIG_KIND: CONFIG_KIND_ACCOUNT,
     CONFIG_ACCOUNT_ID: "A-99999999",
   })
-  mine = StubEntry()
+  mine = StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True})
 
   # Act/Assert
-  assert ask([other, mine]) == {"show_account_tab": False}
+  assert ask([other, mine])["show_account_tab"] == True
 
 @pytest.mark.asyncio
 async def test_when_entry_is_not_an_account_then_ignored():
   """Cost trackers and target rates are entries too, and carry no beta options."""
   # Arrange
-  not_an_account = StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True}, {
+  not_an_account = StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: False}, {
     CONFIG_KIND: "cost_tracker",
     CONFIG_ACCOUNT_ID: ACCOUNT_ID,
   })
 
   # Act/Assert
-  assert ask([not_an_account]) == {"show_account_tab": False}
+  assert ask([not_an_account])["show_account_tab"] == True

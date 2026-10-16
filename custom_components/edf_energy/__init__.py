@@ -193,16 +193,48 @@ def websocket_beta_features(hass, connection, msg):
   Asking here means the reload that follows an options change is enough.
   """
   account_id = _account_id_for_panel(hass, msg["account_id"])
-  features = {"show_account_tab": False}
+  # On unless somebody has said otherwise. The default only decides for people who have
+  # never touched it; an explicit False stays False.
+  features = {"show_account_tab": True, "can_change": connection.user.is_admin}
 
   if account_id is not None:
     for entry in hass.config_entries.async_entries(DOMAIN):
       if (entry.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT
           and entry.data.get(CONFIG_ACCOUNT_ID) == account_id):
-        features["show_account_tab"] = entry.options.get(CONFIG_MAIN_SHOW_ACCOUNT_TAB, False) == True
+        features["show_account_tab"] = entry.options.get(CONFIG_MAIN_SHOW_ACCOUNT_TAB, True) == True
         break
 
   connection.send_result(msg["id"], features)
+
+@websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/set_show_tabs",
+  vol.Required("account_id"): str,
+  vol.Required("enabled"): bool,
+})
+@websocket_api.async_response
+async def websocket_set_show_tabs(hass, connection, msg):
+  """Turn the dashboard tabs on or off from the panel.
+
+  This writes the same stored option the Configure form writes, so the two cannot
+  disagree - a panel keeping its own copy would drift from the form the moment either was
+  used. Changing config entry options is a configuration change, so it is admin only, the
+  same as the form itself.
+  """
+  if not connection.user.is_admin:
+    connection.send_error(msg["id"], "unauthorized", "Only an administrator can change this")
+    return
+
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  if account_id is not None:
+    for entry in hass.config_entries.async_entries(DOMAIN):
+      if (entry.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT
+          and entry.data.get(CONFIG_ACCOUNT_ID) == account_id):
+        options = {**entry.options, CONFIG_MAIN_SHOW_ACCOUNT_TAB: msg["enabled"]}
+        hass.config_entries.async_update_entry(entry, options=options)
+        connection.send_result(msg["id"], {"show_account_tab": msg["enabled"]})
+        return
+
+  connection.send_error(msg["id"], "not_found", "Unknown account")
 
 @websocket_api.websocket_command({
   vol.Required("type"): "edf_energy/notices",
@@ -674,6 +706,7 @@ async def async_setup_entry(hass, entry):
     websocket_api.async_register_command(hass, websocket_get_api_key)
     websocket_api.async_register_command(hass, websocket_beta_features)
     websocket_api.async_register_command(hass, websocket_notices)
+    websocket_api.async_register_command(hass, websocket_set_show_tabs)
     websocket_api.async_register_command(hass, websocket_account_summary)
     websocket_api.async_register_command(hass, websocket_flextras_bookable_days)
     websocket_api.async_register_command(hass, websocket_flextras_day_slots)
@@ -852,6 +885,10 @@ async def async_setup_entry(hass, entry):
 
     await hass.config_entries.async_forward_entry_setups(entry, TARIFF_COMPARISON_PLATFORMS)
   
+  # Seeded here so the first change after a restart can be compared against something; an
+  # entry with no record of its previous options is treated as having changed everything.
+  hass.data.setdefault(DOMAIN, {})[DATA_LAST_OPTIONS.format(entry.entry_id)] = dict(entry.options)
+
   entry.async_on_unload(entry.add_update_listener(options_update_listener))
 
   return True
@@ -1496,8 +1533,41 @@ def _async_register_services(hass):
   )
 
 
+# Options that only change what the panel draws. Nothing in the backend reads these, so
+# changing one does not need the entry rebuilt - and must not, now that the panel can
+# toggle one of them: a reload drops every entity for a moment, which is a heavy price for
+# a switch somebody is flicking to look at a layout.
+DISPLAY_ONLY_OPTIONS = frozenset({CONFIG_MAIN_SHOW_ACCOUNT_TAB})
+DATA_LAST_OPTIONS = "LAST_OPTIONS_{}"
+
+
+def _changed_options(hass, entry):
+  """Which option keys differ from the ones last seen for this entry.
+
+  Home Assistant hands the listener the entry as it now is and not as it was, so the
+  previous options are kept alongside it. Returns None for an entry with no record, which
+  means "no idea" rather than "nothing changed" - the caller reloads in that case, because
+  skipping a reload we cannot justify is the more expensive mistake.
+  """
+  key = DATA_LAST_OPTIONS.format(entry.entry_id)
+  previous = hass.data.get(DOMAIN, {}).get(key)
+  current = dict(entry.options)
+  hass.data.setdefault(DOMAIN, {})[key] = current
+
+  if previous is None:
+    return None
+  return {k for k in set(previous) | set(current) if previous.get(k) != current.get(k)}
+
+
 async def options_update_listener(hass, entry):
   """Handle options update."""
+  changed = _changed_options(hass, entry)
+  if changed is not None and changed and changed <= DISPLAY_ONLY_OPTIONS:
+    # Only the panel's own display options moved. The panel asks for these over the
+    # websocket every time it renders, so it picks the change up without a reload.
+    _LOGGER.debug("Only display options changed (%s); not reloading", ", ".join(sorted(changed)))
+    return
+
   await hass.config_entries.async_reload(entry.entry_id)
 
   if entry.data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
