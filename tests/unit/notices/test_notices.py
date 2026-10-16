@@ -1,6 +1,7 @@
 import pytest
 
 from custom_components.edf_energy.notices import _is_newer, build_release_notice
+from custom_components.edf_energy.const import INTEGRATION_VERSION
 from custom_components.edf_energy.coordinators.power_perks import parse_feed_notice
 
 
@@ -195,7 +196,7 @@ def test_another_repository_is_not_mistaken_for_this_one(monkeypatch):
     [StubRegistryEntry("update.predbat_update", "hacs")],
     {"update.predbat_update": StubState({
       "entity_picture": "https://brands.home-assistant.io/_/predbat/icon.png",
-      "installed_version": "19.2.6",   # same version, different integration
+      "installed_version": INTEGRATION_VERSION,   # same version, different integration
     })},
   )
   _patch(monkeypatch, ents, devs)
@@ -222,9 +223,11 @@ def test_a_disabled_entity_is_ignored(monkeypatch):
   assert find_hacs_update_entity(hass) is None
 
 def test_without_a_picture_it_falls_back_to_the_device(monkeypatch):
+  # The version has to be the one this build declares, not a literal - the fallback compares
+  # against INTEGRATION_VERSION, so a hardcoded version here fails on every bump.
   hass, ents, devs = _hass_with(
     [StubRegistryEntry("update.edf_energy_update", "hacs", device_id="d1")],
-    {"update.edf_energy_update": StubState({"installed_version": "19.2.6"})},
+    {"update.edf_energy_update": StubState({"installed_version": INTEGRATION_VERSION})},
     {"d1": StubDevice("EDF Energy")},
   )
   _patch(monkeypatch, ents, devs)
