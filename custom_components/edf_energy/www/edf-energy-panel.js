@@ -564,6 +564,34 @@
       border-left: 3px solid #ff9800;
     }
     .load-more { padding: 10px 16px 14px; text-align: center; }
+
+    /* ── Support ──
+       Deliberately quiet: no colour, no badges, no artwork. It sits under everything
+       else on the overview and should read as a footnote rather than an advert. */
+    .support { padding: 14px 16px; }
+    .support-title {
+      font-size: 0.8em; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--secondary-text-color);
+    }
+    .support-text {
+      font-size: 0.84em; color: var(--secondary-text-color);
+      line-height: 1.5; margin-top: 6px;
+    }
+    .support-links { display: flex; flex-direction: column; margin-top: 10px; }
+    .support-link {
+      display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+      padding: 6px 0; font-size: 0.86em;
+      border-top: 1px solid var(--divider-color, #e0e0e0);
+    }
+    .support-link:first-child { border-top: none; }
+    .support-name { color: var(--primary-text-color); font-weight: 500; }
+    a.support-name { text-decoration: none; }
+    a.support-name:hover { text-decoration: underline; }
+    .support-note { color: var(--secondary-text-color); font-size: 0.95em; }
+    .support-code {
+      font-family: var(--code-font-family, monospace);
+      color: var(--primary-text-color);
+    }
   `;
 
   // ── Panel element ─────────────────────────────────────────────────────────────
@@ -1647,6 +1675,45 @@
         </div>`;
     }
 
+    // Ways to support the work, at the very foot of the overview and nowhere else.
+    // These are fixed links rather than anything fetched, so there is no call behind this
+    // card and nothing about it varies by account - it is the same short list the readme
+    // and the release notes carry, written out once here.
+    //
+    // Kept deliberately plain. It is the last thing on the page, it never nags and it is
+    // not dismissible because there is nothing to dismiss - no banner, no colour, no
+    // badge images, and it says outright that nothing here is expected of anybody.
+    _renderSupportCard() {
+      const links = [
+        ['Buy me a coffee', 'https://ko-fi.com/stevekirtley', 'Ko-fi, one off or monthly'],
+        ['Sponsor on GitHub', 'https://github.com/sponsors/stevekirtley', 'Monthly, cancel any time'],
+        ['Axle Energy', 'https://vpp.axle.energy/landing?ref=R-ZFQNNABO',
+         '\u00a325 credit, and around \u00a31/kWh for exporting from a home battery'],
+        ['Monzo', 'https://join.monzo.com/c/8chg56v', '\u00a310 personal, up to \u00a350 business'],
+      ];
+
+      return `
+        <div class="card support">
+          <div class="support-title">Show support for ongoing development</div>
+          <div class="support-text">
+            All optional, and none of it changes how the integration works. The referral
+            links pay me if you sign up, and most of them pay you too.
+          </div>
+          <div class="support-links">
+            ${links.map(([name, url, note]) => `
+              <div class="support-link">
+                <a class="support-name" href="${url}" target="_blank" rel="noopener noreferrer">${name}</a>
+                <span class="support-note">${note}</span>
+              </div>`).join('')}
+            <div class="support-link">
+              <span class="support-name">Fuse Energy</span>
+              <span class="support-note">Friend code <span class="support-code">STEVE25217</span>
+                &mdash; spin for &pound;25 to &pound;150 of bill credit</span>
+            </div>
+          </div>
+        </div>`;
+    }
+
     async _setShowTabs(enabled) {
       const accountId = this._findAccountId(this._hass);
       if (!accountId || this._tabsToggleBusy) return;
@@ -2613,7 +2680,8 @@
         ${this._renderSundaySaverCard()}
         ${this._renderApiKeyCard()}
         ${this._renderHistory(ctx)}
-        ${this._renderTabsToggleCard()}`;
+        ${this._renderTabsToggleCard()}
+        ${this._renderSupportCard()}`;
     }
 
     // The charging tab is the overview with the perks and the account furniture taken

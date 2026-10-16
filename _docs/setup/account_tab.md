@@ -180,6 +180,16 @@ they are created whichever way the flag is set: account balance, last bill amoun
 payment amount and refund status. See [Billing entities](../entities/billing.md) for what
 each one carries and how to read it.
 
+## Supporting the work
+
+At the very foot of the Overview is a short card with the ways to support development: Ko-fi
+and GitHub Sponsors, and referral links for Fuse Energy, Axle Energy and Monzo. Most of them
+credit you as well, and the Fuse code and the Axle link are only worth anything to people who
+were going to sign up anyway.
+
+It is on the Overview only, there is nothing fetched behind it, and none of it is expected -
+using the integration and reporting what breaks is support enough.
+
 ## Why it is beta
 
 The layout is expected to change between releases. If something looks wrong, please
