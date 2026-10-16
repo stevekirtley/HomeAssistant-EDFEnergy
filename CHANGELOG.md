@@ -3,28 +3,27 @@
 
 ### Features
 
-* Days of consumption statistics missed while the integration was not running are now filled in. The energy dashboard used to keep a permanent hole for any day Home Assistant spent switched off, because nothing in the normal path ever looked further back than yesterday. On startup the integration checks how far behind each meter's statistics have fallen and imports what is missing, up to a fortnight at a time. Meters with no statistics at all are left alone, so a fresh install does not silently import history.
-* Half-hourly readings can now come from your account when EDF's consumption endpoint has nothing to give. One export meter has been reported returning no readings there at all; the account carries the same readings, so the integration asks for those instead rather than leaving the sensors empty. The usual endpoint is still tried first.
-* The panel becomes a small dashboard, and from this release the tabs are **on by default**. Turning them off puts the panel back exactly as it was; if you had already turned them off while this was opt-in, they stay off, because the new default only decides for people who never said either way. There is now a switch at the foot of the Overview as well as the option under Configure - both write the same setting, so they cannot disagree, and flipping it no longer reloads the integration, since nothing in the backend reads it. The page you already know becomes the Overview tab and is unchanged - nothing was taken off it - with Charging, Usage, Perks and Account alongside. Charging is the car controls and the windows that drive them; Usage is the consumption chart; Perks gathers the schemes and your referrals; Account is the money. With the flag off the panel is exactly the single screen it has always been, with no tab bar.
-* A Power Perks Predictor tab, from [powerperkspredictor.app](https://powerperkspredictor.app). It shows tomorrow's call - which reads the published day-ahead auction rather than forecasting it - the week ahead with the wind, solar and demand behind each day, worded the way the site words it - Unlikely, Possible, Good chance, Looks likely, and no percentage, because a figure would claim more precision than the model has, and how the predictions have actually scored. The site is linked from the tab, because the site is the full thing. Nothing is fetched until you open the tab, and it is cached for a quarter of an hour after that, so an install that never opens it never contacts the site; nothing from it is written to an entity, an attribute or the recorder.
-* The Account tab shows your balance, every statement with a link to open the PDF, the account ledger, your tariffs and meters, and your refunds. Statements open straight from EDF: the link is created when you press Open and expires within the hour, so nothing is cached or stored. The ledger is signed, because EDF report every charge and payment as a positive number and leave the direction to the entry's type. The refund panel shows what EDF will actually refund - which is what has been paid in by direct debit, and can be a small fraction of the balance, so the balance itself is never offered - any past requests and their status, and a box to request one. EDF's own eligibility flag is shown but not obeyed - it read "has not given readings recently" on an account where EDF then accepted and paid two requests, so the reason appears as a caveat and the form stays open, leaving the decision to EDF where it belongs. Requesting takes two presses, is admin only, and the amount is checked against EDF's own maximum on the Home Assistant side before anything is sent.
-* The Perks tab shows your referral link and reward amounts, how many people have joined on it and what each one's status is, alongside a referral total that breaks down into what has been paid out and what the sign ups still switching are worth. The breakdown comes from the referrals themselves rather than from EDF's total, because that total counts everything the link has earned whether it has been settled or not, so on any account with sign ups still switching it reads higher than what has actually been paid out. These are other people's names, so they are fetched while the tab is open and rendered - there is no sensor, attribute or recorder row holding them. The same goes for the statement and transaction lists.
-* Four new billing sensors, which are created whether or not the beta flag is on: account balance, last bill amount, next payment amount and refund status. The last three carry their dates and EDF's own eligibility reason as attributes. Next payment reads unknown on a variable schedule, since EDF collect whatever the period came to and there is no figure until the statement is cut; refund status reads "None requested" on an account that has never asked for one, and its `maximum_refund` attribute is the figure worth automating against.
-* There is a new cost statistic per meter that includes the daily standing charge, named like the existing one with `_includingsc` on the end. The energy dashboard understated every day by the standing charge - often around 50p - because the only cost statistic available was consumption times rate, while the sensor of the same name has always included the charge. **Nothing changes on its own:** the original statistic is untouched so no history moves, which means you need to go into the energy dashboard configuration and pick the `_includingsc` one if you want the dashboard to match your bill. The `peak` and `off_peak` breakdowns deliberately leave the standing charge out, since a daily charge belongs to neither band, and export meters don't get one at all.
+* The panel is now a dashboard, on by default: tabs for Overview, Charging, Usage, Perks, Predictor and Account. Switch at the foot of the Overview, or under Configure.
+* Account tab: balance, statements, ledger, tariffs and meters, refund requests.
+* Perks tab: referral link, sign ups and totals.
+* Usage tab: consumption chart in kWh or pounds, by day, month or year.
+* Predictor tab, from [powerperkspredictor.app](https://powerperkspredictor.app). Nothing is fetched until you open it.
+* Four billing sensors: balance, last bill, next payment, refund status.
+* New cost statistic per meter including the standing charge, suffixed `_includingsc`. **Select it in the energy dashboard** to use it - the original is untouched.
+* Statistics missed while Home Assistant was off are filled in on startup, up to a fortnight.
+* Half-hourly readings fall back to your account when EDF's consumption endpoint returns nothing ([#43](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/43)).
+* A banner when a new release is available, read from HACS, and urgent notices over the sessions feed.
+* Support links at the foot of the Overview.
 
-* The panel tells you when there is a new release. HACS already works out whether one is available, so the banner reads the update entity HACS maintains rather than asking GitHub again - which means no new outbound call, and nothing at all on an install without HACS. It appears on the overview, links to the release notes, and can be dismissed; dismissing hides that version only, so the next release brings it back. A version you have already skipped in HACS is never raised here, because skipping was an answer.
-* A small "show support for ongoing development" card at the foot of the Overview, gathering the Ko-fi and GitHub Sponsors links with the Fuse Energy, Axle and Monzo referrals that were previously only in a forum post - Fuse is currently worth £100 to each of us, and the card calls out the friend code since Fuse have no per-person link. It is the last thing on the page, on that one tab, with no colour, badges or artwork and nothing fetched behind it - most of the referrals pay you as well as me, and none of it is expected of anybody.
-* The relay can carry an urgent notice. HACS only refreshes every few hours, which is too slow when a release has to reach people quickly, so a notice can now ride on the free sessions feed the integration already polls every 15 minutes - no extra request, and it arrives within the quarter hour. A notice is withheld from anyone already on the version it asks for, so it stops itself as people update, and it shows on every tab rather than just the overview.
 
 ### Bug Fixes
 
-* Revoked smart charging windows no longer linger in the off-peak window list. The list is built from a stored 60 day history, and a smart charging plan was written into it as soon as EDF published it - but EDF revoke and reshape plans through the day, and nothing ever took a window back out again. A day of churn left a pile of overlapping windows that never happened, and a plan that was extended rather than revoked appeared twice, because records were matched on their exact start and end. Windows that have not started yet are now taken from the current rates rather than remembered. A window that has already started is still kept whatever the rates say later, since it ran; so is anything beyond the range the rates cover, so a refresh holding only today cannot be read as tomorrow being cancelled. Windows already recorded in error cannot be told apart from real ones after the fact, so they stay until they age out of the 60 days.
-* Your settings survive a config entry migration. Everything stored in the entry's options - the dashboard tabs flag, the free electricity opt-ins - was cleared whenever the entry was migrated to a new version. That was right when it was written, because the migration that moved configuration out of options copied it into the entry's data first, but it has been wiped on every migration since regardless. Nothing has been lost yet, since no migration has run while there were settings worth keeping, but the next version bump would have handed people back a default they had already turned off.
-
-* The integration now retries when it cannot reach EDF while starting up. A connection that failed because the network was not up yet - the normal state of affairs for a few seconds after a reboot - left the integration marked as failed and stranded there until somebody reloaded it by hand, with nothing in the logs to say why. Home Assistant is now told to try again, and a cached copy of your account is used in the meantime if there is one.
-* The panel opens on today again. It picked whichever date it had most data for, newest first, which was always today or tomorrow until Flextras hours arrived - those are booked up to three weeks ahead, so the panel started opening on a date weeks away while looking like today's view.
-* A one-off failure from one of EDF's REST endpoints no longer fills the log. EDF were returning HTTP 500 for the Flextras hours screens for about an hour, and while the integration coped - it keeps the hours already booked and backs off - it warned on every retry, which read like a fault here rather than a blip at their end. The first failure of each endpoint is still warned about, the retries after it go to debug, and a success resets it so a later outage is reported properly.
-* Dates in the future are marked "upcoming" in the date picker. The picker only lists days it has data for, so a booking three weeks out sits directly after tomorrow with nothing in between, which read as missing days rather than days EDF has not published rates for yet.
+* Revoked smart charging windows no longer linger in the off-peak window list ([#49](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/49)).
+* Options are no longer wiped by a config entry migration.
+* Setup retries instead of staying unavailable when EDF cannot be reached at startup ([#42](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/42)).
+* A one-off 5xx from EDF's Flextras endpoints no longer fills the log ([#48](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/48)).
+* The panel opens on today rather than on a Flextras booking weeks ahead.
+* Future dates are marked "upcoming" in the date picker.
 
 
 ## [19.2.6](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.6) (2026-10-07)
@@ -32,8 +31,8 @@
 
 ### Bug Fixes
 
-* Fixed the integration failing to load entirely on Python 3.13, which affects anyone on a Home Assistant version older than the ones built on Python 3.14. A function introduced in 19.2.4 was placed above the imports of the module it lives in, and the type in its signature is imported further down. Python 3.14 does not evaluate annotations until they are asked for, so it loaded there and the tests passed; Python 3.13 evaluates them as the function is defined and raised `NameError`, taking the whole integration down with it. Anyone on 19.2.4 or 19.2.5 who saw the integration stop working should update.
-* Added a check that no module defines anything above its imports, so the difference between the two Python versions cannot hide this again.
+* Fixed the integration failing to load on Python 3.13, which affects Home Assistant versions below those built on 3.14. Anyone on 19.2.4 or 19.2.5 should update.
+* Added a check that no module defines anything above its imports.
 
 
 ## [19.2.5](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.5) (2026-10-06)
@@ -41,7 +40,7 @@
 
 ### Bug Fixes
 
-* Fixed the integration failing to set up with `KeyError: 'kind'` for anyone whose config entry has no kind recorded against it. Nothing could put this right once it happened, because the migration that fills the kind in only runs while an entry is below the current config version, so the entry stayed broken through every restart. The kind is now worked out from the entry and written back. This was not introduced by 19.2.4 - updating simply forced the reload that brought it to light. Reported by Derek via Reddit.
+* Fixed setup failing with `KeyError: 'kind'` on a config entry with no kind recorded. The kind is now worked out and written back. Reported by Derek via Reddit.
 
 
 ## [19.2.4](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.4) (2026-10-05)
@@ -49,9 +48,9 @@
 
 ### Features
 
-* The free hours you book through Flextras now appear as free electricity sessions, alongside Power Perks and Sunday Saver. They reach the calendar, the sensors and anything built on them, so existing automations and Predbat pick them up with no changes. Hours booked next to each other are shown as one window. Because a booking can be moved or given back until the Thursday before, the integration follows the app: a window you cancel disappears, while one already under way never does.
-* You can now choose, move and give back your free hours from the EDF Energy panel, rather than only in the EDF app. Pick a weekend day, click the hours you want, and save. There are also `edf_energy.book_flextras_hours` and `edf_energy.cancel_flextras_hours` services, so an automation can book your hours where they are worth most instead of leaving it to chance.
-* A new Flextras Hours Remaining sensor reports the hours you have left to spend, and when they expire. EDF book unused challenge hours for you once they near expiry, at a time of their choosing, so the expiry attributes let you claim a better slot first.
+* Flextras free hours now appear as free electricity sessions, so existing automations and Predbat pick them up unchanged.
+* Choose, move and give back free hours from the panel, or with the `edf_energy.book_flextras_hours` and `edf_energy.cancel_flextras_hours` services.
+* New Flextras Hours Remaining sensor, with expiry attributes.
 
 
 ## [19.2.3](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.3) (2026-10-03)
@@ -59,18 +58,18 @@
 
 ### Bug Fixes
 
-* Reconfiguring the integration no longer uses a Home Assistant call that is being withdrawn. The config flow asked Home Assistant to update the entry and reload it, while the integration also has its own reload listener, which Home Assistant warns about and stops supporting in 2026.12. The reload is now left to the listener, as upstream Octopus did.
-* Looking up this integration's own devices now uses the call that replaced the deprecated one in Home Assistant 2026.9, which was logging a warning on every startup. The old call is still used on earlier versions, so nothing changes for anyone below 2026.9.
-* Fixed a check that raised an authentication error when EDF failed to issue a new token but the existing one was still valid, and merely logged when it had actually expired, leaving requests to carry on with a dead token. The two cases were the wrong way round.
-* The token refresh lock is now per account and built for async. It was a re-entrant threading lock shared by every account, which cannot keep two coroutines out of the same refresh because they run on one thread and it lets them straight back in.
-* The integration no longer polls the Sunday Saver weekly endpoint, which has answered 502 for everyone since the scheme was retired. Because the retry timer anchored on a fixed point, a fresh install logged a pair of warnings every refresh until the backoff climbed clear of it. Existing Sunday Saver history is untouched. Reported with the four items above by [@david40i9](https://github.com/david40i9) ([#36](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/36)).
-* Fixed consumption sensors staying empty when EDF hide your product from their pricing API. The rates fallback added in 19.2.1 reads your account's agreement, but that only publishes rates for about a day either side of now, and the integration will not publish consumption it cannot price. Anyone on a hidden half-hourly tariff therefore got working current rates but no previous consumption at all. The integration now asks EDF which rates applied to your meter over the exact period it needs, so historical days are priced properly. Flat-rate and gas tariffs were never affected, as a single rate covers any period. Reported by [@buttshill](https://github.com/buttshill) ([#39](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/39)).
-* The unknown product repair notice is no longer raised for a tariff you are actually on. EDF hide a product for a couple of weeks after withdrawing it from sale, which made the integration report a product it prices perfectly well as unknown. The notice is also cleared automatically once EDF publish the product again, rather than sitting in your repairs list forever.
+* Reconfiguring no longer uses a Home Assistant call being withdrawn in 2026.12.
+* Device lookup uses the call that replaced the one deprecated in 2026.9.
+* Fixed an authentication check that had its two cases the wrong way round.
+* The token refresh lock is now per account and async.
+* Stopped polling the retired Sunday Saver weekly endpoint, which answered 502. History is untouched. Above five reported by [@david40i9](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/36) ([#36](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/36)).
+* Fixed empty consumption sensors when EDF hide your product. Rates for the exact period are now requested, so historical days are priced. Reported by [@buttshill](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/39) ([#39](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/39)).
+* The unknown product repair is no longer raised for a tariff you are on, and clears itself.
 
 
 ### Changes
 
-* The Energy Dashboard guide now links to Home Assistant's own utility meter documentation, and says where to create one. Suggested by [@PaulDGAL](https://github.com/PaulDGAL) ([#35](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/35)).
+* The Energy Dashboard guide links to Home Assistant's utility meter docs. Suggested by [@PaulDGAL](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/35) ([#35](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/35)).
 
 
 ## [19.2.2](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.2) (2026-09-19)
@@ -78,13 +77,13 @@
 
 ### Bug Fixes
 
-* Fixed Power Perks sessions only being picked up when Home Assistant starts. The feed was polled once at startup and never again, because the coordinator behind it has no entities of its own and Home Assistant only schedules refreshes for coordinators something is listening to. It is now refreshed alongside the free electricity sessions, so a session announced during the day reaches the calendar within 15 minutes. Anyone on 19.2.0 or 19.2.1 needs this: without it, new sessions only appear after a restart.
-* The history day view no longer shows an empty "Sunday Saver Windows" card on every Sunday. It appears only for days that actually had a Sunday Saver session.
+* Fixed Power Perks sessions only arriving at startup; they now reach the calendar within 15 minutes. Needed by anyone on 19.2.0 or 19.2.1.
+* No more empty "Sunday Saver Windows" card on Sundays without a session.
 
 
 ### Changes
 
-* The Power Perks relay now understands a single text that announces several windows, including across two days, as EDF sent for 19 and 20 September. It also accepts named read-only tokens so other tools can use the sessions feed, and has a `reparse` action for re-running the parser over stored texts after a change.
+* The relay handles one text announcing several windows, including across two days, accepts named read-only tokens, and has a `reparse` action.
 
 
 ## [19.2.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.1) (2026-09-18)
@@ -92,8 +91,8 @@
 
 ### Bug Fixes
 
-* Fixed rates and standing charges showing as unknown when EDF hide your product from their pricing API. EDF withdraw a product version whenever the next one launches and hide it for a couple of weeks while comparison sites finish their sign-ups, so everything under the pricing API answers "not found" even though you are still on the tariff. The integration now reads the rates and standing charge from your account's agreement instead, which EDF's own app uses and which is never hidden, so the entities keep working throughout. Single rate, half-hourly and Economy 7 tariffs are covered; three-rate tariffs still wait for the pricing API because the agreement carries their prices but not their time bands. Reported by [@adamdridi](https://github.com/adamdridi) ([#32](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/32)).
-* Fixed the `events` attribute of the free electricity session events entity being empty after a restart until the next hourly refresh, even though `free_electricity_windows` already listed the session. The coordinator fires its first event before the entity exists, and Home Assistant then restores the attributes it recorded before the restart, so a Power Perks session that arrived in between, or that the previous version could not know about, was missing from `events` for up to an hour. The entity now takes the current sessions from the coordinator as soon as it is added, so tools that read `events` see the session straight away. Reported by [@bigchriselmer-ui](https://github.com/bigchriselmer-ui) ([#33](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/33)).
+* Fixed rates and standing charges reading unknown when EDF hide your product. They now come from your account's agreement. Single rate, half-hourly and Economy 7 covered; three-rate tariffs still need the pricing API. Reported by [@adamdridi](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/32) ([#32](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/32)).
+* Fixed the free electricity events entity's `events` attribute being empty for up to an hour after a restart. Reported by [@bigchriselmer-ui](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/33) ([#33](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/33)).
 
 
 ## [19.2.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.2.0) (2026-09-18)
@@ -101,12 +100,12 @@
 
 ### Features
 
-* Added support for **Power Perks free electricity sessions**. EDF announce these by SMS the day before and nowhere else — not in the Kraken API, not in their website APIs, and not in the mobile app, whose Power Perks screen is a fixed "free electricity is auto-applied when available" banner. The integration now polls a small relay that receives the text from the phone holding the registered mobile number, parses out the date and window, and publishes the sessions. They then appear in the free electricity calendar, the session sensors and the session events alongside Sunday Saver, with the source `power_perks`, and drive the same automations. If the relay is unreachable the last known sessions are kept, and a session already seen stays in the day's feed from the persisted history. A session that has not yet started is withdrawn again if the relay stops publishing it, so a cancelled or misread event cannot leave a phantom free window behind. The relay and its parser tests are in `tools/power_perks_relay`.
-* Added a `edf_energy.register_power_perks_session` action for recording a Power Perks session by hand, for a text the relay could not parse or for anyone not using the relay.
-* The EDF Energy panel labels Power Perks sessions in the free electricity history.
-* Added **Next Free Electricity Session Start** and **End** sensors. They report the current or next free electricity session from any source — Sunday Saver, Power Perks or a one-off event — so an automation that prepares for a free window no longer has to know which scheme is running it, or fall back from one scheme's sensors to another's. See [the entity docs](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/free_electricity/).
-* Added a **Join Flextras** button and a matching `edf_energy.join_flextras` action, so joining no longer needs the EDF mobile app. The button is only available while the account is not a member. Rejoining after opting out is safe — bonus hours, tastecard and Power Perks registration all survive — but it resets the registration date, so the panel says so before you press it.
-* The Flextras card on the EDF Energy panel now offers to join, or rejoin, straight from the card.
+* Added Power Perks free electricity sessions, polled from a relay that receives EDF's SMS announcement. They appear alongside Sunday Saver with the source `power_perks`. Relay and parser tests in `tools/power_perks_relay`.
+* Added `edf_energy.register_power_perks_session` for recording a session by hand.
+* The panel labels Power Perks sessions in the free electricity history.
+* Added Next Free Electricity Session Start and End sensors, covering any scheme.
+* Added a Join Flextras button and `edf_energy.join_flextras` action. Rejoining resets the registration date, which the panel says before you press it.
+* The Flextras card offers to join or rejoin.
 
 
 ## [19.1.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/19.1.0) (2026-09-07)
@@ -114,23 +113,22 @@
 
 ### Bug Fixes
 
-* Fixed imported electricity cost statistics being inflated. The cost of each half hour was rounded to the nearest penny before being added to the running total, and across 48 slots a day those roundings compound — a day of 0.1 kWh slots at 26.42p works out at £1.27 but was imported as £1.44, around 13% too much. Costs are now accumulated at full precision and rounded only when the statistic is written. Reported by [@wildsurfer](https://github.com/wildsurfer) ([#30](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/30)). The same bug exists in the upstream Octopus integration ([BottlecapDave/HomeAssistant-OctopusEnergy#1852](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues/1852)).
+* Fixed imported electricity cost statistics being inflated by around 13%, from rounding each half hour before totalling. Only affects data imported from now on - use **Refresh previous consumption data** to rebuild earlier figures. Reported by [@wildsurfer](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/30) ([#30](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/30)).
+* Automatic Sunday Saver enrolment is now switched off. EDF reused the retired endpoint for interest campaigns, so it started registering accounts repeatedly and reporting success without anything reaching the account. The setting remains, marked inactive.
 
-  This only affects data imported from now on. To correct figures already in your database, use the **Refresh previous consumption data** action against the affected sensor with a start date far enough back to cover the period you want rebuilt.
-
-* Home Assistant will no longer automatically enrol your account in Sunday Saver. EDF retired Sunday Saver and replaced it with Flextras, but left the old sign-up endpoint in place and now use it to capture "interest" in the new schemes. When EDF activated a new October interest campaign, the endpoint changed from quietly doing nothing to accepting registrations, so the automatic enrolment started firing for everyone who had it switched on — repeatedly, because the enrolment check can never report success while Sunday Saver is switched off. Worse, the registration was reported as successful without anything actually appearing on the account. The automatic enrolment is now switched off. The setting remains in the Reconfigure menu, marked inactive, so it can be brought back if EDF ever revive the scheme.
 
 ### Features
 
-* Added support for **Flextras**, EDF's replacement for Sunday Saver. New entities show whether your account is registered, your joining bonus hours and whether they have been claimed, and whether you are signed up to Power Perks. Joining Flextras itself is only possible in the EDF mobile app, but once you have joined, everything else is visible in Home Assistant.
-* Added a **Register for Power Perks** button and a matching `edf_energy.register_power_perks` action, so you can opt into EDF's short-notice free electricity slots without opening the app.
-* Added a **Claim bonus hours** button and an `edf_energy.claim_flextras_bonus_hours` action for claiming the Flextras joining bonus. Both buttons disable themselves once the action no longer applies.
-* Schemes your tariff cannot join are now hidden rather than shown as permanently unavailable. Weekend Saver requires a one or two-rate tariff, so on a time-of-use tariff its entity is not created at all, and an existing one is removed. Where a requirement is something you can actually fix — a missing mobile number, or not enough smart meter readings — the scheme stays visible and shows EDF's own explanation instead. Note that changing tariff needs the integration reloading for these to appear or disappear.
-* The EDF Energy panel has a new Flextras card showing membership, bonus hours, Weekend Saver status and Power Perks.
+* Added support for Flextras, EDF's replacement for Sunday Saver: registration, joining bonus hours and Power Perks sign-up. Joining still needs the EDF app.
+* Added a Register for Power Perks button and `edf_energy.register_power_perks` action.
+* Added a Claim bonus hours button and `edf_energy.claim_flextras_bonus_hours` action.
+* Schemes your tariff cannot join are hidden rather than shown unavailable. Where the requirement is fixable, EDF's own explanation is shown. Changing tariff needs a reload.
+* The panel has a Flextras card: membership, bonus hours, Weekend Saver and Power Perks.
+
 
 ### Changes
 
-* The Sunday Saver card has been hidden on the EDF Energy panel now that the scheme has ended. The underlying sensors and their session history are untouched, and the card can be restored if EDF revive the scheme.
+* Hidden the Sunday Saver card now the scheme has ended. The sensors and history are untouched.
 
 
 ## [18.9.9](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/18.9.9) (2026-08-06)
@@ -138,12 +136,12 @@
 
 ### Bug Fixes
 
-* Your email address is now redacted from downloaded diagnostics. It was appearing in full under `config_entry`, alongside the account ID and API key which were already being redacted. Diagnostics are routinely attached to GitHub issues, so this was a genuine leak. Any password left on an older config entry is now redacted too. Reported by [@narjekdjcusbe](https://github.com/narjekdjcusbe) ([#27](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/27)).
+* Your email address, and any password left on an older config entry, are now redacted from downloaded diagnostics. Reported by [@narjekdjcusbe](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/27) ([#27](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/27)).
 
 
 ### Changes
 
-* The bug report form now includes the debug logging steps inline, so you no longer have to follow a link out of a half-filled form to find them. GitHub gives no way to force a link to open in a new tab, so the form now says as much and suggests Ctrl/Cmd+click. It also spells out which details to strip before pasting logs.
+* The bug report form includes the debug logging steps inline, and spells out what to strip before pasting logs.
 
 
 ## [18.9.8](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/18.9.8) (2026-08-06)
@@ -151,13 +149,13 @@
 
 ### Bug Fixes
 
-* Fixed the free electricity session event entity writing to the recorder database every minute, which caused significant database growth over time. The entity's state is the timestamp of the last event it received, so every fire is by definition a new state that the recorder cannot deduplicate — the "all sessions" event was being fired on every coordinator tick, which came to 1,440 database rows a day for every account. It now fires when the sessions or the retained history actually change, plus once an hour as a heartbeat so that automations using the entity as a periodic trigger keep working. This cuts the entity's routine database writes by around 98%, and no longer requires excluding the entity from the recorder as a workaround. Reported by [@narjekdjcusbe](https://github.com/narjekdjcusbe) ([#27](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/27)).
+* Fixed the free electricity event entity writing to the recorder every minute - around 1,440 rows a day per account. It now fires on change, plus hourly as a heartbeat, cutting routine writes by about 98%. Reported by [@narjekdjcusbe](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/27) ([#27](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/27)).
 
 
 ### Features
 
-* After upgrading, anyone carrying a significant amount of this history will be offered a repair in **Settings → Devices & Services → Repairs**, showing how many rows have built up with a "Fix" button that clears them. The repair only appears when there is enough there to be worth acting on (around a week's worth or more), and it is an offer rather than something that happens automatically — this is your own recorder history, not integration cache, so nothing is deleted without you asking. The fix dialogue includes the same optional "Reclaim disk space" switch described below.
-* Added a "Purge free electricity event history" action, for clearing out the rows the bug above has already written. Fixing the write rate stops the problem getting worse, but the existing rows would otherwise sit in the database until they aged past your recorder retention. The action deletes them straight away and the entities carry on working normally. It takes an optional account ID, and an optional "Reclaim disk space" switch that also rebuilds the database so the freed space is returned to the filesystem — worth knowing that the rebuild can take several minutes on a large database, needs roughly as much free disk as the database currently uses, and pauses recording while it runs. Without it the rows are removed but the database file stays the same size.
+* A repair offers to clear the rows already written, where there are enough to be worth it.
+* Added a "Purge free electricity event history" action, with an optional disk reclaim that rebuilds the database.
 
 
 ## [18.9.7](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/18.9.7) (2026-08-04)
@@ -165,15 +163,15 @@
 
 ### Bug Fixes
 
-* Fixed the smart charging dispatch history growing without limit, which could consume several gigabytes of memory and take Home Assistant down with an out of memory error. Every history entry was storing a full copy of the 60 day completed dispatch list, so the file grew with entries multiplied by completed dispatches rather than simply with entries. One user's `edf_energy.intelligent_dispatches_history_*` file had reached 1.5GB, against 3.5MB for the equivalent file from another integration. History entries no longer store completed dispatches, which are unnecessary for the point in time dispatch history action they exist to serve. This affects everyone who has been on 18.4.0 or later; the file only reached its full size after roughly 60 days, which is why it has surfaced now. Reported and diagnosed on Reddit by [u/napalmDaz](https://www.reddit.com/user/napalmDaz/) and [u/timknowlden](https://www.reddit.com/user/timknowlden/), who spotted both the oversized `.storage` file and that it was being loaded into memory — thank you both.
-* Oversized dispatch history files are now detected and discarded on startup instead of being loaded. The file size is checked before any parsing, so an affected installation recovers by itself on upgrade rather than needing the file deleted from `.storage` by hand. A warning is logged when this happens and history restarts from that point.
-* Fixed the dispatch history recording started dispatches inconsistently. The stored snapshot was taken before started dispatches were merged and only picked them up by accident, through a shared reference.
+* Fixed the smart charging dispatch history growing without limit, which could reach gigabytes and take Home Assistant down. Affects anyone who has been on 18.4.0 or later. Reported and diagnosed on Reddit by [u/napalmDaz](https://www.reddit.com/user/napalmDaz/) and [u/timknowlden](https://www.reddit.com/user/timknowlden/).
+* Oversized history files are discarded on startup, so an affected install recovers by itself.
+* Fixed started dispatches being recorded inconsistently in the history.
 
 
 ### Changes
 
-* Added a "Days of dispatch history to keep" option under Smart Charging settings, adjustable between 1 and 60 days and defaulting to 7. Lower values use less disk and memory. This governs the record of what dispatches were known at each point in time; the 60 days of completed dispatches shown on the panel are unaffected.
-* Added a 5000 entry cap on the dispatch history as a backstop, so the store cannot run away again however often dispatches change.
+* Added a "Days of dispatch history to keep" option, 1 to 60 days, defaulting to 7.
+* Added a 5000 entry cap as a backstop.
 
 
 ## [18.9.6](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/18.9.6) (2026-08-01)
@@ -181,19 +179,19 @@
 
 ### Features
 
-* Free electricity sessions are now retained after they finish, so a recently completed session still appears on the panel (backed by a new session history store) instead of disappearing the moment it ends.
+* Free electricity sessions are retained after they finish, so a recent session still shows on the panel.
 
 
 ### Bug Fixes
 
-* Sunday Saver sign-up now treats an HTTP 204 ("no active challenge") response as a benign no-op instead of logging a warning on every refresh. This occurs while Sunday Saver is paused between promotions; existing enrolled users' remaining sessions are unaffected.
-* The baseline alert blueprint no longer requires an EDF live consumption feed to work.
+* Sunday Saver sign-up treats HTTP 204 ("no active challenge") as a no-op rather than warning every refresh.
+* The baseline alert blueprint no longer requires a live consumption feed.
 
 
 ### Changes
 
-* Archived the World Cup 2026 football free electricity feature now the tournament has ended (19 July 2026). Live fixture polling, the options toggle and the associated service call are disabled. Historic `football_*` sessions remain parseable, and the feature can be re-enabled for a future tournament.
-* Documentation: removed references to live consumption entities that EDF never provides, and updated blueprint install links to the develop branch (thanks [@nickshanks347](https://github.com/nickshanks347)).
+* Archived the World Cup 2026 football free electricity feature now the tournament has ended. Historic `football_*` sessions remain parseable.
+* Documentation: removed references to live consumption entities EDF never provides, and updated blueprint links (thanks [@nickshanks347](https://github.com/nickshanks347)).
 
 
 ## [18.2.1](https://github.com/BottlecapDave/HomeAssistant-EDFEnergy/compare/v18.2.0...v18.2.1) (2026-04-16)
