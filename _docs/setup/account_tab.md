@@ -184,8 +184,11 @@ each one carries and how to read it.
 
 At the very foot of the Overview is a short card with the ways to support development: Ko-fi
 and GitHub Sponsors, and referral links for Fuse Energy, Axle Energy and Monzo. Most of them
-credit you as well, and the Fuse code and the Axle link are only worth anything to people who
-were going to sign up anyway.
+credit you as well - Fuse is currently £100 each - and they are only worth anything to people
+who were going to sign up anyway.
+
+Fuse have no per-person link, so the card calls out the friend code to use at sign up; the
+credit comes from the code rather than from the link.
 
 It is on the Overview only, there is nothing fetched behind it, and none of it is expected -
 using the integration and reporting what breaks is support enough.

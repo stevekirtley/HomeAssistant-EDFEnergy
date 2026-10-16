@@ -592,6 +592,14 @@
       font-family: var(--code-font-family, monospace);
       color: var(--primary-text-color);
     }
+    /* The one thing in this card that has to be read rather than skimmed, because the
+       credit depends on the code going in. Still a line of text, not a popup. */
+    .support-alert {
+      margin-top: 10px; padding: 8px 10px; border-radius: 8px;
+      font-size: 0.84em; line-height: 1.5;
+      background: rgba(255, 152, 0, 0.12); color: var(--primary-text-color);
+      border-left: 3px solid #ff9800;
+    }
   `;
 
   // ── Panel element ─────────────────────────────────────────────────────────────
@@ -1690,6 +1698,10 @@
         ['Axle Energy', 'https://vpp.axle.energy/landing?ref=R-ZFQNNABO',
          '\u00a325 credit, and around \u00a31/kWh for exporting from a home battery'],
         ['Monzo', 'https://join.monzo.com/c/8chg56v', '\u00a310 personal, up to \u00a350 business'],
+        // Fuse have no per-person referral URL - the credit comes from the friend code
+        // instead, so that is called out underneath rather than left on this line to be
+        // skimmed past. The amount is theirs to change; it is currently \u00a3100 each.
+        ['Fuse Energy', 'https://www.fuseenergy.com', '\u00a3100 bill credit each, with the friend code below'],
       ];
 
       return `
@@ -1705,11 +1717,9 @@
                 <a class="support-name" href="${url}" target="_blank" rel="noopener noreferrer">${name}</a>
                 <span class="support-note">${note}</span>
               </div>`).join('')}
-            <div class="support-link">
-              <span class="support-name">Fuse Energy</span>
-              <span class="support-note">Friend code <span class="support-code">STEVE25217</span>
-                &mdash; spin for &pound;25 to &pound;150 of bill credit</span>
-            </div>
+          </div>
+          <div class="support-alert">
+            Use friend code <span class="support-code">STEVE25217</span> when signing up to Fuse.
           </div>
         </div>`;
     }
