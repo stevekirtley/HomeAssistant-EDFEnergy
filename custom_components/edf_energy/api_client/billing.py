@@ -7,7 +7,7 @@ the shapes below are what the API actually serves rather than what the docs impl
 Two things to know before changing anything in this file:
 
 Every amount Kraken returns is in **minor units** - pence - as an integer. A balance of
-123456 is £1,234.10. Each parser converts on the way out so nothing downstream has to
+123456 is £1,234.56. Each parser converts on the way out so nothing downstream has to
 remember, and `to_pounds` is the only place that division lives.
 
 A bill's PDF is a **short lived pre-signed S3 link**. It arrives with an expiry attached
@@ -282,9 +282,9 @@ def parse_billing_summary(response) -> dict | None:
       # EDF's own reason code, e.g. HAS_NOT_GIVEN_READINGS_RECENTLY. Shown as given, since
       # rewording it would mean guessing at codes we have not seen.
       "reason": eligibility.get("reason"),
-      # Well below the balance - £273 against £1,234 on the account this was built from -
-      # because EDF only refund what has been paid in by direct debit. Never offer the
-      # balance as refundable.
+      # Normally well below the balance, sometimes by an order of magnitude, because EDF
+      # only refund what has been paid in by direct debit. Never offer the balance as
+      # refundable.
       "maximum": to_pounds(maximum.get("amount")),
       "maximum_reason": maximum.get("reasonToRecommendAmount"),
       "recommended_balance": to_pounds(maximum.get("recommendedBalance")),

@@ -108,13 +108,13 @@ async def test_an_unknown_account_is_refused():
 
 @pytest.mark.asyncio
 async def test_a_refund_within_the_maximum_is_sent():
-  # Act
-  connection, hass = await ask(250)
+  # Act - comfortably under the £98.76 the fixture says EDF will allow
+  connection, hass = await ask(50)
 
   # Assert
   assert connection.error is None
   assert connection.result == {"request_id": "abc-123", "status": "REQUESTED"}
-  assert hass.data[DOMAIN][ACCOUNT_ID][DATA_CLIENT].submitted == [(ACCOUNT_ID, 250.0)]
+  assert hass.data[DOMAIN][ACCOUNT_ID][DATA_CLIENT].submitted == [(ACCOUNT_ID, 50.0)]
 
 @pytest.mark.asyncio
 async def test_more_than_edf_will_refund_is_refused_before_anything_is_sent():

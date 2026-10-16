@@ -131,9 +131,9 @@ async def test_when_flag_set_then_panel_told_on():
 
 @pytest.mark.asyncio
 async def test_when_account_id_comes_from_an_entity_slug_then_still_matched():
-  """The panel derives the id from entity slugs, so it arrives as 'a_e351b1a8'."""
+  """The panel derives the id from entity slugs, so it arrives as 'a_1a2b3c4d'."""
   # Act/Assert
-  assert ask([StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True})], "a_e351b1a8")["show_account_tab"] == True
+  assert ask([StubEntry({CONFIG_MAIN_SHOW_ACCOUNT_TAB: True})], "a_1a2b3c4d")["show_account_tab"] == True
 
 @pytest.mark.asyncio
 async def test_when_account_unknown_then_the_default_answers_rather_than_erroring():

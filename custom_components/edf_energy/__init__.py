@@ -166,7 +166,7 @@ def websocket_get_api_key(hass, connection, msg):
     connection.send_error(msg["id"], "unauthorized", "Admin required")
     return
 
-  # The panel derives the account id from entity slugs (e.g. "a_e351b1a8"), so
+  # The panel derives the account id from entity slugs (e.g. "a_1a2b3c4d"), so
   # compare loosely against the stored id ("A-1A2B3C4D") ignoring case and -/_.
   def _norm(value):
     return (value or "").lower().replace("-", "").replace("_", "")

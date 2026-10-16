@@ -77,8 +77,7 @@ requests made in spite of it - so the panel shows the reason but does not withho
 request form, and neither does the websocket command behind it.
 
 `maximum_refund` is the figure to automate against. It tracks what has been paid in by
-direct debit and is normally far below the balance - on an account £1,234 in credit it was
-£98.76.
+direct debit and is normally far below the balance, sometimes by an order of magnitude.
 
 ## What is deliberately not here
 

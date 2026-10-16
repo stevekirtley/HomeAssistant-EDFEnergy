@@ -111,9 +111,9 @@ status, and a box to request one.
 
 !!! warning "The refundable amount is not your balance"
 
-    EDF only refund what has been paid in by direct debit. On an account £1,234 in credit
-    the refundable figure was £98.76. The panel will not let you ask for more than EDF
-    quote, and neither will the websocket command behind it.
+    EDF only refund what has been paid in by direct debit, which can be a small fraction
+    of a credit balance. The panel will not let you ask for more than EDF quote, and neither
+    will the websocket command behind it.
 
 Requesting a refund takes two presses: the first arms the button and tells you what it is
 about to do, the second sends it. It is admin-only, and the amount is checked against EDF's

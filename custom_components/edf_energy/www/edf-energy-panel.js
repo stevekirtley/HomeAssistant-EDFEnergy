@@ -98,8 +98,8 @@
   function money(value, { signed = false } = {}) {
     if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
     const n = Number(value);
-    // Grouped, because a credit balance on a smart meter account runs to four figures
-    // and \u00a31234.56 is harder to read at a glance than \u00a31,234.10.
+    // Grouped, because a credit balance can run to four figures and \u00a31234.56 is
+    // harder to read at a glance than \u00a31,234.56.
     const body = `\u00a3${Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (!signed) return n < 0 ? `-${body}` : body;
     return n < 0 ? `-${body}` : `+${body}`;
@@ -2376,9 +2376,9 @@
       const paidList = referrals.filter(isPaid);
       const pendingList = referrals.filter(r => !isPaid(r));
       // EDF's own total is everything the link has earned, settled or not, so it is the two
-      // figures added together rather than what has landed - on an account with 76 paid and 16
-      // still switching it read higher than what has been paid. The split only comes from the
-      // rows, and the total is kept to show alongside them.
+      // figures added together rather than what has landed - any account with sign ups still
+      // switching reads higher than what has been paid. The split only comes from the rows,
+      // and the total is kept to show alongside them.
       const paidTotal = sumRewards(paidList);
       const expectedTotal = sumRewards(pendingList);
       const schemeTotal = this._referrals?.total_earned;

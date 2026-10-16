@@ -16,7 +16,7 @@ def entry(state, attributes=None):
 
 def test_the_balance_figure_is_removed():
   # Act
-  result = redact_billing_entity("edf_energy_a_e351b1a8_account_balance", entry("1234.56"))
+  result = redact_billing_entity("edf_energy_a_1a2b3c4d_account_balance", entry("1234.56"))
 
   # Assert
   assert result["state"] == "**REDACTED**"
@@ -24,7 +24,7 @@ def test_the_balance_figure_is_removed():
 def test_the_bill_amount_and_its_identifiers_are_removed():
   # Act
   result = redact_billing_entity(
-    "edf_energy_a_e351b1a8_last_bill_amount",
+    "edf_energy_a_1a2b3c4d_last_bill_amount",
     entry("57.95", {"bill_id": "117961351", "closing_balance": 5264.46, "issued_date": "2026-10-07"}),
   )
 
@@ -36,7 +36,7 @@ def test_the_bill_amount_and_its_identifiers_are_removed():
 def test_the_dates_survive_because_they_are_what_diagnose_a_stale_sensor():
   # Act
   result = redact_billing_entity(
-    "edf_energy_a_e351b1a8_last_bill_amount",
+    "edf_energy_a_1a2b3c4d_last_bill_amount",
     entry("57.95", {"issued_date": "2026-10-07", "due_date": "2026-10-22"}),
   )
 
@@ -49,7 +49,7 @@ def test_an_unavailable_sensor_still_reads_as_unavailable():
   # Replacing this would hide the fault the download was taken to investigate.
   for state in ("unavailable", "unknown", None):
     # Act
-    result = redact_billing_entity("edf_energy_a_e351b1a8_account_balance", entry(state))
+    result = redact_billing_entity("edf_energy_a_1a2b3c4d_account_balance", entry(state))
 
     # Assert
     assert result["state"] == state
@@ -59,7 +59,7 @@ def test_the_refund_status_itself_is_kept():
   # point of looking at that sensor.
   # Act
   result = redact_billing_entity(
-    "edf_energy_a_e351b1a8_refund_status",
+    "edf_energy_a_1a2b3c4d_refund_status",
     entry("SUBMITTED", {"amount": 250.0, "cannot_request_reason": "HAS_NOT_GIVEN_READINGS_RECENTLY"}),
   )
 
@@ -73,7 +73,7 @@ def test_every_other_entity_is_left_exactly_as_it_was():
   original = entry("12.4", {"charge_in_kwh": 12.4})
 
   # Act
-  result = redact_billing_entity("edf_energy_a_e351b1a8_previous_accumulative_consumption", original)
+  result = redact_billing_entity("edf_energy_a_1a2b3c4d_previous_accumulative_consumption", original)
 
   # Assert
   assert result == original
