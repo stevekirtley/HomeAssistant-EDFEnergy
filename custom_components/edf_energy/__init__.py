@@ -648,8 +648,10 @@ async def async_migrate_entry(hass, config_entry):
     title = config_entry.title
 
     # Move to reconfiguration from options
+    folded_options_into_data = False
     if (config_entry.version <= 8 and new_data is not None and config_entry.options is not None):
       new_data.update(config_entry.options)
+      folded_options_into_data = True
 
     if CONFIG_MAIN_API_KEY in new_data or CONFIG_MAIN_OLD_API_KEY in new_data or (CONFIG_KIND in new_data and new_data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT):
       new_data = await async_migrate_main_config(config_entry.version, new_data)
@@ -667,7 +669,14 @@ async def async_migrate_entry(hass, config_entry):
     elif CONFIG_KIND in new_data and new_data[CONFIG_KIND] == CONFIG_KIND_TARIFF_COMPARISON:
       new_data = await async_migrate_tariff_comparison_config(config_entry.version, new_data, hass.config_entries.async_entries)
     
-    hass.config_entries.async_update_entry(config_entry, title=title, data=new_data, options={}, version=CONFIG_VERSION)
+    # Options are only cleared when they were just copied into data, which is what the move
+    # off options-based configuration did for entries at version 8 or below. Everything
+    # since keeps real settings in options - the dashboard tabs flag among them - and
+    # clearing those would quietly undo everyone's choices on any future version bump,
+    # handing people back a default they had already said no to.
+    new_options = {} if folded_options_into_data else dict(config_entry.options or {})
+
+    hass.config_entries.async_update_entry(config_entry, title=title, data=new_data, options=new_options, version=CONFIG_VERSION)
 
     _LOGGER.debug("Migration to version %s successful", config_entry.version)
 
