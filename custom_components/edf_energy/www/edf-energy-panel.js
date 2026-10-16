@@ -502,7 +502,8 @@
       background: var(--secondary-background-color, rgba(127,127,127,0.18));
       color: var(--secondary-text-color);
     }
-    .level.likely, .level.very-likely { background: rgba(76,175,80,0.18); color: #2e7d32; }
+    .level.likely { background: rgba(76,175,80,0.18); color: #2e7d32; }
+    .level.good { background: rgba(139,195,74,0.2); color: #558b2f; }
     .level.possible { background: rgba(255,167,38,0.2); color: #ef6c00; }
     .predictor-day .figure-right { text-align: right; }
     .banner {
@@ -1759,7 +1760,7 @@
             <div class="row predictor-day">
               <div class="main">
                 <div class="title">${esc(formatDay(d.date))}
-                  ${d.level ? `<span class="level ${d.known_level ? esc(d.level.replace(/\s+/g, '-')) : 'unknown'}">${esc(humanise(d.level))}</span>` : ''}
+                  ${d.band ? `<span class="level ${esc(d.tone || 'unknown')}">${esc(d.band)}</span>` : ''}
                 </div>
                 ${d.summary ? `<div class="sub">${esc(d.summary)}</div>` : ''}
                 ${d.factors.length
@@ -1767,10 +1768,6 @@
                       `<span class="factor"><ha-icon icon="${PREDICTOR_ICON[f.kind] || 'mdi:information-outline'}"></ha-icon>${esc(f.text)}${
                         f.trend ? ` <span class="trend">${f.trend === 'up' ? '↑' : f.trend === 'down' ? '↓' : '→'}</span>` : ''}</span>`).join('')}</div>`
                   : ''}
-              </div>
-              <div class="figure-right">
-                <div class="money">${d.chance === null || d.chance === undefined ? '—' : `${d.chance}%`}</div>
-                <div class="sub">chance</div>
               </div>
             </div>`).join('')}
         </div>`;

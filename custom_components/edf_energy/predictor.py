@@ -41,9 +41,25 @@ MAX_RECORD_DAYS = 30
 MAX_WINDOWS = 12
 MAX_TEXT = 240
 
-# Levels the site publishes, worst to best. Anything else is shown as given but styled
-# neutrally rather than guessed at.
-KNOWN_LEVELS = ("unlikely", "possible", "likely", "very likely")
+# How the site turns a probability into words. It does not show a percentage anywhere, and
+# putting one here would say something the site deliberately does not - a 3% and a 19% both
+# read "Unlikely" there, and the difference is noise the model cannot really support.
+# Thresholds are the site's own, in percent, worst to best.
+CHANCE_BANDS = (
+  (20, "Unlikely", "unlikely"),
+  (50, "Possible", "possible"),
+  (70, "Good chance", "good"),
+)
+TOP_BAND = ("Looks likely", "likely")
+
+# When there is no probability to band, the site falls back to the model's level - and
+# softens it on the way out, because the level on its own reads more confidently than the
+# model warrants. Same mapping here so the two never disagree.
+LEVEL_WORDS = {
+  "likely": ("Possible", "possible"),
+  "possible": ("Outside chance", "possible"),
+  "unlikely": ("Unlikely", "unlikely"),
+}
 
 
 def _text(value, limit: int = MAX_TEXT) -> str | None:
@@ -59,12 +75,41 @@ def _number(value) -> float | None:
   return round(float(value), 3)
 
 
-def _percent(value) -> int | None:
-  """A 0-1 probability as whole percent. The site stores chances as fractions."""
+def _percent(value) -> float | None:
+  """A 0-1 probability as percent. The site stores chances as fractions."""
   number = _number(value)
   if number is None:
     return None
-  return max(0, min(100, round(number * 100)))
+  return max(0.0, min(100.0, number * 100))
+
+
+def band_for(day) -> dict:
+  """The words the site would show for a day, never a number.
+
+  Reads the same fields in the same order the site does, so a day reads the same in both
+  places. Falls back to the softened level word, and finally to nothing at all rather than
+  inventing a confidence for a day the feed said nothing about.
+  """
+  if not isinstance(day, dict):
+    return {"word": None, "tone": None}
+
+  chance = None
+  for key in ("chance", "max_p_free_cal", "max_p_free"):
+    chance = _percent(day.get(key))
+    if chance is not None:
+      break
+
+  if chance is not None:
+    for threshold, word, tone in CHANCE_BANDS:
+      if chance < threshold:
+        return {"word": word, "tone": tone}
+    return {"word": TOP_BAND[0], "tone": TOP_BAND[1]}
+
+  level = _text(day.get("level"), 32)
+  if level is None:
+    return {"word": None, "tone": None}
+  word, tone = LEVEL_WORDS.get(level.lower(), (level, None))
+  return {"word": word, "tone": tone}
 
 
 def parse_factors(factors) -> list[dict]:
@@ -108,12 +153,14 @@ def parse_outlook(data) -> dict | None:
     date = _text(day.get("date"), 32)
     if date is None:
       continue
-    level = _text(day.get("level"), 32)
+    band = band_for(day)
     days.append({
       "date": date,
-      "level": level,
-      "known_level": level in KNOWN_LEVELS if level else False,
-      "chance": _percent(day.get("chance")),
+      # Words only. The percentage is deliberately not carried through to the panel - the
+      # site does not show one, and a figure here would be a second opinion on his own
+      # model that nobody asked for.
+      "band": band["word"],
+      "tone": band["tone"],
       "summary": _text(day.get("summary")),
       "factors": parse_factors(day.get("factors")),
       "min_price": _number(day.get("min_price")),

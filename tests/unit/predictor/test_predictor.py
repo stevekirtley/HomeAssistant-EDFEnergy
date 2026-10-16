@@ -13,6 +13,7 @@ from custom_components.edf_energy.predictor import (
   MAX_OUTLOOK_DAYS,
   MAX_TEXT,
   async_get_predictor,
+  band_for,
   parse_factors,
   parse_outlook,
   parse_scores,
@@ -55,29 +56,56 @@ def test_the_week_ahead_is_read():
   assert len(outlook["days"]) == 1
   day = outlook["days"][0]
   assert day["date"] == "2026-10-17"
-  assert day["level"] == "unlikely"
-  assert day["known_level"] == True
+  assert day["band"] == "Unlikely"
 
-def test_a_chance_is_turned_into_whole_percent():
-  # The site stores it as a fraction; the panel shows a percentage.
-  assert parse_outlook(OUTLOOK)["days"][0]["chance"] == 3
+def test_no_percentage_reaches_the_panel():
+  # The site does not show one anywhere, and a figure here would be a second opinion on
+  # somebody else's model. The day carries words only.
+  day = parse_outlook(OUTLOOK)["days"][0]
+
+  assert "chance" not in day
+  assert "level" not in day
 
 @pytest.mark.parametrize("chance,expected", [
-  (0, 0), (1, 100), (0.5, 50), (0.996, 100), (1.5, 100), (-0.2, 0), ("lots", None), (None, None),
+  # The site's own thresholds, in fractions: <20%, <50%, <70%, then the top band.
+  (0.0, "Unlikely"),
+  (0.027, "Unlikely"),
+  (0.199, "Unlikely"),
+  (0.2, "Possible"),
+  (0.49, "Possible"),
+  (0.5, "Good chance"),
+  (0.69, "Good chance"),
+  (0.7, "Looks likely"),
+  (1.0, "Looks likely"),
 ])
-def test_a_chance_is_clamped_to_something_showable(chance, expected):
-  data = {"days": [{"date": "2026-10-17", "chance": chance}]}
+def test_a_chance_becomes_the_site_s_word(chance, expected):
+  assert band_for({"chance": chance})["word"] == expected
 
-  assert parse_outlook(data)["days"][0]["chance"] == expected
+def test_the_calibrated_chance_is_used_when_there_is_no_plain_one():
+  # Same order of preference the site reads them in.
+  assert band_for({"max_p_free_cal": 0.6})["word"] == "Good chance"
+  assert band_for({"max_p_free": 0.8})["word"] == "Looks likely"
+  assert band_for({"chance": 0.1, "max_p_free_cal": 0.9})["word"] == "Unlikely"
 
-def test_an_unknown_level_is_shown_but_not_styled_as_known():
-  # A new level from the site must still appear rather than vanish, but it cannot be given
-  # a colour we have not thought about.
-  data = {"days": [{"date": "2026-10-17", "level": "nailed on"}]}
-  day = parse_outlook(data)["days"][0]
+@pytest.mark.parametrize("level,expected", [
+  # Without a probability the site falls back to the level, softened on the way out.
+  ("likely", "Possible"),
+  ("possible", "Outside chance"),
+  ("unlikely", "Unlikely"),
+])
+def test_a_day_with_no_chance_falls_back_to_the_softened_level(level, expected):
+  assert band_for({"level": level})["word"] == expected
 
-  assert day["level"] == "nailed on"
-  assert day["known_level"] == False
+def test_an_unknown_level_is_shown_as_given():
+  # A new level from the site must appear rather than vanish, but it cannot be given a
+  # colour we have not thought about.
+  band = band_for({"level": "nailed on"})
+
+  assert band["word"] == "nailed on"
+  assert band["tone"] is None
+
+def test_a_day_the_feed_said_nothing_about_claims_nothing():
+  assert band_for({"date": "2026-10-17"})["word"] is None
 
 def test_a_day_without_a_date_is_dropped():
   # The date is the only thing every row needs; without it there is nothing to label it.
