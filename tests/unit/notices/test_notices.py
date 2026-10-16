@@ -128,3 +128,123 @@ def test_skipping_an_older_version_does_not_hide_a_newer_one(monkeypatch):
   })
 
   assert release is not None and release["latest"] == "19.4.0"
+
+
+# ── Finding the HACS entity ───────────────────────────────────────────────────
+# The lookup matters as much as the comparison: the wrong entity means either silence or a
+# banner about somebody else's integration. The shapes here are taken from a real install.
+
+from custom_components.edf_energy.notices import find_hacs_update_entity
+
+
+class StubRegistryEntry:
+  def __init__(self, entity_id, platform, domain="update", device_id=None, disabled_by=None):
+    self.entity_id = entity_id
+    self.platform = platform
+    self.domain = domain
+    self.device_id = device_id
+    self.disabled_by = disabled_by
+
+class StubEntityRegistry:
+  def __init__(self, entries):
+    self.entities = {e.entity_id: e for e in entries}
+
+class StubDevice:
+  def __init__(self, name):
+    self.name = name
+
+class StubDeviceRegistry:
+  def __init__(self, devices):
+    self._devices = devices
+  def async_get(self, device_id):
+    return self._devices.get(device_id)
+
+def _hass_with(entries, states, devices=None):
+  hass = type("H", (), {})()
+  hass.states = StubStates(states)
+  return hass, StubEntityRegistry(entries), StubDeviceRegistry(devices or {})
+
+def _patch(monkeypatch, entities, devices):
+  monkeypatch.setattr("custom_components.edf_energy.notices.er.async_get", lambda hass: entities)
+  monkeypatch.setattr("custom_components.edf_energy.notices.dr.async_get", lambda hass: devices)
+
+# The real entity picture from a live install.
+BRANDS = "https://brands.home-assistant.io/_/edf_energy/icon.png"
+
+def test_the_hacs_entity_is_found_by_its_brands_picture(monkeypatch):
+  hass, ents, devs = _hass_with(
+    [StubRegistryEntry("update.edf_energy_update", "hacs")],
+    {"update.edf_energy_update": StubState({"entity_picture": BRANDS, "installed_version": "19.2.6"})},
+  )
+  _patch(monkeypatch, ents, devs)
+
+  assert find_hacs_update_entity(hass) == "update.edf_energy_update"
+
+def test_a_renamed_entity_is_still_found(monkeypatch):
+  # The default id is only a default; matching on it would lose a renamed entity.
+  hass, ents, devs = _hass_with(
+    [StubRegistryEntry("update.my_edf_thing", "hacs")],
+    {"update.my_edf_thing": StubState({"entity_picture": BRANDS, "installed_version": "19.2.6"})},
+  )
+  _patch(monkeypatch, ents, devs)
+
+  assert find_hacs_update_entity(hass) == "update.my_edf_thing"
+
+def test_another_repository_is_not_mistaken_for_this_one(monkeypatch):
+  hass, ents, devs = _hass_with(
+    [StubRegistryEntry("update.predbat_update", "hacs")],
+    {"update.predbat_update": StubState({
+      "entity_picture": "https://brands.home-assistant.io/_/predbat/icon.png",
+      "installed_version": "19.2.6",   # same version, different integration
+    })},
+  )
+  _patch(monkeypatch, ents, devs)
+
+  assert find_hacs_update_entity(hass) is None
+
+def test_a_non_hacs_update_entity_is_ignored(monkeypatch):
+  # Core's own update entities must never be read as ours.
+  hass, ents, devs = _hass_with(
+    [StubRegistryEntry("update.home_assistant_core_update", "hassio")],
+    {"update.home_assistant_core_update": StubState({"installed_version": "2026.9.4"})},
+  )
+  _patch(monkeypatch, ents, devs)
+
+  assert find_hacs_update_entity(hass) is None
+
+def test_a_disabled_entity_is_ignored(monkeypatch):
+  hass, ents, devs = _hass_with(
+    [StubRegistryEntry("update.edf_energy_update", "hacs", disabled_by="user")],
+    {"update.edf_energy_update": StubState({"entity_picture": BRANDS})},
+  )
+  _patch(monkeypatch, ents, devs)
+
+  assert find_hacs_update_entity(hass) is None
+
+def test_without_a_picture_it_falls_back_to_the_device(monkeypatch):
+  hass, ents, devs = _hass_with(
+    [StubRegistryEntry("update.edf_energy_update", "hacs", device_id="d1")],
+    {"update.edf_energy_update": StubState({"installed_version": "19.2.6"})},
+    {"d1": StubDevice("EDF Energy")},
+  )
+  _patch(monkeypatch, ents, devs)
+
+  assert find_hacs_update_entity(hass) == "update.edf_energy_update"
+
+def test_the_fallback_will_not_match_a_different_version(monkeypatch):
+  # Without the picture the device name is the only signal, so the version has to agree -
+  # otherwise a repository that happens to share the name would be picked up.
+  hass, ents, devs = _hass_with(
+    [StubRegistryEntry("update.edf_energy_update", "hacs", device_id="d1")],
+    {"update.edf_energy_update": StubState({"installed_version": "1.0.0"})},
+    {"d1": StubDevice("EDF Energy")},
+  )
+  _patch(monkeypatch, ents, devs)
+
+  assert find_hacs_update_entity(hass) is None
+
+def test_no_hacs_at_all_is_not_an_error(monkeypatch):
+  hass, ents, devs = _hass_with([], {})
+  _patch(monkeypatch, ents, devs)
+
+  assert find_hacs_update_entity(hass) is None
