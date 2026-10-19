@@ -1,3 +1,15 @@
+## [20.1.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.1.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* Installing version 21 alongside this one no longer stops this one working. 20.1.0 refused to set up once it found the new folder, on the assumption the new one would pick your accounts up by itself - it cannot, so every entity went unavailable until the old folder was deleted. This release carries on as normal instead.
+
+
+### Notes
+
+* The notice about the new folder now says what is actually left to do: add EDF Energy from Settings once version 21 is installed, and it offers to take over the setup you already have. Nothing happens on its own, and nothing breaks while you leave it.
+
 ## [20.1.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.1.0) (2026-10-19)
 
 
