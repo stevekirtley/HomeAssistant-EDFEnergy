@@ -1,3 +1,25 @@
+## [20.1.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.1.0) (2026-10-19)
+
+
+### Features
+
+* The Power Perks session feed can be turned off, in setup and under Configure. On by default, and the Perks tab says which it is.
+* An API key is no longer created without asking. A repair explains that any existing key is replaced, and the account keeps working until you confirm.
+* Reveal and copy your API key on the Account tab, for other applications that accept one.
+
+
+### Bug Fixes
+
+* Booking Flextras hours no longer fails silently once a previous booking has passed.
+* Refund requests work again; EDF now require the ledger to be named and it was not being sent.
+* Panel messages are no longer wiped the instant they appear, so booking and refund results are visible.
+* Turning the Power Perks feed off also removes sessions it had already reported that have not started.
+
+
+### Notes
+
+* The integration moves to a new folder in 21.0.0. This release stands aside if both are installed, so entities and automations carry over untouched.
+
 ## [20.0.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.0.0) (2026-10-16)
 
 
