@@ -625,6 +625,10 @@
       this._flexBusy = false;
       this._flexLoading = false;
       this._flexConfirmCancel = false;
+      // Held in state rather than appended once, because a render replaces the whole
+      // shadow root - see _toast.
+      this._toastMsg = null;
+      this._toastTimer = null;
       // Beta features, and the account tab they gate. Both are asked for once and held
       // here, so a coordinator refresh re-rendering the panel does not re-fetch them or
       // throw the user back to the first tab.
@@ -890,14 +894,30 @@
       this._toast(`Ready-by time set to ${value}`);
     }
 
+    // _render assigns shadowRoot.innerHTML, which destroys anything appended to it. A
+    // toast added directly was therefore wiped by the very next render - and the booking
+    // handlers render immediately after toasting, so a failed booking showed no message at
+    // all and looked like nothing had happened. Keeping the message in state and putting
+    // it back after each render is what makes it visible.
     _toast(msg) {
-      const existing = this.shadowRoot.querySelector('.toast');
+      this._toastMsg = msg;
+      if (this._toastTimer) clearTimeout(this._toastTimer);
+      this._toastTimer = setTimeout(() => {
+        this._toastTimer = null;
+        this._toastMsg = null;
+        this._render();
+      }, 2600);
+      this._render();
+    }
+
+    _paintToast(root) {
+      const existing = root.querySelector('.toast');
       if (existing) existing.remove();
+      if (!this._toastMsg) return;
       const el = document.createElement('div');
       el.className = 'toast';
-      el.textContent = msg;
-      this.shadowRoot.appendChild(el);
-      setTimeout(() => el.remove(), 2600);
+      el.textContent = this._toastMsg;
+      root.appendChild(el);
     }
 
     // ── Render helpers ──────────────────────────────────────────────────────────
@@ -2497,8 +2517,32 @@
     // Everything the account earns rather than spends: the schemes, the free hours, and
     // the referral link. The cards are the overview's own, so a change to one shows up in
     // both places.
+    // Where Power Perks session times come from, and whether the feed is switched on. The
+    // feed is somebody's server rather than EDF's, so it should not take a trip to the
+    // options page to find out it is running.
+    _renderPowerPerksFeedCard() {
+      if (this._beta === null) return '';
+      // undefined means an older backend that does not report it - say nothing rather
+      // than claim it is off.
+      const relay = this._beta.power_perks_relay;
+      if (relay === undefined) return '';
+      const body = relay
+        ? `Session times come from the Power Perks feed, checked every 15 minutes. Only the
+           integration version is sent, never account details. Turn it off in the
+           integration options if you would rather it did not.`
+        : `The Power Perks feed is turned off, so sessions will not appear on their own.
+           Add them with the <code>Register Power Perks session</code> action, or turn the
+           feed back on in the integration options.`;
+      return `
+              <div class="card">
+                <div class="section-title">Power Perks session feed</div>
+                <div class="section-info">${body}</div>
+              </div>`;
+    }
+
     _renderPerksView(dayFreeSessions) {
       return `
+        ${this._renderPowerPerksFeedCard()}
         ${this._renderWorldCupCard()}
         ${this._renderFlextrasCard()}
         ${this._renderFlextrasHoursCard()}
@@ -2858,6 +2902,7 @@
 
     _attachListeners(ids, dates, idx, canOlder, canNewer) {
       const root = this.shadowRoot;
+      this._paintToast(root);
 
       // ── Consumption card ──────────────────────────────────────────────────
       // Re-homed rather than recreated on every render, so changing period or unit is not

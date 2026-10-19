@@ -23,6 +23,7 @@ from homeassistant.util.dt import as_utc, parse_datetime, utcnow
 from ..api_client import user_agent_value
 from ..api_client.free_electricity_sessions import FreeElectricitySession
 from ..const import (
+  CONFIG_MAIN_POWER_PERKS_RELAY,
   COORDINATOR_REFRESH_IN_SECONDS,
   INTEGRATION_VERSION,
   DATA_POWER_PERKS,
@@ -181,7 +182,16 @@ async def async_refresh_power_perks(
   fetch_feed,
   manual_sessions: list[FreeElectricitySession],
   existing_result: PowerPerksCoordinatorResult | None,
+  relay_enabled: bool = True,
 ) -> PowerPerksCoordinatorResult:
+  if not relay_enabled:
+    # Nothing is fetched - the point of turning it off is that no request leaves the
+    # machine. The empty result is authoritative rather than a failure: feed_available
+    # means "we have a current view of the relay's sessions", which with the relay off is
+    # "none". That lets a session picked up by an earlier poll be retracted before it
+    # fires, while hand-registered ones survive through all_sessions.
+    return PowerPerksCoordinatorResult(current, 1, [], manual_sessions, feed_available=True, notice=None)
+
   if existing_result is not None and current < existing_result.next_refresh:
     # Manual registrations must show up straight away, without waiting for the next poll.
     if existing_result.manual_sessions != manual_sessions:
@@ -221,6 +231,19 @@ async def async_refresh_power_perks(
   return PowerPerksCoordinatorResult(current, 1, sessions, manual_sessions, feed_available=True, notice=notice)
 
 
+def relay_enabled(entry) -> bool:
+  """Whether to poll the relay for this account. On unless the user has turned it off.
+
+  Read from entry.data first (where the setup and Reconfigure forms put it) and fall back
+  to entry.options (where the options form puts it). Someone who unticks it has a stored
+  False, which this leaves alone - the default only decides for people who have never said.
+  """
+  return entry.data.get(
+    CONFIG_MAIN_POWER_PERKS_RELAY,
+    entry.options.get(CONFIG_MAIN_POWER_PERKS_RELAY, True),
+  )
+
+
 def register_manual_session(hass, account_id: str, start: datetime, end: datetime) -> FreeElectricitySession:
   """Record a hand-entered session for an account. Re-registering the same start replaces it."""
   key = DATA_POWER_PERKS_MANUAL_SESSIONS.format(account_id)
@@ -241,7 +264,10 @@ async def async_setup_power_perks_coordinator(hass, account_id: str, entry):
     current = utcnow()
     existing = hass.data[DOMAIN][account_id].get(key)
     manual = list(hass.data[DOMAIN][account_id].get(DATA_POWER_PERKS_MANUAL_SESSIONS.format(account_id)) or [])
-    result = await async_refresh_power_perks(current, lambda: async_fetch_power_perks_feed(hass), manual, existing)
+    result = await async_refresh_power_perks(
+      current, lambda: async_fetch_power_perks_feed(hass), manual, existing,
+      relay_enabled=relay_enabled(entry),
+    )
     hass.data[DOMAIN][account_id][key] = result
     return result
 

@@ -1,5 +1,5 @@
 DOMAIN = "edf_energy"
-INTEGRATION_VERSION = "20.0.0"
+INTEGRATION_VERSION = "20.1.0"
 
 REFRESH_RATE_IN_MINUTES_ACCOUNT = 360 # 6 hours
 REFRESH_RATE_IN_MINUTES_INTELLIGENT = 3
@@ -68,6 +68,7 @@ CONFIG_MIN_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = 1
 CONFIG_MAX_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = 60
 CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY = "football_free_electricity_enabled"
 CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL = "sunday_saver_auto_enrol"
+CONFIG_MAIN_POWER_PERKS_RELAY = "power_perks_relay_enabled"
 
 # Beta features are off unless the user asks for them in the options. They are things that
 # work but are not finished - shapes that may still change, and data that is worth a second
@@ -231,6 +232,15 @@ REPAIR_INTELLIGENT_DEVICE_REMOVED = "intelligent_device_removed_{}"
 REPAIR_TARIFF_RATES_EMPTY = "tariff_rates_empty_{}_{}"
 REPAIR_TARGET_RATE_NOT_SUPPORTED = "target_rate_not_supported"
 REPAIR_AUTH_TOKEN_EXPIRING_SOON = "auth_token_expiring_soon_{}"
+REPAIR_API_KEY_NEEDED = "api_key_needed_{}"
+REPAIR_SUPERSEDED = "superseded_by_edfenergy_uk"
+
+# The domain this integration becomes in 21.0.0. HACS installs the new release into
+# custom_components/<domain>, and does not remove the directory the old domain was in, so
+# for one restart both can be present. Whichever folder is left over must not load, or
+# every entity collides with its twin and comes back with a "_2" suffix - which is exactly
+# the broken automations the rename is meant to avoid. See async_setup_entry.
+SUCCESSOR_DOMAIN = "edfenergy_uk"
 REPAIR_FREE_ELECTRICITY_EVENT_HISTORY = "free_electricity_event_history_{}"
 
 # Roughly a week of the pre-18.9.8 once-a-minute writes. Below this there's little to reclaim and

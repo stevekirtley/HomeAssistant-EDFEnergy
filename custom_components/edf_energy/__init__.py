@@ -9,7 +9,7 @@ from homeassistant.core import SupportsResponse, callback
 from homeassistant.components import websocket_api
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, ServiceValidationError
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
 from homeassistant.util.dt import (utcnow, now)
@@ -36,8 +36,9 @@ from .coordinators.billing import async_setup_billing_coordinator
 from .coordinators.flextras import async_setup_flextras_coordinator, get_property_id
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
 from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
-from .coordinators.power_perks import async_setup_power_perks_coordinator, register_manual_session
+from .coordinators.power_perks import async_setup_power_perks_coordinator, register_manual_session, relay_enabled
 from .coordinators.flextras_hours import (
+  drop_past_hours,
   async_book_flextras_hours,
   async_get_flextras_day_slots,
   async_setup_flextras_hours_coordinator,
@@ -103,6 +104,9 @@ from .const import (
   CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
   CONFIG_MAIN_REFRESH_EXPIRES_IN,
   CONFIG_MAIN_REFRESH_TOKEN,
+  REPAIR_API_KEY_NEEDED,
+  REPAIR_SUPERSEDED,
+  SUCCESSOR_DOMAIN,
   REPAIR_AUTH_TOKEN_EXPIRING_SOON,
   CONFIG_ACCOUNT_ID,
   DATA_BILLING,
@@ -196,13 +200,18 @@ def websocket_beta_features(hass, connection, msg):
   account_id = _account_id_for_panel(hass, msg["account_id"])
   # On unless somebody has said otherwise. The default only decides for people who have
   # never touched it; an explicit False stays False.
-  features = {"show_account_tab": True, "can_change": connection.user.is_admin}
+  features = {
+    "show_account_tab": True,
+    "power_perks_relay": True,
+    "can_change": connection.user.is_admin,
+  }
 
   if account_id is not None:
     for entry in hass.config_entries.async_entries(DOMAIN):
       if (entry.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT
           and entry.data.get(CONFIG_ACCOUNT_ID) == account_id):
         features["show_account_tab"] = entry.options.get(CONFIG_MAIN_SHOW_ACCOUNT_TAB, True) == True
+        features["power_perks_relay"] = relay_enabled(entry) == True
         break
 
   connection.send_result(msg["id"], features)
@@ -385,7 +394,10 @@ async def websocket_flextras_bookable_days(hass, connection, msg):
 
   connection.send_result(msg["id"], {
     "days": result.bookable_days,
-    "booked": [list(h) for h in result.hours],
+    # Only the hours still to come. EDF keeps reporting an hour as booked after it has
+    # run, and the panel seeds its selection from this, so a finished hour would be sent
+    # back as part of the next whole-set replace and refused as a day no longer on offer.
+    "booked": [list(h) for h in drop_past_hours(result.hours, utcnow())],
     "remaining_hours": result.total_remaining_hours,
     "bonus_hours_remaining": result.bonus_hours_remaining,
     "challenge_hours_remaining": result.challenge_hours_remaining,
@@ -723,8 +735,41 @@ async def _async_close_client(hass, account_id: str):
       await client.async_close()
       _LOGGER.debug('Client closed.')
 
+def _successor_installed(hass) -> bool:
+  """Whether the integration this one becomes in 21.0.0 is also installed.
+
+  HACS works out where to put an integration from the domain in its manifest, so the new
+  release lands in a new directory and the old one is simply left behind. For one restart
+  both are on disk and both would load.
+  """
+  return os.path.isdir(os.path.join(hass.config.config_dir, "custom_components", SUCCESSOR_DOMAIN))
+
+
 async def async_setup_entry(hass, entry):
   """This is called from the config flow."""
+  if _successor_installed(hass):
+    # Stand aside completely rather than racing the successor for the entity ids. This is
+    # a short-lived state: the successor takes these entries over as it migrates, after
+    # which there is nothing here to set up.
+    ir.async_create_issue(
+      hass,
+      DOMAIN,
+      REPAIR_SUPERSEDED,
+      is_fixable=False,
+      severity=ir.IssueSeverity.WARNING,
+      translation_key="superseded",
+      translation_placeholders={"old_domain": DOMAIN, "new_domain": SUCCESSOR_DOMAIN},
+    )
+    _LOGGER.warning(
+      "custom_components/%s is installed, so this integration is standing down to let it "
+      "take over. Delete custom_components/%s once it has.",
+      SUCCESSOR_DOMAIN, DOMAIN,
+    )
+    raise ConfigEntryError(
+      f"Replaced by {SUCCESSOR_DOMAIN}. Delete custom_components/{DOMAIN} and restart."
+    )
+
+  ir.async_delete_issue(hass, DOMAIN, REPAIR_SUPERSEDED)
   hass.data.setdefault(DOMAIN, {})
 
   if not hass.data[DOMAIN].get("_frontend_registered"):
@@ -974,50 +1019,31 @@ async def async_setup_dependencies(hass, entry, config):
       hass.config_entries.async_update_entry(entry, data={**entry.data, CONFIG_MAIN_REFRESH_EXPIRES_IN: new_ts})
     _async_check_auth_expiry_for_repair(hass, entry, account_id, expiry)
 
-  # Resolve the durable credential. Prefer a stored API key; otherwise silently
-  # migrate an existing refresh-token session to one (read-first, mint if absent).
+  # Resolve the durable credential: a stored API key if there is one, otherwise the older
+  # refresh-token session. There is no read-first path to a key - EDF return liveSecretKey
+  # masked, so the only way to obtain a usable one is to mint it, and minting invalidates
+  # any key already issued on the account. That is the user's call, not ours.
   api_key = config.get(CONFIG_MAIN_API_KEY)
   if not api_key and config.get(CONFIG_MAIN_REFRESH_TOKEN):
-    migration_client = EDFEnergyApiClient(config[CONFIG_MAIN_REFRESH_TOKEN])
-    try:
-      api_key = await migration_client.async_ensure_api_key()
-    except AuthenticationException:
-      await migration_client.async_close()
-      raise ConfigEntryAuthFailed("Refresh token expired; please re-authenticate to continue")
-    except Exception as e:
-      await migration_client.async_close()
-      _LOGGER.warning("Could not migrate account %s to API-key auth (will retry next setup): %s", account_id, e)
-      api_key = None
-    else:
-      await migration_client.async_close()
-      # Verify the minted key actually authenticates BEFORE discarding the refresh
-      # token, so a bad key can never strand the entry without a working credential.
-      verified = False
-      verify_client = EDFEnergyApiClient(api_key=api_key)
-      try:
-        await verify_client.async_refresh_token()
-        verified = True
-      except Exception as e:
-        _LOGGER.warning("Minted API key for account %s failed verification; keeping refresh token: %s", account_id, e)
-      finally:
-        await verify_client.async_close()
-
-      if verified:
-        new_data = {**entry.data, CONFIG_MAIN_API_KEY: api_key}
-        new_data.pop(CONFIG_MAIN_REFRESH_TOKEN, None)
-        new_data.pop(CONFIG_MAIN_REFRESH_EXPIRES_IN, None)
-        hass.config_entries.async_update_entry(entry, data=new_data)
-        hass.data[DOMAIN][account_id].pop(DATA_AUTH_TOKEN_EXPIRY.format(account_id), None)
-        ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_AUTH_TOKEN_EXPIRING_SOON, account_id))
-        _LOGGER.info("Migrated EDF account %s to API-key authentication", account_id)
-      else:
-        # Couldn't confirm the new key - stay on the refresh token and retry next setup.
-        api_key = None
+    # Ask rather than act. Minting is the only way to get a usable key out of EDF and it
+    # invalidates any key already issued on the account, so it is not something to do to
+    # somebody at startup - another application could be using that key. The entry carries
+    # on with its refresh token meanwhile, which is not a permanent arrangement: EDF expire
+    # it after 7 days and never rotate it, so the repair says that too.
+    ir.async_create_issue(
+      hass,
+      DOMAIN,
+      safe_repair_key(REPAIR_API_KEY_NEEDED, account_id),
+      is_fixable=True,
+      severity=ir.IssueSeverity.WARNING,
+      translation_key="api_key_needed",
+      translation_placeholders={"account_id": account_id},
+    )
 
   if api_key is not None:
     client = EDFEnergyApiClient(api_key=api_key, electricity_price_cap=electricity_price_cap, gas_price_cap=gas_price_cap, favour_direct_debit_rates=favour_direct_debit_rates)
   else:
-    # Legacy refresh-token path - used only until the API-key migration above succeeds.
+    # Legacy refresh-token path - used until the repair above is confirmed and a key minted.
     stored_ts = entry.data.get(CONFIG_MAIN_REFRESH_EXPIRES_IN)
     if stored_ts:
       stored_expiry = datetime.fromtimestamp(stored_ts, tz=timezone.utc)
@@ -1032,6 +1058,8 @@ async def async_setup_dependencies(hass, entry, config):
   # Delete any issues that may have been previously raised
   ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_UNIQUE_RATES_CHANGED_KEY, account_id))
   ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_ACCOUNT_NOT_FOUND, account_id))
+  if api_key:
+    ir.async_delete_issue(hass, DOMAIN, safe_repair_key(REPAIR_API_KEY_NEEDED, account_id))
 
   # API-key auth has no expiry, so clear any lingering token-expiry repair (covers
   # users who migrated via reauth rather than the silent path above).

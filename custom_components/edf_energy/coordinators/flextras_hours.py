@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timedelta
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.util.dt import utcnow
+from homeassistant.util.dt import as_utc, utcnow
 
 from ..api_client import EDFEnergyApiClient
 from ..api_client.flextras_hours import (
@@ -228,6 +228,30 @@ def normalise_hour(value) -> tuple[str, str]:
   return date_str, f"{hour:02d}:00"
 
 
+def drop_past_hours(hours, current: datetime):
+  """Only the hours that have not finished yet, in UK local time.
+
+  EDF keeps reporting an hour as booked after it has run, and booking is a whole-set
+  replace, so a set rebuilt from what EDF holds carries last weekend's hours into this
+  weekend's request. They are not a day EDF still offers, which used to make every later
+  booking fail: the request was refused before it was sent and nothing could be booked
+  again until EDF dropped them of its own accord. An hour that has already run cannot be
+  moved or cancelled, so it is left out rather than argued over.
+  """
+  live = []
+  for date_str, start_time in hours:
+    try:
+      naive = datetime.strptime(f"{date_str} {start_time[:5]}", "%Y-%m-%d %H:%M")
+    except (TypeError, ValueError):
+      # An hour we cannot read is kept: dropping it would silently cancel a booking.
+      live.append((date_str, start_time))
+      continue
+    end = as_utc(naive.replace(tzinfo=UK_TZ)) + timedelta(hours=1)
+    if end > current:
+      live.append((date_str, start_time))
+  return live
+
+
 def apply_mode(booked: list[tuple[str, str]], hours: list[tuple[str, str]], mode: str):
   """The complete set of hours to send, given what is booked and what was asked for."""
   if mode == "replace":
@@ -239,7 +263,8 @@ def apply_mode(booked: list[tuple[str, str]], hours: list[tuple[str, str]], mode
   raise ValueError(f"Unknown mode '{mode}'")
 
 
-async def async_book_flextras_hours(hass, account_id: str, hours, mode: str = "add"):
+async def async_book_flextras_hours(hass, account_id: str, hours, mode: str = "add",
+                                    current: datetime | None = None):
   """Book, move or cancel free hours, then refresh so the calendar follows immediately.
 
   EDF's booking call replaces the whole set, so the set is rebuilt here from a fresh read
@@ -255,11 +280,16 @@ async def async_book_flextras_hours(hass, account_id: str, hours, mode: str = "a
     raise ValueError(f"No property found for account {account_id}")
 
   client: EDFEnergyApiClient = hass.data[DOMAIN][account_id][DATA_CLIENT]
-  wanted = [normalise_hour(h) for h in (hours or [])]
+  # Injectable so a test can pin it; which hours have run is the whole question here.
+  now = current or utcnow()
+  wanted = drop_past_hours([normalise_hour(h) for h in (hours or [])], now)
 
   current_screen = parse_booked_hours(await client.async_get_flextras_booked_hours(account_id, property_id))
   if current_screen is None:
     raise ValueError("Could not read the hours currently booked, so nothing was changed")
+  # What is still changeable. An hour that has run is spent, so it counts neither towards
+  # the set being sent nor towards what this request is spending.
+  current_live = drop_past_hours(current_screen["hours"], now)
 
   days = parse_bookable_days(await client.async_get_flextras_bookable_days(account_id, property_id))
   window = booking_window(days)
@@ -271,16 +301,16 @@ async def async_book_flextras_hours(hass, account_id: str, hours, mode: str = "a
     if mode != "remove" and date_str not in offered:
       raise ValueError(f"{date_str} is not a day EDF is offering; bookable days are {sorted(offered)}")
 
-  desired = apply_mode(current_screen["hours"], wanted, mode)
+  desired = apply_mode(current_live, wanted, mode)
   remaining = current_screen.get("total_remaining_hours")
-  spending = len(desired) - len(current_screen["hours"])
+  spending = len(desired) - len(current_live)
   if remaining is not None and spending > remaining:
     raise ValueError(
       f"That needs {spending} more hour(s) but only {remaining:g} are left to spend"
     )
 
   _LOGGER.debug("Flextras booking for %s window %s: %s -> %s",
-                account_id, window, current_screen["hours"], desired)
+                account_id, window, current_live, desired)
   result = parse_booking_result(
     await client.async_put_flextras_bookings(account_id, property_id, window, booking_payload(desired))
   )

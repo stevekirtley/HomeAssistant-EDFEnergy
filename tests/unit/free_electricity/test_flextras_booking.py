@@ -22,10 +22,14 @@ from custom_components.edf_energy.const import DATA_CLIENT, DATA_FLEXTRAS_HOURS,
 from custom_components.edf_energy.coordinators.flextras_hours import (
   apply_mode,
   async_book_flextras_hours,
+  drop_past_hours,
   normalise_hour,
 )
 
 ACCOUNT_ID = "A-XXXXXX"
+# The capture's dates are in the past now, and the booking path ignores hours that have
+# already run, so these tests pin the clock to just before the days they book.
+BEFORE_THE_CAPTURE = datetime(2026, 10, 5, 12, 0, tzinfo=timezone.utc)
 PROPERTY_ID = "4650459"
 
 SELECT_DAYS = {"screen": "CLUB_FLEX_BOOK_HOURS", "components": [{
@@ -225,7 +229,7 @@ async def test_booking_an_hour_sends_the_full_set_not_just_the_new_hour():
   client = FakeClient(booked=[("2026-10-10", "09:00")], remaining=3)
   hass = FakeHass(client)
 
-  await async_book_flextras_hours(hass, ACCOUNT_ID, ["2026-10-10 10:00"], "add")
+  await async_book_flextras_hours(hass, ACCOUNT_ID, ["2026-10-10 10:00"], "add", current=BEFORE_THE_CAPTURE)
 
   window, payload = client.puts[0]
   assert window == "2026-10"
@@ -239,7 +243,7 @@ async def test_the_booked_set_is_re_read_rather_than_taken_from_the_cache():
   client = FakeClient(booked=[("2026-10-10", "09:00")], remaining=3)
   hass = FakeHass(client)
 
-  await async_book_flextras_hours(hass, ACCOUNT_ID, ["2026-10-10 10:00"], "add")
+  await async_book_flextras_hours(hass, ACCOUNT_ID, ["2026-10-10 10:00"], "add", current=BEFORE_THE_CAPTURE)
 
   assert client.hours_reads == 1
 
@@ -248,7 +252,7 @@ async def test_the_booked_set_is_re_read_rather_than_taken_from_the_cache():
 async def test_cancelling_everything_sends_the_empty_array():
   client = FakeClient(booked=[("2026-10-10", "09:00")], remaining=3)
 
-  await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, [], "replace")
+  await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, [], "replace", current=BEFORE_THE_CAPTURE)
 
   assert client.puts[0][1] == {"timeslots": []}
 
@@ -257,7 +261,7 @@ async def test_cancelling_everything_sends_the_empty_array():
 async def test_hours_can_be_booked_on_the_day_that_spills_into_the_next_month():
   client = FakeClient()
 
-  await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, ["2026-11-01 00:00"], "add")
+  await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, ["2026-11-01 00:00"], "add", current=BEFORE_THE_CAPTURE)
 
   window, payload = client.puts[0]
   assert window == "2026-10"                      # the window, not the hour's month
@@ -269,7 +273,7 @@ async def test_a_day_edf_is_not_offering_is_refused_before_any_write():
   client = FakeClient()
 
   with pytest.raises(ValueError, match="not a day EDF is offering"):
-    await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, ["2026-10-17 09:00"], "add")
+    await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, ["2026-10-17 09:00"], "add", current=BEFORE_THE_CAPTURE)
 
   assert client.puts == []
 
@@ -281,7 +285,7 @@ async def test_spending_more_hours_than_are_left_is_refused_before_any_write():
   with pytest.raises(ValueError, match="only 2 are left"):
     await async_book_flextras_hours(
       FakeHass(client), ACCOUNT_ID,
-      ["2026-10-10 09:00", "2026-10-10 10:00", "2026-10-10 11:00"], "add")
+      ["2026-10-10 09:00", "2026-10-10 10:00", "2026-10-10 11:00"], "add", current=BEFORE_THE_CAPTURE)
 
   assert client.puts == []
 
@@ -292,7 +296,7 @@ async def test_moving_hours_within_the_allowance_is_allowed():
   client = FakeClient(booked=[("2026-10-10", "09:00"), ("2026-10-10", "10:00")], remaining=0)
 
   await async_book_flextras_hours(
-    FakeHass(client), ACCOUNT_ID, ["2026-10-11 09:00", "2026-10-11 10:00"], "replace")
+    FakeHass(client), ACCOUNT_ID, ["2026-10-11 09:00", "2026-10-11 10:00"], "replace", current=BEFORE_THE_CAPTURE)
 
   assert [t["id"] for t in client.puts[0][1]["timeslots"]] == [
     "SLOT-2026-10-11-09-10", "SLOT-2026-10-11-10-11"]
@@ -305,7 +309,7 @@ async def test_an_unreadable_current_booking_stops_the_write():
   client.async_get_flextras_booked_hours = lambda a, p: _none()
 
   with pytest.raises(ValueError, match="Could not read the hours currently booked"):
-    await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, ["2026-10-10 09:00"], "add")
+    await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, ["2026-10-10 09:00"], "add", current=BEFORE_THE_CAPTURE)
 
   assert client.puts == []
 
@@ -319,7 +323,7 @@ async def test_nothing_on_offer_stops_the_write():
   client = FakeClient(days={"components": []})
 
   with pytest.raises(ValueError, match="not offering any days"):
-    await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, ["2026-10-10 09:00"], "add")
+    await async_book_flextras_hours(FakeHass(client), ACCOUNT_ID, ["2026-10-10 09:00"], "add", current=BEFORE_THE_CAPTURE)
 
   assert client.puts == []
 
@@ -340,3 +344,96 @@ APP_BODY = {"timeslots": [
 
 def test_the_body_matches_what_the_edf_app_sent_byte_for_byte():
   assert booking_payload([("2026-10-11", f"{h:02d}:00") for h in (9, 10, 11, 12)]) == APP_BODY
+
+
+# ── hours that have already run ──────────────────────────────────────────────
+# Reported 19 October 2026: booking silently did nothing. EDF still listed the previous
+# weekend's hours as booked, the panel seeds its selection from that, and booking is a
+# whole-set replace - so Save sent last weekend's hours back, and they are not a day EDF
+# still offers. The request was refused before it was sent, and because the refusal
+# happens before any logging it left no trace. Nothing could be booked again until EDF
+# dropped the stale hours of its own accord.
+
+AFTER_THE_CAPTURE = datetime(2026, 10, 19, 12, 0, tzinfo=timezone.utc)   # 13:00 BST
+
+
+def test_an_hour_that_has_finished_is_dropped():
+  assert drop_past_hours([("2026-10-18", "13:00"), ("2026-10-18", "14:00")], AFTER_THE_CAPTURE) == []
+
+
+def test_an_hour_still_to_come_is_kept():
+  hours = [("2026-11-01", "13:00")]
+
+  assert drop_past_hours(hours, AFTER_THE_CAPTURE) == hours
+
+
+def test_the_hour_currently_running_is_kept():
+  # 13:00 BST is 12:00 UTC, so this hour ends at 14:00 BST - it has not finished, and
+  # cancelling it is not ours to decide.
+  hours = [("2026-10-19", "13:00")]
+
+  assert drop_past_hours(hours, AFTER_THE_CAPTURE) == hours
+
+
+def test_an_hour_that_cannot_be_read_is_kept_rather_than_cancelled():
+  # Dropping it would quietly cancel a booking, which is the worse way to be wrong.
+  hours = [("not-a-date", "13:00")]
+
+  assert drop_past_hours(hours, AFTER_THE_CAPTURE) == hours
+
+
+@pytest.mark.asyncio
+async def test_a_new_booking_goes_through_with_stale_hours_in_edfs_set():
+  """A guard, not the bug: a caller that leaves the stale hours out always worked."""
+  client = FakeClient(booked=[("2026-10-18", "13:00"), ("2026-10-18", "14:00")], remaining=2)
+
+  await async_book_flextras_hours(
+    FakeHass(client), ACCOUNT_ID,
+    ["2026-11-01 13:00", "2026-11-01 14:00"], "replace", current=AFTER_THE_CAPTURE)
+
+  window, payload = client.puts[0]
+  assert window == "2026-10"
+  assert [t["id"] for t in payload["timeslots"]] == [
+    "SLOT-2026-11-01-13-14", "SLOT-2026-11-01-14-15"]
+
+
+@pytest.mark.asyncio
+async def test_a_stale_booking_is_not_resent_as_part_of_the_set():
+  # Even when the caller hands them back - the panel used to - they are left out, because
+  # EDF no longer offers that day and the whole request would be refused.
+  client = FakeClient(booked=[("2026-10-18", "13:00")], remaining=3)
+
+  await async_book_flextras_hours(
+    FakeHass(client), ACCOUNT_ID,
+    ["2026-10-18 13:00", "2026-11-01 13:00"], "replace", current=AFTER_THE_CAPTURE)
+
+  _, payload = client.puts[0]
+  assert [t["id"] for t in payload["timeslots"]] == ["SLOT-2026-11-01-13-14"]
+
+
+@pytest.mark.asyncio
+async def test_hours_that_have_run_do_not_count_against_what_is_left_to_spend():
+  # Two hours already run and two left: booking two more must be allowed. This passes
+  # either way - discounting the run hours raises the spend from 0 to 2, and 2 is still
+  # within the allowance - so it guards the allowance rather than proving the fix. The
+  # overspend case below is the one that needs the discount to be right.
+  client = FakeClient(booked=[("2026-10-18", "13:00"), ("2026-10-18", "14:00")], remaining=2)
+
+  await async_book_flextras_hours(
+    FakeHass(client), ACCOUNT_ID,
+    ["2026-11-01 13:00", "2026-11-01 14:00"], "replace", current=AFTER_THE_CAPTURE)
+
+  assert len(client.puts) == 1
+
+
+@pytest.mark.asyncio
+async def test_an_overspend_is_still_caught_once_the_run_hours_are_discounted():
+  client = FakeClient(booked=[("2026-10-18", "13:00")], remaining=2)
+
+  with pytest.raises(ValueError, match="only 2 are left"):
+    await async_book_flextras_hours(
+      FakeHass(client), ACCOUNT_ID,
+      ["2026-11-01 13:00", "2026-11-01 14:00", "2026-11-01 11:00"], "replace",
+      current=AFTER_THE_CAPTURE)
+
+  assert client.puts == []

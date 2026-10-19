@@ -4,7 +4,7 @@
     "step": {
       "account": {
         "title": "EDF Energy Account",
-        "description": "Setup your basic account information.",
+        "description": "Setup your basic account information.\n\nYour email and password are used once to create an EDF API key and are not stored. Creating a key replaces any existing EDF API key, so other applications using one will need the new key — reveal and copy it on the Account tab once setup finishes. Paste an existing key instead if you already have one.",
         "data": {
           "account_id": "Account ID (e.g. A-AAAA1111)",
           "email": "Email address",
@@ -13,7 +13,8 @@
           "calorific_value": "Gas calorific value.",
           "favour_direct_debit_rates": "Favour direct debit rates where available",
           "auto_discover_cost_trackers": "Automatically discover sensors suitable for cost trackers",
-          "sunday_saver_auto_enrol": "Automatically enrol in Sunday Saver"
+          "sunday_saver_auto_enrol": "Automatically enrol in Sunday Saver",
+          "power_perks_relay_enabled": "Use the Power Perks session feed"
         },
         "data_description": {
           "account_id": "Your account ID can be found on your bill or in your EDF Energy online account",
@@ -21,7 +22,8 @@
           "password": "Your password is used only once to obtain an API key and is never stored.",
           "api_key": "Optional. If you already have an EDF API key, paste it here and leave the email and password blank. Otherwise leave this empty and a key will be generated from your email and password.",
           "calorific_value": "This can be found on your gas statement and can change from time to time",
-          "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme."
+          "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme.",
+          "power_perks_relay_enabled": "EDF announce Power Perks free electricity sessions by text message only, so they are relayed through a small feed that publishes the times. The integration checks it every 15 minutes and sends nothing but its own version number - no account details. Leave it on to have sessions appear automatically, or turn it off to stop the checks; you can still add sessions yourself with the Register Power Perks session action."
         },
         "sections": {
           "price_cap_settings": {
@@ -92,7 +94,7 @@
       },
       "reauth_confirm": {
         "title": "Re-authenticate EDF Energy Account",
-        "description": "Your authentication has expired. Sign in again to generate a fresh API key, or paste an existing API key.",
+        "description": "Your authentication has expired. Sign in again to create a fresh API key, or paste an existing API key.\n\nCreating a key replaces any existing EDF API key, so other applications using one will need the new key — reveal and copy it on the Account tab afterwards.",
         "data": {
           "email": "Email address",
           "password": "Password",
@@ -105,7 +107,7 @@
       },
       "reconfigure_account": {
         "title": "Update Account Info",
-        "description": "Update your basic account information.",
+        "description": "Update your basic account information.\n\nYour email and password are used once to create an EDF API key and are not stored. Creating a key replaces any existing EDF API key, so other applications using one will need the new key — reveal and copy it on the Account tab once setup finishes. Paste an existing key instead if you already have one.",
         "data": {
           "email": "Email address",
           "password": "Password",
@@ -113,14 +115,16 @@
           "calorific_value": "Gas calorific value.",
           "favour_direct_debit_rates": "Favour direct debit rates where available",
           "auto_discover_cost_trackers": "Automatically discover sensors suitable for cost trackers",
-          "sunday_saver_auto_enrol": "Automatically enrol in Sunday Saver"
+          "sunday_saver_auto_enrol": "Automatically enrol in Sunday Saver",
+          "power_perks_relay_enabled": "Use the Power Perks session feed"
         },
         "data_description": {
           "email": "Your EDF Energy account email address. Leave the email and password blank if you are providing an API key directly.",
           "password": "Entering your password generates a fresh API key. It is used only once and never stored.",
           "api_key": "Optional. Paste an existing EDF API key, or leave blank and enter your email and password to generate one.",
           "calorific_value": "This can be found on your gas statement and can change from time to time",
-          "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme."
+          "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme.",
+          "power_perks_relay_enabled": "EDF announce Power Perks free electricity sessions by text message only, so they are relayed through a small feed that publishes the times. The integration checks it every 15 minutes and sends nothing but its own version number - no account details. Leave it on to have sessions appear automatically, or turn it off to stop the checks; you can still add sessions yourself with the Register Power Perks session action."
         },
         "sections": {
           "price_cap_settings": {
@@ -320,6 +324,26 @@
           }
         }
       }
+    },
+    "api_key_needed": {
+      "title": "EDF Energy: API key needed",
+      "description": "Account {account_id} still connects with a temporary access token, which EDF expire after 7 days. Create an API key to keep it connected.\n\nCreating a key replaces any existing EDF API key, so other applications using one will need the new key. You can reveal and copy it on the Account tab afterwards.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Create an API key",
+            "description": "Create an API key for account {account_id}? Any EDF API key currently in use elsewhere will stop working.\n\nEDF intend to add an API key to Your Account in the future which you will be able to share with any applications you grant access to your account data."
+          }
+        },
+        "abort": {
+          "account_not_found": "That account is no longer set up in Home Assistant.",
+          "api_key_failed": "EDF would not issue an API key. Your existing connection has been left alone, so nothing has changed — try again shortly."
+        }
+      }
+    },
+    "superseded": {
+      "title": "EDF Energy has moved to a new folder",
+      "description": "This release replaces `custom_components/{old_domain}` with `custom_components/{new_domain}`. Both are installed at the moment, so the old one has stood down to let the new one take over your accounts, entities and history.\n\nOnce the new one is running, delete `custom_components/{old_domain}` and restart. Nothing is lost by leaving it there, but this notice will keep coming back."
     }
   },
   "entity": {
@@ -426,12 +450,14 @@
         "data": {
           "show_account_tab_beta": "Show the dashboard tabs (beta)",
           "football_free_electricity_enabled": "Include World Cup 2026 free electricity sessions (England & Scotland matches)",
-          "sunday_saver_auto_enrol": "Automatically enrol in Sunday Saver"
+          "sunday_saver_auto_enrol": "Automatically enrol in Sunday Saver",
+          "power_perks_relay_enabled": "Use the Power Perks session feed"
         },
         "data_description": {
           "show_account_tab_beta": "Splits the EDF Energy panel into tabs - Overview, Charging, Usage, Perks and Account - instead of the single screen. The Overview tab is the page you already know and nothing has been taken off it. Still in beta, so the layout may change between releases. On by default; turn it off to go back to the single screen. You can also switch this from the bottom of the panel's Overview.",
           "football_free_electricity_enabled": "When enabled, free electricity windows are added to the session feed for every England or Scotland World Cup match (2 hours from kick-off). Only enable this if your account is enrolled in EDF's World Cup free electricity offer.",
-          "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme."
+          "sunday_saver_auto_enrol": "Currently inactive. Sunday Saver was retired and replaced by Flextras, which can only be joined in the EDF mobile app, so HA no longer auto-enrols. This setting is retained for a future scheme.",
+          "power_perks_relay_enabled": "EDF announce Power Perks free electricity sessions by text message only, so they are relayed through a small feed that publishes the times. The integration checks it every 15 minutes and sends nothing but its own version number - no account details. Leave it on to have sessions appear automatically, or turn it off to stop the checks; you can still add sessions yourself with the Register Power Perks session action."
         }
       }
     }

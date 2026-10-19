@@ -10,13 +10,21 @@ You will need:
 - **Password** — your EDF Energy account password
 - **Account number** — format `A-AAAA1111`, shown in the EDF Energy app under **Account** or at the top of any bill
 
-On first setup, the integration uses your email and password to generate an **API key**, which is then stored securely in Home Assistant. Your password is used only once and is never stored. All subsequent communication with the EDF Energy API uses the stored key.
+On first setup, the integration uses your email and password to create an **API key**, which is then stored securely in Home Assistant. Your password is used only once and is never stored. All subsequent communication with the EDF Energy API uses the stored key.
 
 If you already have an API key (for example, from a previous setup), you can paste it directly into the **API key** field and leave the email and password blank.
 
-!!! info
+!!! warning "Creating a key replaces any existing one"
 
-    If you upgrade from an earlier version of this integration that stored a refresh token, the migration to an API key happens automatically on the next restart — no action needed.
+    EDF only issue a usable API key by creating a new one, which invalidates the previous key. If another application is using an EDF API key for this account, it will need the new one.
+
+    Reveal and copy the current key at any time from the **Account** tab of the EDF Energy panel.
+
+EDF intend to add an API key to Your Account in the future which you will be able to share with any applications you grant access to your account data.
+
+!!! info "Upgrading from a version that stored a refresh token"
+
+    A repair notification will ask before creating an API key, so that you can update any other application first. The account keeps working on its existing token until you confirm — but not indefinitely, as EDF expire it after 7 days.
 
 ## Calorific Value
 

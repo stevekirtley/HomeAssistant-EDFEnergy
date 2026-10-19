@@ -9,6 +9,7 @@ from custom_components.edf_energy.const import (
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
   DATA_POWER_PERKS,
   DATA_POWER_PERKS_MANUAL_SESSIONS,
+  CONFIG_MAIN_POWER_PERKS_RELAY,
   DOMAIN,
   EVENT_ALL_FREE_ELECTRICITY_SESSIONS,
   EVENT_NEW_FREE_ELECTRICITY_SESSION,
@@ -24,6 +25,7 @@ from custom_components.edf_energy.coordinators.power_perks import (
   make_power_perks_session,
   parse_power_perks_feed,
   register_manual_session,
+  relay_enabled,
   session_code,
 )
 
@@ -346,3 +348,72 @@ def test_manual_session_survives_retraction():
   again = refresh_free_electricity_sessions(current + timedelta(minutes=1), hass, ACCOUNT_ID, result, lambda t, p: None)
 
   assert [e.code for e in again.events] == ["power_perks_202609190400"]
+
+
+# ── the relay can be turned off ──────────────────────────────────────────────
+# Turning it off has to mean no request leaves the machine, not a request whose answer is
+# thrown away, and it must not take hand-registered sessions down with it.
+
+class FakeEntry:
+  def __init__(self, data=None, options=None):
+    self.data = data or {}
+    self.options = options or {}
+
+
+@pytest.mark.parametrize("entry,expected", [
+  (FakeEntry(), True),
+  (FakeEntry(options={CONFIG_MAIN_POWER_PERKS_RELAY: False}), False),
+  (FakeEntry(options={CONFIG_MAIN_POWER_PERKS_RELAY: True}), True),
+  (FakeEntry(data={CONFIG_MAIN_POWER_PERKS_RELAY: False}), False),
+  # the setup and reconfigure forms write entry.data, so it has to win over a stale option
+  (FakeEntry(data={CONFIG_MAIN_POWER_PERKS_RELAY: True},
+             options={CONFIG_MAIN_POWER_PERKS_RELAY: False}), True),
+])
+def test_relay_enabled_defaults_on_and_respects_a_stored_choice(entry, expected):
+  # Act / Assert
+  assert relay_enabled(entry) is expected
+
+
+@pytest.mark.asyncio
+async def test_with_the_relay_off_nothing_is_fetched():
+  # Arrange
+  calls = []
+
+  async def fetch():
+    calls.append(1)
+    return FEED
+
+  # Act
+  result = await async_refresh_power_perks(START_UTC, fetch, [], None, relay_enabled=False)
+
+  # Assert
+  assert calls == []
+  assert result.sessions == []
+
+
+@pytest.mark.asyncio
+async def test_with_the_relay_off_a_hand_registered_session_still_stands():
+  # Arrange
+  manual = [make_power_perks_session(START_UTC, END_UTC)]
+
+  # Act
+  result = await async_refresh_power_perks(START_UTC, lambda: _feed(FEED), manual, None, relay_enabled=False)
+
+  # Assert
+  assert result.sessions == []
+  assert [s.code for s in result.all_sessions] == [manual[0].code]
+
+
+@pytest.mark.asyncio
+async def test_with_the_relay_off_the_empty_feed_is_authoritative():
+  # An outage keeps the last known sessions; being switched off is a different thing, and
+  # has to let refresh_free_electricity_sessions retract a session that has not run yet.
+  # Arrange
+  previous = PowerPerksCoordinatorResult(START_UTC, 1, parse_power_perks_feed(FEED), [], feed_available=True)
+
+  # Act
+  result = await async_refresh_power_perks(END_UTC, lambda: _feed(FEED), [], previous, relay_enabled=False)
+
+  # Assert
+  assert result.feed_available is True
+  assert result.sessions == []

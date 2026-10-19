@@ -61,6 +61,7 @@ from .const import (
   CONFIG_MAIN_API_KEY,
   CONFIG_MAIN_EMAIL,
   CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY,
+  CONFIG_MAIN_POWER_PERKS_RELAY,
   CONFIG_MAIN_SHOW_ACCOUNT_TAB,
   CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL,
   CONFIG_MAIN_REFRESH_TOKEN,
@@ -205,6 +206,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
       vol.Required(CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES, default=True): bool,
       vol.Required(CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS, default=False): bool,
       vol.Required(CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL, default=True): bool,
+      vol.Required(CONFIG_MAIN_POWER_PERKS_RELAY, default=True): bool,
       vol.Required(CONFIG_MAIN_INTELLIGENT_SETTINGS): section(
         vol.Schema(
             {
@@ -630,6 +632,10 @@ class EDFEnergyAccountOptionsFlow(OptionsFlow):
           # On by default. Somebody who has turned it off has a stored False, which this
           # leaves alone - the default only decides for people who have never said.
           default=current.get(CONFIG_MAIN_SHOW_ACCOUNT_TAB, True),
+        ): bool,
+        vol.Required(
+          CONFIG_MAIN_POWER_PERKS_RELAY,
+          default=current.get(CONFIG_MAIN_POWER_PERKS_RELAY, True),
         ): bool,
       }),
     )

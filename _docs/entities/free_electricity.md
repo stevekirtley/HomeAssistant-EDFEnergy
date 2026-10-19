@@ -38,3 +38,11 @@ A calendar of every known session, on while one is in progress. Sessions already
 `event.edf_energy_{{ACCOUNT_ID}}_free_electricity_session_events`
 
 Fires whenever the set of sessions changes, and hourly as a heartbeat. Its `events` attribute lists today's and upcoming sessions in the same shape as the upstream Octopus Energy integration, so tools built for that, such as Predbat, work unchanged. `free_electricity_windows` carries the last 60 days of history for the panel.
+
+## Power Perks session feed
+
+EDF announce Power Perks sessions by text message only — they are not in any EDF API — so the times are published as a feed that the integration checks every 15 minutes. Requests carry only the integration version; no account details are sent.
+
+The feed is on by default. Untick **Use the Power Perks session feed** in the integration options to stop the checks. Sessions already known but not yet started are removed when you turn it off.
+
+With the feed off, you can still add sessions yourself with the [`register_power_perks_session`](../services.md) action.
