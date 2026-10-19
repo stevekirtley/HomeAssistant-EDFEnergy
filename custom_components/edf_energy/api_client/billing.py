@@ -191,6 +191,19 @@ referrals_query = '''query($accountNumber: String!, $first: Int!) {
   }
 }'''
 
+# EDF reject a repayment that does not name a ledger - KT-CT-3821, "Ledger number should be
+# used, as a string starting with 'L-'" - and the number is not on the billing summary, so it
+# is read separately. Every account seen has had a single ledger of type MAIN.
+account_ledgers_query = '''query($accountNumber: String!) {
+  account(accountNumber: $accountNumber) {
+    ledgers {
+      number
+      ledgerType
+    }
+  }
+}'''
+
+
 # Asking for anything beyond requestId and status is a 400: the output type carries only
 # those two. The idempotency key is enforced server side, so a repeat of the same request
 # is refused rather than paying out twice.
@@ -202,6 +215,30 @@ submit_repayment_mutation = '''mutation($input: RequestRepaymentInputType!) {
     }
   }
 }'''
+
+
+def main_ledger_number(response) -> str | None:
+  """The ledger a repayment should be charged to, or None if it cannot be told.
+
+  Prefers the ledger EDF marks MAIN. Falling back to a lone ledger covers an account whose
+  type is spelled differently; with several to choose from and none marked, nothing is
+  returned rather than guessing which one somebody's money comes out of.
+  """
+  if not isinstance(response, dict):
+    return None
+  ledgers = ((response.get("data") or {}).get("account") or {}).get("ledgers")
+  if not isinstance(ledgers, list):
+    return None
+
+  for ledger in ledgers:
+    if isinstance(ledger, dict) and ledger.get("ledgerType") == "MAIN" and ledger.get("number"):
+      return ledger["number"]
+
+  numbers = [
+    l.get("number") for l in ledgers
+    if isinstance(l, dict) and isinstance(l.get("number"), str) and l.get("number")
+  ]
+  return numbers[0] if len(numbers) == 1 else None
 
 
 def to_pounds(minor_units) -> float | None:

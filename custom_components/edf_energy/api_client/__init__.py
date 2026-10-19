@@ -43,6 +43,7 @@ from .billing import (
   BILLS_PAGE_SIZE,
   REFERRALS_PAGE_SIZE,
   TRANSACTIONS_PAGE_SIZE,
+  account_ledgers_query,
   bill_attachment_query,
   billing_summary_query,
   bills_query,
@@ -50,6 +51,7 @@ from .billing import (
   parse_bill_attachment,
   parse_billing_summary,
   parse_bills,
+  main_ledger_number,
   parse_referrals,
   parse_repayment_request,
   parse_transactions,
@@ -2289,23 +2291,46 @@ class EDFEnergyApiClient:
     )
     return parse_referrals(response)
 
-  async def async_submit_repayment_request(self, account_id: str, amount_in_pounds: float, current: datetime):
+  async def async_get_main_ledger_number(self, account_id: str) -> str | None:
+    """The account's MAIN ledger number, the `L-...` a repayment has to name."""
+    response = await self._async_graphql(
+      account_ledgers_query, { "accountNumber": account_id }, "account-ledgers"
+    )
+    return main_ledger_number(response)
+
+  async def async_submit_repayment_request(self, account_id: str, amount_in_pounds: float,
+                                           current: datetime, ledger_number: str | None = None):
     """Ask EDF to refund part of a credit balance.
 
     This spends real money out of the account, so the caller is expected to have checked
     the amount against maximumRefund and to have had the request confirmed by a person.
     The idempotency key means a repeated submission of the same amount on the same day is
     the same request rather than a second refund.
+
+    The ledger is looked up when not supplied: EDF began refusing a repayment that does not
+    name one (KT-CT-3821) after this call was first working, and the number is on neither
+    the account nor the billing summary. Refunds are rare enough that the extra read costs
+    nothing worth saving.
     """
     amount_in_pence = int(round(amount_in_pounds * 100))
     if amount_in_pence <= 0:
       raise RequestException("A refund has to be for more than nothing", [])
+
+    if ledger_number is None:
+      ledger_number = await self.async_get_main_ledger_number(account_id)
+    if not ledger_number:
+      # Submitting without it is refused by EDF anyway, and saying so is more use than
+      # passing their validation error back.
+      raise RequestException(
+        "Could not work out which ledger to refund from, so nothing was sent", []
+      )
 
     response = await self._async_graphql(
       submit_repayment_mutation,
       {
         "input": {
           "accountNumber": account_id,
+          "ledgerNumber": ledger_number,
           "amountInMinorUnit": amount_in_pence,
           "method": "BANK_TRANSFER",
           "idempotencyKey": build_idempotency_key(account_id, amount_in_pence, current),
