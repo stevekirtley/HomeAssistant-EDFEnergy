@@ -327,12 +327,11 @@
     },
     "api_key_needed": {
       "title": "EDF Energy: API key needed",
-      "description": "Account {account_id} still connects with a temporary access token, which EDF expire after 7 days. Create an API key to keep it connected.\n\nCreating a key replaces any existing EDF API key, so other applications using one will need the new key. You can reveal and copy it on the Account tab afterwards.",
       "fix_flow": {
         "step": {
           "confirm": {
             "title": "Create an API key",
-            "description": "Create an API key for account {account_id}? Any EDF API key currently in use elsewhere will stop working.\n\nEDF intend to add an API key to Your Account in the future which you will be able to share with any applications you grant access to your account data."
+            "description": "Account {account_id} still connects with a temporary access token, which EDF expire after 7 days. Creating an API key keeps it connected.\n\nAny EDF API key already issued on this account will stop working, so other applications using one will need the new key — you can reveal and copy it on the Account tab afterwards.\n\nEDF intend to add an API key to Your Account in the future which you will be able to share with any applications you grant access to your account data."
           }
         },
         "abort": {
