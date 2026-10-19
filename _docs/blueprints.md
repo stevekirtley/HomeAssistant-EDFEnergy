@@ -34,7 +34,7 @@ This blueprint will fire a configured action when the latest available consumpti
 
 [Install blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fstevekirtley%2FHomeAssistant-EDFEnergy%2Fblob%2Fdevelop%2F_docs%2Fblueprints%2Fedf_energy_manual_smart_charging_refresh.yaml) | [Source](./blueprints/edf_energy_manual_smart_charging_refresh.yaml)
 
-This blueprint will fire the [Smart Charging dispatches service](./services.md#edf_energyrefresh_intelligent_dispatches) either when a sensor from another integration determines the car has been plugged in (e.g. the plug status from the [MyEnergi integration](https://github.com/CJNE/ha-myenergi)) or when the data is stale and overdue a refresh (in case the dispatch information has changed).
+This blueprint will fire the [Smart Charging dispatches service](./services.md#edfenergy_ukrefresh_intelligent_dispatches) either when a sensor from another integration determines the car has been plugged in (e.g. the plug status from the [MyEnergi integration](https://github.com/CJNE/ha-myenergi)) or when the data is stale and overdue a refresh (in case the dispatch information has changed).
 
 !!! warning
 

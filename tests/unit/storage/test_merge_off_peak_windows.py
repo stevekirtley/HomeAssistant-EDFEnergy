@@ -9,7 +9,7 @@ a window back out again, while never losing a window that actually ran.
 import pytest
 from datetime import datetime, timedelta, timezone
 
-from custom_components.edf_energy.storage.off_peak_history import (
+from custom_components.edfenergy_uk.storage.off_peak_history import (
   OffPeakWindowRecord,
   merge_off_peak_windows,
 )

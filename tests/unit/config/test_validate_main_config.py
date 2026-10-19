@@ -1,9 +1,9 @@
 import pytest
 import mock
 
-from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException, ServerException
-from custom_components.edf_energy.config.main import async_validate_main_config
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient, RequestException, ServerException
+from custom_components.edfenergy_uk.config.main import async_validate_main_config
+from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_MAIN_API_KEY,
   CONFIG_MAIN_CALORIFIC_VALUE,

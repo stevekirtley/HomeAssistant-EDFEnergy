@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from unit import (create_consumption_data, create_rate_data)
-from custom_components.edf_energy.cost_tracker import calculate_consumption_and_cost
+from custom_components.edfenergy_uk.cost_tracker import calculate_consumption_and_cost
 
 @pytest.mark.asyncio
 async def test_when_consumption_is_none_then_no_calculation_is_returned():

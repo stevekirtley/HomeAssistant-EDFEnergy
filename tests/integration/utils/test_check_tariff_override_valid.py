@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 import pytest
 
 from integration import (get_test_context)
-from custom_components.edf_energy.utils.tariff_check import check_tariff_override_valid
-from custom_components.edf_energy.api_client import EDFEnergyApiClient
+from custom_components.edfenergy_uk.utils.tariff_check import check_tariff_override_valid
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("original_tariff_code,tariff_code,expected_error_message",[

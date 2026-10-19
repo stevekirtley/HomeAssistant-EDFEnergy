@@ -5,8 +5,8 @@ import zoneinfo
 from homeassistant.util.dt import (set_default_time_zone, now)
 from integration import (create_consumption_data, create_rate_data, get_test_context)
 
-from custom_components.edf_energy.coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult, async_fetch_consumption_and_rates
-from custom_components.edf_energy.api_client import EDFEnergyApiClient
+from custom_components.edfenergy_uk.coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult, async_fetch_consumption_and_rates
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient
 
 pytestmark = pytest.mark.xfail(reason="GraphQL token refresh blocked by CloudFront on GitHub Actions runner IPs", strict=False)
 

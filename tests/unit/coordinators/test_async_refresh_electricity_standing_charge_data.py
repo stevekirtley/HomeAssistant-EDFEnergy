@@ -2,9 +2,9 @@ from datetime import datetime, timedelta
 import pytest
 import mock
 
-from custom_components.edf_energy.const import REFRESH_RATE_IN_MINUTES_STANDING_CHARGE
-from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
-from custom_components.edf_energy.coordinators.electricity_standing_charges import ElectricityStandingChargeCoordinatorResult, async_refresh_electricity_standing_charges_data
+from custom_components.edfenergy_uk.const import REFRESH_RATE_IN_MINUTES_STANDING_CHARGE
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edfenergy_uk.coordinators.electricity_standing_charges import ElectricityStandingChargeCoordinatorResult, async_refresh_electricity_standing_charges_data
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 period_from = datetime.strptime("2023-07-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")

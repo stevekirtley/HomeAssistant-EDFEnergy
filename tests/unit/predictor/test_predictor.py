@@ -8,8 +8,8 @@ from datetime import timedelta
 import pytest
 from homeassistant.util.dt import utcnow
 
-from custom_components.edf_energy.const import DATA_PREDICTOR, DOMAIN, PREDICTOR_CACHE_MINUTES
-from custom_components.edf_energy.predictor import (
+from custom_components.edfenergy_uk.const import DATA_PREDICTOR, DOMAIN, PREDICTOR_CACHE_MINUTES
+from custom_components.edfenergy_uk.predictor import (
   MAX_OUTLOOK_DAYS,
   MAX_TEXT,
   async_get_predictor,
@@ -221,7 +221,7 @@ async def test_the_site_is_asked_once_within_the_cache_window(monkeypatch):
   async def fake_fetch(hass):
     calls.append(1)
     return {"outlook": parse_outlook(OUTLOOK), "tomorrow": None, "scores": None, "site": "s"}
-  monkeypatch.setattr("custom_components.edf_energy.predictor.async_fetch_predictor", fake_fetch)
+  monkeypatch.setattr("custom_components.edfenergy_uk.predictor.async_fetch_predictor", fake_fetch)
   hass = StubHass()
   now = utcnow()
 
@@ -238,7 +238,7 @@ async def test_the_site_is_asked_again_once_the_cache_is_stale(monkeypatch):
   async def fake_fetch(hass):
     calls.append(1)
     return {"outlook": parse_outlook(OUTLOOK), "tomorrow": None, "scores": None, "site": "s"}
-  monkeypatch.setattr("custom_components.edf_energy.predictor.async_fetch_predictor", fake_fetch)
+  monkeypatch.setattr("custom_components.edfenergy_uk.predictor.async_fetch_predictor", fake_fetch)
   hass = StubHass()
   now = utcnow()
 
@@ -254,7 +254,7 @@ async def test_a_failed_fetch_is_not_cached(monkeypatch):
   async def fake_fetch(hass):
     calls.append(1)
     return {"outlook": None, "tomorrow": None, "scores": None, "site": "s"}
-  monkeypatch.setattr("custom_components.edf_energy.predictor.async_fetch_predictor", fake_fetch)
+  monkeypatch.setattr("custom_components.edfenergy_uk.predictor.async_fetch_predictor", fake_fetch)
   hass = StubHass()
   now = utcnow()
 

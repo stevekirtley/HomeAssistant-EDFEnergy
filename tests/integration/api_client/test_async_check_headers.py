@@ -1,7 +1,7 @@
 import pytest
 
 from integration import get_test_context
-from custom_components.edf_energy.api_client import EDFEnergyApiClient
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient
 
 @pytest.mark.asyncio
 @pytest.mark.xfail(reason="GraphQL token refresh blocked by CloudFront on GitHub Actions runner IPs", strict=False)

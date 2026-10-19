@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.edf_energy.api_client import get_standing_charge
+from custom_components.edfenergy_uk.api_client import get_standing_charge
 
 def __charge(value_inc_vat: float, payment_method):
   return {

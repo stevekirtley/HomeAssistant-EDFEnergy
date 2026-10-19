@@ -56,9 +56,9 @@ This above does not apply and will not come on outside of the standard off peak 
 
 * OHME
 
-Assuming you're with a valid Smart Charging provider, another reason might be you've turned on [manual dispatch refetches](./setup/account.md#manually-refresh-intelligent-dispatches), which turns off automatic refreshing. If you're not calling the service (either manually or via the provided [blueprint](./services.md#edf_energyrefresh_intelligent_dispatches)), then the dispatches won't be available to adjust the off peak sensor.
+Assuming you're with a valid Smart Charging provider, another reason might be you've turned on [manual dispatch refetches](./setup/account.md#manually-refresh-intelligent-dispatches), which turns off automatic refreshing. If you're not calling the service (either manually or via the provided [blueprint](./services.md#edfenergy_ukrefresh_intelligent_dispatches)), then the dispatches won't be available to adjust the off peak sensor.
 
-If you are with an accepted provider and are getting dispatch information, then you can use this [available service](./services.md#edf_energyget_point_in_time_intelligent_dispatch_history) to see what state the dispatches are at a given point in time when you believe the off peak sensor should be on. If you are seeing dispatches available based on your settings and still having issues, please raise an issue.
+If you are with an accepted provider and are getting dispatch information, then you can use this [available service](./services.md#edfenergy_ukget_point_in_time_intelligent_dispatch_history) to see what state the dispatches are at a given point in time when you believe the off peak sensor should be on. If you are seeing dispatches available based on your settings and still having issues, please raise an issue.
 
 ## The integration provides features I don't need, can I turn the feature off?
 
@@ -68,7 +68,7 @@ However, the integration only requests the data specified above that is needed f
 
 Disabling entities is easy. All you need to do is
 
-1. Go to the [EDF Energy](https://my.home-assistant.io/redirect/integration/?domain=edf_energy) integration.
+1. Go to the [EDF Energy](https://my.home-assistant.io/redirect/integration/?domain=edfenergy_uk) integration.
 2. Click on `entities`
 3. Go into multi-select mode and select the entities you want to disable
 4. Select `Disable selected`
@@ -117,7 +117,7 @@ If you receiving warnings along the lines of
 
 > Update of sensor.edf_energy_xxx is taking over x seconds
 
-> Updating edf_energy sensor took longer than the scheduled update interval
+> Updating edfenergy_uk sensor took longer than the scheduled update interval
 
 then yes, this is expected. This is a default warning built into Home Assistant, however with this integration it's perfectly valid for you to receive this when the sensors attempt to update the data. This is for a number of reasons
 
@@ -142,7 +142,7 @@ Some entities are disabled by default. This is usually because the entities are 
 
 Enabling entities is easy. All you need to do is
 
-1. Go to the [EDF Energy](https://my.home-assistant.io/redirect/integration/?domain=edf_energy) integration.
+1. Go to the [EDF Energy](https://my.home-assistant.io/redirect/integration/?domain=edfenergy_uk) integration.
 2. Click on `entities`
 3. Find and click on the entity you want to enable. This is usually indicated by a "no entry" sign in the `status`.
 4. Click on the settings/cog button
@@ -265,7 +265,7 @@ If you've been asked for meter information, don't worry we won't ask for anythin
 
 Alternatively
 
-1. Navigate to the [EDF Energy integration](https://my.home-assistant.io/redirect/integration/?domain=edf_energy)
+1. Navigate to the [EDF Energy integration](https://my.home-assistant.io/redirect/integration/?domain=edfenergy_uk)
 2. Click the three dots next to your account configuration
 3. Click on "Download diagnostics"
 4. Take the contents of the downloads json file and paste into the bug report. Remember to surround the contents with ``` both at the start and end.

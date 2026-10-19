@@ -1,4 +1,4 @@
-from custom_components.edf_energy.const import EVENT_TARGET_TIMEFRAME_UPDATE_DATA_SOURCE
+from custom_components.edfenergy_uk.const import EVENT_TARGET_TIMEFRAME_UPDATE_DATA_SOURCE
 
 
 def assert_raised_target_timeframe_update_event(raised_events: dict, expected_rates: list, expected_serial_number: str, expected_mpan_or_mprn: str):

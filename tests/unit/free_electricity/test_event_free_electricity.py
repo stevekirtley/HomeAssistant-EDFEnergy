@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, timedelta
 
-from custom_components.edf_energy.coordinators.event_free_electricity import (
+from custom_components.edfenergy_uk.coordinators.event_free_electricity import (
   _eligible_windows,
   _select_candidate,
   _extra_time_check_required,

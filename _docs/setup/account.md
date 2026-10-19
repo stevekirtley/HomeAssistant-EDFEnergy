@@ -57,7 +57,7 @@ There are some tariffs where direct debit and non direct debit rates are availab
 
 When enabled (the default), the integration will automatically opt your account into the EDF Energy Sunday Saver challenge each month. Sunday Saver provides free electricity for a set window on Sunday mornings.
 
-If you prefer to manage enrolment manually — for example to review the terms before each month's challenge — disable this toggle and use the [`join_sunday_saver`](../services.md#edf_energyjoin_sunday_saver) service instead.
+If you prefer to manage enrolment manually — for example to review the terms before each month's challenge — disable this toggle and use the [`join_sunday_saver`](../services.md#edfenergy_ukjoin_sunday_saver) service instead.
 
 When the integration successfully enrols your account for the first time, a persistent notification will appear in Home Assistant to confirm.
 
@@ -67,7 +67,7 @@ See the [Sunday Saver entities](../entities/sunday_saver.md) for the sensors exp
 
 ### Manually refresh intelligent dispatches
 
-By default, Smart Charging dispatches are retrieved [periodically](../faq.md#how-often-is-data-refreshed). This is fine for most scenarios, but this can be a little slow depending on what else you're doing off the back of the dispatches. If you have other ways of knowing when new dispatches should be available (e.g. your charger changes to a charging state or a manual button in your HA dashboard), then you can turn on `Manually refresh intelligent dispatches`. This will disable the periodic refreshing and expose a [service](../services.md#edf_energyrefresh_intelligent_dispatches) which can be called to refresh the dispatches.
+By default, Smart Charging dispatches are retrieved [periodically](../faq.md#how-often-is-data-refreshed). This is fine for most scenarios, but this can be a little slow depending on what else you're doing off the back of the dispatches. If you have other ways of knowing when new dispatches should be available (e.g. your charger changes to a charging state or a manual button in your HA dashboard), then you can turn on `Manually refresh intelligent dispatches`. This will disable the periodic refreshing and expose a [service](../services.md#edfenergy_ukrefresh_intelligent_dispatches) which can be called to refresh the dispatches.
 
 !!! warning
 

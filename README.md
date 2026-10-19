@@ -61,7 +61,7 @@ Add this repository as a custom HACS repository:
 
 ### Manual
 
-1. Copy the `custom_components/edf_energy` folder into your Home Assistant `custom_components` directory.
+1. Copy the `custom_components/edfenergy_uk` folder into your Home Assistant `custom_components` directory.
 2. Restart Home Assistant.
 
 ## How to setup
@@ -92,4 +92,4 @@ We'll each get £50 credited to our account.
 ---
 
 [![GitHub Stars](https://img.shields.io/github/stars/stevekirtley/HomeAssistant-EDFEnergy?style=flat&label=GitHub%20stars)](https://github.com/stevekirtley/HomeAssistant-EDFEnergy)
-[![HA Analytics](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=active%20installs&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.edf_energy.total)](https://analytics.home-assistant.io)
+[![HA Analytics](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=active%20installs&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.edfenergy_uk.total)](https://analytics.home-assistant.io)

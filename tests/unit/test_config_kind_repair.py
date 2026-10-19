@@ -9,8 +9,8 @@ reload that showed it.
 """
 import pytest
 
-from custom_components.edf_energy import _infer_config_kind
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk import _infer_config_kind
+from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
   CONFIG_KIND_ACCOUNT,

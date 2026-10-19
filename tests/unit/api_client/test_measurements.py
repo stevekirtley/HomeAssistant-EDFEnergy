@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from custom_components.edf_energy.api_client.measurements import (
+from custom_components.edfenergy_uk.api_client.measurements import (
   EXPORT,
   IMPORT,
   next_cursor,

@@ -1,9 +1,9 @@
 from datetime import (datetime, timedelta)
-from custom_components.edf_energy.api_client import rates_to_thirty_minute_increments
+from custom_components.edfenergy_uk.api_client import rates_to_thirty_minute_increments
 import pytest
 
 from unit import (create_rate_data)
-from custom_components.edf_energy.utils.rate_information import get_previous_rate_information
+from custom_components.edfenergy_uk.utils.rate_information import get_previous_rate_information
 
 @pytest.mark.asyncio
 async def test_when_target_has_no_rates_and_gmt_then_no_rate_information_is_returned():

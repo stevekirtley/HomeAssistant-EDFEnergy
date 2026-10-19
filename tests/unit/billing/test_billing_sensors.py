@@ -3,7 +3,7 @@ from datetime import date
 
 import pytest
 
-from custom_components.edf_energy.billing.sensor import (
+from custom_components.edfenergy_uk.billing.sensor import (
   EDFEnergyAccountBalance,
   EDFEnergyLastBillAmount,
   EDFEnergyNextPaymentAmount,

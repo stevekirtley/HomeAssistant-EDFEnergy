@@ -34,7 +34,7 @@ This should be true if the tracked entity's state increases over time (true) or 
 
 ### Don't automatically reset the cost sensor
 
-By default, the sensor will automatically reset when a new reading has been received and it's a different day to the previous reading. There may be times that you want to track costs for something over this threshold (e.g. how much it last cost you to charge your car). In these scenarios, you can turn off the automatic resets. In this scenario, you are in charge of resetting the core sensor via it's [available service](../services.md#edf_energyreset_cost_tracker).
+By default, the sensor will automatically reset when a new reading has been received and it's a different day to the previous reading. There may be times that you want to track costs for something over this threshold (e.g. how much it last cost you to charge your car). In these scenarios, you can turn off the automatic resets. In this scenario, you are in charge of resetting the core sensor via it's [available service](../services.md#edfenergy_ukreset_cost_tracker).
 
 !!! info
 
@@ -54,7 +54,7 @@ This is the day of the month the accumulative month sensor should reset. This mu
 
 ## Handling Exporting
 
-Due to everyone's HA setup being different for how they track importing/exporting, the sensors themselves assume that all consumption changes should be tracked and the cost calculated. However, you may wish to turn off tracking when you're exporting. This can be done via the related [services](../services.md#edf_energyupdate_cost_tracker).
+Due to everyone's HA setup being different for how they track importing/exporting, the sensors themselves assume that all consumption changes should be tracked and the cost calculated. However, you may wish to turn off tracking when you're exporting. This can be done via the related [services](../services.md#edfenergy_ukupdate_cost_tracker).
 
 ## Entities
 

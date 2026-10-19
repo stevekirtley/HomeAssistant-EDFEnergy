@@ -9,7 +9,7 @@ go, and that a failure anywhere leaves the entry exactly as it was.
 """
 import pytest
 
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,
@@ -19,8 +19,8 @@ from custom_components.edf_energy.const import (
   DOMAIN,
   REPAIR_API_KEY_NEEDED,
 )
-from custom_components.edf_energy.repairs import ApiKeyNeededRepairFlow, async_create_fix_flow
-from custom_components.edf_energy.utils.repairs import safe_repair_key
+from custom_components.edfenergy_uk.repairs import ApiKeyNeededRepairFlow, async_create_fix_flow
+from custom_components.edfenergy_uk.utils.repairs import safe_repair_key
 
 ACCOUNT_ID = "A-XXXXXX"
 NEW_KEY = "sk_live_the_new_one"
@@ -85,7 +85,7 @@ def stub_client(monkeypatch):
   StubClient.created = []
   StubClient.mint_error = None
   StubClient.verify_error = None
-  monkeypatch.setattr("custom_components.edf_energy.repairs.EDFEnergyApiClient", StubClient)
+  monkeypatch.setattr("custom_components.edfenergy_uk.repairs.EDFEnergyApiClient", StubClient)
   return StubClient
 
 
@@ -93,7 +93,7 @@ def stub_client(monkeypatch):
 def captured_issues(monkeypatch):
   deleted = []
   monkeypatch.setattr(
-    "custom_components.edf_energy.repairs.ir.async_delete_issue",
+    "custom_components.edfenergy_uk.repairs.ir.async_delete_issue",
     lambda hass, domain, issue_id: deleted.append((domain, issue_id)),
   )
   return deleted

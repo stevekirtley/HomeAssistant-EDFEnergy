@@ -2,11 +2,11 @@ from datetime import datetime, timedelta, time
 import pytest
 import mock
 
-from custom_components.edf_energy.const import REFRESH_RATE_IN_MINUTES_INTELLIGENT
-from custom_components.edf_energy.intelligent import mock_intelligent_settings
-from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
-from custom_components.edf_energy.coordinators.intelligent_settings import IntelligentCoordinatorResult, async_refresh_intelligent_settings
-from custom_components.edf_energy.api_client.intelligent_device_settings import IntelligentDeviceSettingPreference, IntelligentDeviceSettingStatus, IntelligentDeviceSettings
+from custom_components.edfenergy_uk.const import REFRESH_RATE_IN_MINUTES_INTELLIGENT
+from custom_components.edfenergy_uk.intelligent import mock_intelligent_settings
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edfenergy_uk.coordinators.intelligent_settings import IntelligentCoordinatorResult, async_refresh_intelligent_settings
+from custom_components.edfenergy_uk.api_client.intelligent_device_settings import IntelligentDeviceSettingPreference, IntelligentDeviceSettingStatus, IntelligentDeviceSettings
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 last_retrieved = datetime.strptime("2023-07-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")

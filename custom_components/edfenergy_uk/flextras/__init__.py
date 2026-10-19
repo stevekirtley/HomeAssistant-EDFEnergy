@@ -1,6 +1,8 @@
 """Flextras scheme support."""
 import logging
 
+from ..const import DOMAIN
+
 from homeassistant.helpers import entity_registry as er
 
 _LOGGER = logging.getLogger(__name__)
@@ -15,7 +17,7 @@ def async_remove_ineligible_entity(hass, platform: str, unique_id: str) -> None:
   """
   try:
     registry = er.async_get(hass)
-    entity_id = registry.async_get_entity_id(platform, "edf_energy", unique_id)
+    entity_id = registry.async_get_entity_id(platform, DOMAIN, unique_id)
     if entity_id is not None:
       registry.async_remove(entity_id)
       _LOGGER.info("Removed ineligible Flextras entity %s", entity_id)

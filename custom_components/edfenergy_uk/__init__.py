@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 import hashlib
 import voluptuous as vol
 from datetime import datetime, timedelta, timezone
@@ -9,7 +10,7 @@ from homeassistant.core import SupportsResponse, callback
 from homeassistant.components import websocket_api
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, ServiceValidationError
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
 from homeassistant.util.dt import (utcnow, now)
@@ -37,6 +38,7 @@ from .coordinators.flextras import async_setup_flextras_coordinator, get_propert
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
 from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
 from .coordinators.power_perks import async_setup_power_perks_coordinator, register_manual_session, relay_enabled
+from .migration import async_apply_captured, async_take_over_old_entries
 from .coordinators.flextras_hours import (
   drop_past_hours,
   async_book_flextras_hours,
@@ -62,7 +64,6 @@ from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult,
 
 from .utils.recorder_history import async_count_recorded_states
 from .utils.repairs import safe_repair_key
-from .utils.successor import successor_installed
 
 from .const import (
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
@@ -106,8 +107,9 @@ from .const import (
   CONFIG_MAIN_REFRESH_EXPIRES_IN,
   CONFIG_MAIN_REFRESH_TOKEN,
   REPAIR_API_KEY_NEEDED,
-  REPAIR_FINISH_THE_MOVE,
-  SUCCESSOR_DOMAIN,
+  REPAIR_OLD_FOLDER_PRESENT,
+  PREDECESSOR_DOMAIN,
+  PREDECESSOR_STANDS_DOWN_FROM,
   REPAIR_AUTH_TOKEN_EXPIRING_SOON,
   CONFIG_ACCOUNT_ID,
   DATA_BILLING,
@@ -150,7 +152,7 @@ from .predictor import async_get_predictor
 
 _LOGGER = logging.getLogger(__name__)
 
-CONFIG_SCHEMA = cv.config_entry_only_config_schema("edf_energy")
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 SCAN_INTERVAL = timedelta(minutes=1)
 
@@ -736,32 +738,106 @@ async def _async_close_client(hass, account_id: str):
       await client.async_close()
       _LOGGER.debug('Client closed.')
 
+def _raise_old_folder_repair(hass, stale: str) -> None:
+  """Say why nothing is loading, from wherever noticed it first.
+
+  Raised from async_setup as well as async_setup_entry: straight after an update every
+  entry still belongs to the old domain, so there is nothing here for Home Assistant to
+  set up and async_setup_entry would never run. Without this the integration would simply
+  sit there doing nothing with no explanation anywhere.
+  """
+  ir.async_create_issue(
+    hass,
+    DOMAIN,
+    REPAIR_OLD_FOLDER_PRESENT,
+    is_fixable=False,
+    severity=ir.IssueSeverity.ERROR,
+    translation_key="old_folder_present",
+    translation_placeholders={
+      "old_domain": PREDECESSOR_DOMAIN,
+      "new_domain": DOMAIN,
+      "old_version": stale,
+    },
+  )
+  _LOGGER.error(
+    "custom_components/%s is still installed at version %s, which is too old to stand "
+    "down on its own. Delete that folder and restart; this integration will not load "
+    "until it is gone, to avoid creating every entity twice.",
+    PREDECESSOR_DOMAIN, stale,
+  )
+
+
+async def async_setup(hass, config):
+  """Run before any config entry is set up.
+
+  The hand-over from the old domain has to happen here rather than in async_setup_entry:
+  the old entries have to be gone before the new entities are created, and by the time an
+  entry is being set up it is already too late for that.
+  """
+  stale = _blocking_predecessor(hass)
+  if stale is not None:
+    # Only worth saying when there is something waiting to be taken over. A fresh install
+    # that happens to have an old folder lying about has nothing to migrate and nothing to
+    # complain about.
+    if hass.config_entries.async_entries(PREDECESSOR_DOMAIN):
+      _raise_old_folder_repair(hass, stale)
+    return True
+
+  try:
+    await async_take_over_old_entries(hass)
+  except Exception as err:
+    # A failed hand-over must not stop the integration loading for somebody who has
+    # nothing to migrate, and the old entries are only removed once the capture succeeded.
+    _LOGGER.error("Could not take over the entries from %s: %s", PREDECESSOR_DOMAIN, err)
+
+  return True
+
+
+def _predecessor_version(hass) -> tuple[int, ...] | None:
+  """The version of the old folder if it is still installed, else None.
+
+  A version that cannot be read comes back as (0,), which counts as too old: an unreadable
+  manifest is not a reason to assume the thing will behave.
+  """
+  manifest = os.path.join(
+    hass.config.config_dir, "custom_components", PREDECESSOR_DOMAIN, "manifest.json"
+  )
+  if not os.path.isfile(manifest):
+    return None
+  try:
+    with open(manifest, encoding="utf-8") as handle:
+      raw = str(json.load(handle).get("version") or "")
+    return tuple(int(part) for part in raw.split(".")[:3]) or (0,)
+  except Exception:
+    return (0,)
+
+
+def _blocking_predecessor(hass) -> str | None:
+  """The old folder's version when it is too old to stand down for us, else None.
+
+  From 20.1.0 the old integration refuses to load once it sees this one installed, so the
+  two can sit side by side for a restart and only this one runs. Anything earlier has no
+  such guard and would create every entity a second time, so this one stays out of the way
+  instead and says what needs removing.
+  """
+  version = _predecessor_version(hass)
+  if version is None or version >= PREDECESSOR_STANDS_DOWN_FROM:
+    return None
+  return ".".join(str(part) for part in version) if version != (0,) else "unknown"
+
+
 async def async_setup_entry(hass, entry):
   """This is called from the config flow."""
-  if successor_installed(hass):
-    # Both folders present is not a problem to be solved by refusing to run. The config
-    # entries still belong to this domain, and the successor cannot have them until the
-    # user hands them over from its own config flow - so stopping here would take the
-    # account offline for however long it took them to notice. Carry on exactly as before
-    # and leave a notice saying there is a step outstanding.
-    ir.async_create_issue(
-      hass,
-      DOMAIN,
-      REPAIR_FINISH_THE_MOVE,
-      is_fixable=False,
-      severity=ir.IssueSeverity.WARNING,
-      translation_key="finish_the_move",
-      translation_placeholders={"old_domain": DOMAIN, "new_domain": SUCCESSOR_DOMAIN},
-      learn_more_url="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/new_folder/",
+  stale = _blocking_predecessor(hass)
+  if stale is not None:
+    # Stand aside rather than race the old folder for the entity ids. It is still running
+    # and still working, so nothing is lost by waiting until it is removed.
+    _raise_old_folder_repair(hass, stale)
+    raise ConfigEntryError(
+      f"Delete custom_components/{PREDECESSOR_DOMAIN} (version {stale}) and restart."
     )
-    _LOGGER.info(
-      "custom_components/%s is installed alongside this one. Nothing has changed here - add "
-      "the new integration from Settings to hand this account over to it.",
-      SUCCESSOR_DOMAIN,
-    )
-  else:
-    ir.async_delete_issue(hass, DOMAIN, REPAIR_FINISH_THE_MOVE)
 
+  ir.async_delete_issue(hass, DOMAIN, REPAIR_OLD_FOLDER_PRESENT)
   hass.data.setdefault(DOMAIN, {})
 
   if not hass.data[DOMAIN].get("_frontend_registered"):
@@ -949,6 +1025,9 @@ async def async_setup_entry(hass, entry):
 
     await hass.config_entries.async_forward_entry_setups(entry, TARIFF_COMPARISON_PLATFORMS)
   
+  # The entities exist now, so anything the user had changed about them can go back on.
+  async_apply_captured(hass)
+
   # Seeded here so the first change after a restart can be compared against something; an
   # entry with no record of its previous options is treated as having changed everything.
   hass.data.setdefault(DOMAIN, {})[DATA_LAST_OPTIONS.format(entry.entry_id)] = dict(entry.options)
@@ -1259,6 +1338,21 @@ def _async_register_services(hass):
   if hass.services.has_service(DOMAIN, SERVICE_JOIN_SUNDAY_SAVER):
     return
 
+  # Each of these is registered twice: under this domain, and under the one the integration
+  # used to live in. An action name is not covered by the entity_id trick that carries
+  # everything else across, so an automation calling edf_energy.register_power_perks_session
+  # would otherwise simply stop. The aliases are deprecated and meant to come out a couple
+  # of releases after 21.0.0.
+  #
+  # Only the plain actions can be done this way. The eight entity actions are registered by
+  # their platform, which takes its domain from the integration, so they move with it - see
+  # the release notes.
+  aliased = []
+
+  def register(name, handler, **kwargs):
+    hass.services.async_register(DOMAIN, name, handler, **kwargs)
+    aliased.append((name, handler, kwargs))
+
   # ARCHIVED — World Cup 2026 ended 2026-07-19. Service disabled.
   # Restore the block below when a new football tournament begins.
   #
@@ -1308,8 +1402,7 @@ def _async_register_services(hass):
         if coordinator is not None:
           await coordinator.async_request_refresh()
 
-  hass.services.async_register(
-    DOMAIN,
+  register(
     SERVICE_JOIN_SUNDAY_SAVER,
     _handle_join_sunday_saver,
     schema=vol.Schema({
@@ -1342,8 +1435,7 @@ def _async_register_services(hass):
         if coordinator is not None:
           await coordinator.async_request_refresh()
 
-  hass.services.async_register(
-    DOMAIN,
+  register(
     SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS,
     _handle_claim_flextras_bonus_hours,
     schema=vol.Schema({
@@ -1370,8 +1462,7 @@ def _async_register_services(hass):
         if coordinator is not None:
           await coordinator.async_request_refresh()
 
-  hass.services.async_register(
-    DOMAIN,
+  register(
     SERVICE_REGISTER_POWER_PERKS,
     _handle_register_power_perks,
     schema=vol.Schema({
@@ -1398,8 +1489,7 @@ def _async_register_services(hass):
         if coordinator is not None:
           await coordinator.async_request_refresh()
 
-  hass.services.async_register(
-    DOMAIN,
+  register(
     SERVICE_JOIN_FLEXTRAS,
     _handle_join_flextras,
     schema=vol.Schema({
@@ -1442,8 +1532,7 @@ def _async_register_services(hass):
       "remaining_hours": result.get("remaining_hours"),
     }
 
-  hass.services.async_register(
-    DOMAIN,
+  register(
     SERVICE_BOOK_FLEXTRAS_HOURS,
     _handle_book_flextras_hours,
     schema=vol.Schema({
@@ -1469,8 +1558,7 @@ def _async_register_services(hass):
       "remaining_hours": result.get("remaining_hours"),
     }
 
-  hass.services.async_register(
-    DOMAIN,
+  register(
     SERVICE_CANCEL_FLEXTRAS_HOURS,
     _handle_cancel_flextras_hours,
     schema=vol.Schema({
@@ -1514,8 +1602,7 @@ def _async_register_services(hass):
         if coordinator is not None:
           await coordinator.async_request_refresh()
 
-  hass.services.async_register(
-    DOMAIN,
+  register(
     SERVICE_REGISTER_POWER_PERKS_SESSION,
     _handle_register_power_perks_session,
     schema=vol.Schema({
@@ -1569,8 +1656,7 @@ def _async_register_services(hass):
       _LOGGER.info("Repacking the recorder database to reclaim disk space - this may take a while")
       await hass.services.async_call("recorder", "purge", { "repack": True }, blocking=True)
 
-  hass.services.async_register(
-    DOMAIN,
+  register(
     SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
     _handle_purge_free_electricity_event_history,
     schema=vol.Schema({
@@ -1578,6 +1664,10 @@ def _async_register_services(hass):
       vol.Optional("repack", default=False): cv.boolean,
     }),
   )
+
+  for name, handler, kwargs in aliased:
+    if not hass.services.has_service(PREDECESSOR_DOMAIN, name):
+      hass.services.async_register(PREDECESSOR_DOMAIN, name, handler, **kwargs)
 
 
 # Options that only change what the panel draws. Nothing in the backend reads these, so

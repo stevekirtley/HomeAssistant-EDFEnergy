@@ -2,7 +2,7 @@
 once EDF publish the product again (issue #39)."""
 import pytest
 
-from custom_components.edf_energy.coordinators.account import async_check_valid_product
+from custom_components.edfenergy_uk.coordinators.account import async_check_valid_product
 
 
 class FakeClient:

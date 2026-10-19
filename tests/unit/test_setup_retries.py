@@ -17,14 +17,14 @@ import socket
 import aiohttp
 import pytest
 
-from custom_components.edf_energy.api_client import (
+from custom_components.edfenergy_uk.api_client import (
   ApiException,
   AuthenticationException,
   RequestException,
   ServerException,
   TimeoutException,
 )
-from custom_components.edf_energy.utils.error import RETRYABLE_EXCEPTIONS, api_exception_to_string
+from custom_components.edfenergy_uk.utils.error import RETRYABLE_EXCEPTIONS, api_exception_to_string
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 
 

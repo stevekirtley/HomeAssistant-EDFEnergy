@@ -4,7 +4,7 @@ Diagnostics get attached to public issues. What an account is in credit by, what
 bill came to and what the direct debit is are not needed to reproduce a fault, so they are
 replaced - while everything that *is* useful for diagnosing those sensors survives.
 """
-from custom_components.edf_energy.diagnostics import redact_billing_entity
+from custom_components.edfenergy_uk.diagnostics import redact_billing_entity
 
 def entry(state, attributes=None):
   return {

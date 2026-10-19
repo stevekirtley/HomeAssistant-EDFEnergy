@@ -1,5 +1,5 @@
-DOMAIN = "edf_energy"
-INTEGRATION_VERSION = "20.1.1"
+DOMAIN = "edfenergy_uk"
+INTEGRATION_VERSION = "21.0.0"
 
 REFRESH_RATE_IN_MINUTES_ACCOUNT = 360 # 6 hours
 REFRESH_RATE_IN_MINUTES_INTELLIGENT = 3
@@ -233,17 +233,19 @@ REPAIR_TARIFF_RATES_EMPTY = "tariff_rates_empty_{}_{}"
 REPAIR_TARGET_RATE_NOT_SUPPORTED = "target_rate_not_supported"
 REPAIR_AUTH_TOKEN_EXPIRING_SOON = "auth_token_expiring_soon_{}"
 REPAIR_API_KEY_NEEDED = "api_key_needed_{}"
-# Deliberately the same issue id 20.1.0 used, so an install coming from that release has
-# this notice replaced rather than ending up holding both.
-REPAIR_FINISH_THE_MOVE = "superseded_by_edfenergy_uk"
+REPAIR_OLD_FOLDER_PRESENT = "old_folder_present"
 
-# The domain this integration becomes in 21.0.0. HACS installs the new release into
-# custom_components/<domain>, and does not remove the directory the old domain was in, so
-# both can sit there indefinitely. Only one of them ever holds the config entries, and
-# this one holds them until the user hands them over from the other side, so this one
-# carries on working exactly as before and just says there is a step left to do. See
-# async_setup_entry.
-SUCCESSOR_DOMAIN = "edfenergy_uk"
+# Where this integration used to live. HACS works out where to put an integration from the
+# domain in its manifest, so 21.0.0 installs into a new directory and leaves the old one
+# behind. 20.1.0 stands itself down when it sees this one installed alongside, so the two
+# never both load - but anybody who skipped it has an old folder with no such guard, and
+# both loading means every entity collides with its twin and comes back with a "_2" suffix.
+# That is the broken automations the rename exists to avoid, so when the leftover folder is
+# older than the release that knows to stand down, nothing here loads either until it is
+# removed. See _blocking_predecessor.
+DATA_MIGRATION = "MIGRATION_FROM_OLD_DOMAIN"
+PREDECESSOR_DOMAIN = "edf_energy"
+PREDECESSOR_STANDS_DOWN_FROM = (20, 1, 0)
 REPAIR_FREE_ELECTRICITY_EVENT_HISTORY = "free_electricity_event_history_{}"
 
 # Roughly a week of the pre-18.9.8 once-a-minute writes. Below this there's little to reclaim and

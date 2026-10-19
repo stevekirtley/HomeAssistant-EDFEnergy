@@ -5,14 +5,14 @@ from unittest.mock import MagicMock
 import pytest
 from homeassistant.util.dt import as_local
 
-from custom_components.edf_energy.api_client.free_electricity_sessions import FreeElectricitySession
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk.api_client.free_electricity_sessions import FreeElectricitySession
+from custom_components.edfenergy_uk.const import (
   DATA_FREE_ELECTRICITY_SESSIONS,
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
   DOMAIN,
   EVENT_ALL_FREE_ELECTRICITY_SESSIONS,
 )
-from custom_components.edf_energy.free_electricity.free_electricity_sessions_events import EDFEnergyFreeElectricitySessionEvents
+from custom_components.edfenergy_uk.free_electricity.free_electricity_sessions_events import EDFEnergyFreeElectricitySessionEvents
 
 ACCOUNT_ID = "A-12345"
 

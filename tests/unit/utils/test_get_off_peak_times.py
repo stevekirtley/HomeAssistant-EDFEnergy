@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 from homeassistant.util.dt import set_default_time_zone
 
-from custom_components.edf_energy.utils import get_off_peak_times
-from custom_components.edf_energy.api_client import rates_to_thirty_minute_increments
+from custom_components.edfenergy_uk.utils import get_off_peak_times
+from custom_components.edfenergy_uk.api_client import rates_to_thirty_minute_increments
 from tests.unit import create_rate_data
 
 GOELEC_TARIFF_CODE = "E-1R-EDF_EV_FIX_GOELEC_12M_HH-B"

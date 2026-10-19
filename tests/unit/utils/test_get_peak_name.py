@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.edf_energy.utils.rate_information import get_peak_name
+from custom_components.edfenergy_uk.utils.rate_information import get_peak_name
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("peak_type,expected_name",[

@@ -1,5 +1,5 @@
 import pytest
-from custom_components.edf_energy.api_client import AuthenticationException, IntelligentBoostChargeException, RequestException, process_graphql_response
+from custom_components.edfenergy_uk.api_client import AuthenticationException, IntelligentBoostChargeException, RequestException, process_graphql_response
 
 expected_error_message = "This is a custom error"
 expected_error_message_2 = "This is another custom error"

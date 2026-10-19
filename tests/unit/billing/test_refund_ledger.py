@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
-from custom_components.edf_energy.api_client.billing import main_ledger_number
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edfenergy_uk.api_client.billing import main_ledger_number
 
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=timezone.utc)
 ACCOUNT_ID = "A-1A2B3C4D"

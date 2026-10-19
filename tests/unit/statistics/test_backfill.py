@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from custom_components.edf_energy.statistics.backfill import (
+from custom_components.edfenergy_uk.statistics.backfill import (
   BACKFILL_MAX_DAYS,
   async_get_first_missing_day,
 )
@@ -23,7 +23,7 @@ def last_statistic(monkeypatch):
     async def _fake(hass, statistic_id):
       return value
     monkeypatch.setattr(
-      "custom_components.edf_energy.statistics.backfill.async_get_last_statistic_start",
+      "custom_components.edfenergy_uk.statistics.backfill.async_get_last_statistic_start",
       _fake,
     )
   return _set

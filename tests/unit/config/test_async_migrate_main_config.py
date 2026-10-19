@@ -1,4 +1,4 @@
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,
@@ -14,7 +14,7 @@ from custom_components.edf_energy.const import (
   CONFIG_MAIN_PRICE_CAP_SETTINGS,
 )
 import pytest
-from custom_components.edf_energy.config.main import async_migrate_main_config
+from custom_components.edfenergy_uk.config.main import async_migrate_main_config
 
 data_v1 = {
   CONFIG_MAIN_OLD_API_KEY: "test-api-key",

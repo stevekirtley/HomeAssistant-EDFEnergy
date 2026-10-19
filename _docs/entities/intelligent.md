@@ -34,7 +34,7 @@ Depending on your [account configuration](../setup/account.md#intelligent-rates-
 
 !!! note
 
-    Sensor came on when you did/didn't expected it to? You can see what the state of your dispatches were at the time by using the [get_point_in_time_intelligent_dispatch_history service](../services.md#edf_energyget_point_in_time_intelligent_dispatch_history)
+    Sensor came on when you did/didn't expected it to? You can see what the state of your dispatches were at the time by using the [get_point_in_time_intelligent_dispatch_history service](../services.md#edfenergy_ukget_point_in_time_intelligent_dispatch_history)
 
 | Attribute | Type | Description |
 |-----------|------|-------------|

@@ -83,6 +83,7 @@ from .utils.rate_information import get_peak_type, get_unique_rates, has_peak_ra
 
 from .utils import (Tariff, get_active_tariff)
 from .utils.repairs import safe_repair_key
+from .utils.entity_services import register_entity_service
 from .const import (
   CONFIG_COST_TRACKER_MPAN,
   CONFIG_ACCOUNT_ID,
@@ -154,7 +155,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     await async_setup_default_sensors(hass, config, async_add_entities)
 
     platform = entity_platform.async_get_current_platform()
-    platform.async_register_entity_service(
+    register_entity_service(
+      platform,
       "refresh_previous_consumption_data",
       vol.All(
         cv.make_entity_service_schema(
@@ -171,7 +173,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     await async_setup_cost_sensors(hass, entry, config, async_add_entities)
 
     platform = entity_platform.async_get_current_platform()
-    platform.async_register_entity_service(
+    register_entity_service(
+      platform,
       "update_cost_tracker",
       vol.All(
         cv.make_entity_service_schema(
@@ -184,7 +187,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
       "async_update_cost_tracker_config"
     )
 
-    platform.async_register_entity_service(
+    register_entity_service(
+      platform,
       "reset_cost_tracker",
       vol.All(
         cv.make_entity_service_schema(
@@ -195,7 +199,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
       "async_reset_cost_tracker"
     )
 
-    platform.async_register_entity_service(
+    register_entity_service(
+      platform,
       "adjust_accumulative_cost_tracker",
       vol.All(
         cv.make_entity_service_schema(
@@ -210,7 +215,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
       "async_adjust_accumulative_cost_tracker"
     )
 
-    platform.async_register_entity_service(
+    register_entity_service(
+      platform,
       "adjust_cost_tracker",
       vol.All(
         cv.make_entity_service_schema(

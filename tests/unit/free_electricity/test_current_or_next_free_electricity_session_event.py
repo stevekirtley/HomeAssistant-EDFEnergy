@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
-from custom_components.edf_energy.api_client.free_electricity_sessions import FreeElectricitySession
-from custom_components.edf_energy.free_electricity import current_or_next_free_electricity_session_event
+from custom_components.edfenergy_uk.api_client.free_electricity_sessions import FreeElectricitySession
+from custom_components.edfenergy_uk.free_electricity import current_or_next_free_electricity_session_event
 
 
 def _session(code, start, end, source="power_perks"):

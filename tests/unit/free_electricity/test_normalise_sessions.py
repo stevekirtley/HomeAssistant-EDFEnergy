@@ -1,15 +1,15 @@
 from datetime import datetime, timezone, timedelta
 import pytest
 
-from custom_components.edf_energy.api_client.free_electricity_sessions import FreeElectricitySession
-from custom_components.edf_energy.coordinators.free_electricity_sessions import (
+from custom_components.edfenergy_uk.api_client.free_electricity_sessions import FreeElectricitySession
+from custom_components.edfenergy_uk.coordinators.free_electricity_sessions import (
   _normalise_sunday_saver,
   _normalise_football,
   _merge_sessions,
   _todays_sessions,
   _sessions_equal,
 )
-from custom_components.edf_energy.storage.free_electricity_sessions_history import (
+from custom_components.edfenergy_uk.storage.free_electricity_sessions_history import (
   merge_free_electricity_sessions,
 )
 

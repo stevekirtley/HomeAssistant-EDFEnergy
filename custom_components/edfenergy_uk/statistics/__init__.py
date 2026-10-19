@@ -8,7 +8,7 @@ from homeassistant.components.recorder.statistics import (
     statistics_during_period
 )
 
-from ..const import DOMAIN
+from ..const import DOMAIN, PREDECESSOR_DOMAIN
 from ..utils import get_active_tariff
 from ..utils.conversions import pence_to_pounds_pence_accurate, round_pounds, consumption_cost_in_pence
 
@@ -156,5 +156,15 @@ def get_statistic_ids_to_remove(now, account_info):
           _LOGGER.info(f'Skipping gas meter due to no active agreement; mprn: {point["mprn"]}; serial number: {meter["serial_number"]}')
   else:
     _LOGGER.info('No gas meters available')
+
+  # The same ids under the domain this integration used to live in. The move renames them,
+  # but one the rename could not reach - the recorder unavailable at the time, say - would
+  # otherwise be an orphan nothing can clear, because the purge would no longer be looking
+  # for that prefix. Listing both costs nothing but a few harmless misses.
+  external_statistic_ids_to_remove += [
+    f"{PREDECESSOR_DOMAIN}:{statistic_id.split(':', 1)[1]}"
+    for statistic_id in list(external_statistic_ids_to_remove)
+    if statistic_id.startswith(f"{DOMAIN}:")
+  ]
 
   return external_statistic_ids_to_remove

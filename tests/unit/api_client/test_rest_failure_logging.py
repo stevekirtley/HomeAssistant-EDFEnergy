@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from custom_components.edf_energy.api_client import EDFEnergyApiClient
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient
 
 CONTEXT = "Flextras booked hours for A-ABC1234/4766138"
 OTHER_CONTEXT = "Flextras bookable days for A-ABC1234/4766138"
@@ -24,7 +24,7 @@ async def test_when_endpoint_fails_first_time_then_warned(caplog):
   client = create_client()
 
   # Act
-  with caplog.at_level(logging.DEBUG, logger="custom_components.edf_energy.api_client"):
+  with caplog.at_level(logging.DEBUG, logger="custom_components.edfenergy_uk.api_client"):
     client._log_rest_failure(CONTEXT, "%s returned HTTP %s", CONTEXT, 500)
 
   # Assert
@@ -38,7 +38,7 @@ async def test_when_endpoint_keeps_failing_then_repeats_go_to_debug(caplog):
   client = create_client()
 
   # Act
-  with caplog.at_level(logging.DEBUG, logger="custom_components.edf_energy.api_client"):
+  with caplog.at_level(logging.DEBUG, logger="custom_components.edfenergy_uk.api_client"):
     for _ in range(5):
       client._log_rest_failure(CONTEXT, "%s returned HTTP %s", CONTEXT, 500)
 
@@ -54,7 +54,7 @@ async def test_when_a_different_endpoint_fails_then_warned_separately(caplog):
   client = create_client()
 
   # Act
-  with caplog.at_level(logging.DEBUG, logger="custom_components.edf_energy.api_client"):
+  with caplog.at_level(logging.DEBUG, logger="custom_components.edfenergy_uk.api_client"):
     client._log_rest_failure(CONTEXT, "%s failed", CONTEXT)
     client._log_rest_failure(OTHER_CONTEXT, "%s failed", OTHER_CONTEXT)
 
@@ -71,7 +71,7 @@ async def test_when_endpoint_recovers_then_a_later_fault_is_warned_again(caplog)
 
   # Act
   client._rest_failures_logged.discard(CONTEXT)
-  with caplog.at_level(logging.DEBUG, logger="custom_components.edf_energy.api_client"):
+  with caplog.at_level(logging.DEBUG, logger="custom_components.edfenergy_uk.api_client"):
     client._log_rest_failure(CONTEXT, "%s failed", CONTEXT)
 
   # Assert

@@ -15,7 +15,7 @@ import os
 
 import pytest
 
-PACKAGE = "custom_components/edf_energy"
+PACKAGE = "custom_components/edfenergy_uk"
 
 
 def _modules():

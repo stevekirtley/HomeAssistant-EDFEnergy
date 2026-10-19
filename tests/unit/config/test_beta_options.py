@@ -5,9 +5,9 @@ stored False is still a False, which several of these pin.
 """
 import pytest
 
-from custom_components.edf_energy import websocket_beta_features
-from custom_components.edf_energy.config_flow import EDFEnergyAccountOptionsFlow
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk import websocket_beta_features
+from custom_components.edfenergy_uk.config_flow import EDFEnergyAccountOptionsFlow
+from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,

@@ -14,7 +14,6 @@ from homeassistant.helpers.typing import DiscoveryInfoType
 from .coordinators.account import AccountCoordinatorResult
 from .config.cost_tracker import validate_cost_tracker_config
 from .config.main import async_validate_main_config
-from .utils.successor import successor_installed
 from .const import (
   CONFIG_COST_TRACKER_DISCOVERY_ACCOUNT_ID,
   CONFIG_COST_TRACKER_DISCOVERY_NAME,
@@ -175,6 +174,25 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     
     return self.async_abort(reason="unexpected_discovery")
   
+  async def async_step_import(self, import_data):
+    """Recreate a config entry that belonged to the old domain.
+
+    Only ever called by the hand-over in migration.py, which has already read the old
+    entry and removed it. The data and options are copied across exactly: this is the same
+    account with the same settings, not a fresh setup, so nothing is validated or asked
+    for again.
+    """
+    unique_id = import_data.get("unique_id")
+    if unique_id:
+      await self.async_set_unique_id(unique_id)
+      self._abort_if_unique_id_configured()
+
+    return self.async_create_entry(
+      title=import_data["title"],
+      data=import_data["data"],
+      options=import_data.get("options") or {},
+    )
+
   def __capture_account_id__(self, step_id: str):
     account_ids = get_account_ids(self.hass)
     account_id_options = []
@@ -252,14 +270,6 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
   
   async def async_step_account(self, user_input):
     """Setup the initial account based on the provided user input"""
-    if successor_installed(self.hass):
-      # Both folders are on disk and the two entries in the integration list look alike, so
-      # this is the one that gets picked by mistake. An account set up here would be stranded
-      # on the old domain and have to be moved across by hand afterwards, which is the whole
-      # mess the hand-over exists to avoid. Only the account is refused: target rates, cost
-      # trackers and tariff comparisons still belong to whichever folder holds the account.
-      return self.async_abort(reason="use_the_new_integration")
-
     account_ids = get_account_ids(self.hass)
     errors = await async_validate_main_config(user_input, account_ids) if user_input is not None else {}
 

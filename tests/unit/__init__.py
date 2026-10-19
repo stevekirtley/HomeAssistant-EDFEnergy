@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import logging
 
-from custom_components.edf_energy.api_client import rates_to_thirty_minute_increments
+from custom_components.edfenergy_uk.api_client import rates_to_thirty_minute_increments
 
 logging.getLogger().setLevel(logging.DEBUG)
 

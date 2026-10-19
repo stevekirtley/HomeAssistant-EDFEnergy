@@ -1,3 +1,21 @@
+## [21.0.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/21.0.0) (2026-10-19)
+
+
+### Breaking Changes
+
+* The integration now lives in `custom_components/edfenergy_uk`. Delete the old `custom_components/edf_energy` folder after updating.
+
+
+### Features
+
+* Accounts, entities, history, statistics and automations are carried over automatically.
+* Action names move to `edfenergy_uk.*`; the old names still work for now.
+
+
+### Notes
+
+* 20.1.0 or later stands aside while both folders are present. Coming straight from 19.x, this release waits until the old folder is deleted rather than creating every entity twice.
+
 ## [20.1.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.1.1) (2026-10-19)
 
 

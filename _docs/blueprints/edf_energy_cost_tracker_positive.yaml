@@ -37,7 +37,7 @@ trigger:
     entity_id: !input monitored_entity
     above: -0.000001
 action:
-  - service: edf_energy.update_cost_tracker
+  - service: edfenergy_uk.update_cost_tracker
     target:
       entity_id: !input cost_tracker_entity
     data:

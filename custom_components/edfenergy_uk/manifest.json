@@ -1,5 +1,5 @@
 {
-  "domain": "edf_energy",
+  "domain": "edfenergy_uk",
   "name": "EDF Energy",
   "codeowners": [
     "@stevekirtley"
@@ -16,5 +16,5 @@
   "requirements": [
     "pydantic"
   ],
-  "version": "20.1.1"
+  "version": "21.0.0"
 }

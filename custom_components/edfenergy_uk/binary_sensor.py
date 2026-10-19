@@ -21,6 +21,7 @@ from .api_client.intelligent_device import IntelligentDevice
 from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult
 from .intelligent import get_intelligent_features
 
+from .utils.entity_services import register_entity_service
 from .const import (
   CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_KIND,
@@ -126,7 +127,8 @@ def get_intelligent_entities(hass, account_id: str, config: dict):
 
       platform = entity_platform.async_get_current_platform()
       if (manually_refresh_dispatches):
-        platform.async_register_entity_service(
+        register_entity_service(
+      platform,
           "refresh_intelligent_dispatches",
           vol.All(
             cv.make_entity_service_schema(
@@ -137,7 +139,8 @@ def get_intelligent_entities(hass, account_id: str, config: dict):
           "async_refresh_dispatches"
         )
 
-      platform.async_register_entity_service(
+      register_entity_service(
+      platform,
         "get_point_in_time_intelligent_dispatch_history",
         vol.All(
           cv.make_entity_service_schema(

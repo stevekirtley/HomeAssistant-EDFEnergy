@@ -5,9 +5,9 @@ import mock
 from tests.unit.coordinators import assert_raised_target_timeframe_update_event
 from unit import (create_rate_data)
 
-from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
-from custom_components.edf_energy.coordinators.gas_rates import GasRatesCoordinatorResult, async_refresh_gas_rates_data
-from custom_components.edf_energy.const import EVENT_GAS_CURRENT_DAY_RATES, EVENT_GAS_NEXT_DAY_RATES, EVENT_GAS_PREVIOUS_DAY_RATES, REFRESH_RATE_IN_MINUTES_RATES
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edfenergy_uk.coordinators.gas_rates import GasRatesCoordinatorResult, async_refresh_gas_rates_data
+from custom_components.edfenergy_uk.const import EVENT_GAS_CURRENT_DAY_RATES, EVENT_GAS_NEXT_DAY_RATES, EVENT_GAS_PREVIOUS_DAY_RATES, REFRESH_RATE_IN_MINUTES_RATES
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 period_from = datetime.strptime("2023-07-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")

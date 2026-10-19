@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from custom_components.edf_energy.api_client.agreement_tariffs import (
+from custom_components.edfenergy_uk.api_client.agreement_tariffs import (
   agreement_rates_to_results,
   agreement_standing_charge,
   parse_agreement_tariffs,
@@ -202,7 +202,7 @@ def test_standing_charge_missing_is_none():
 
 # ── applicableRates: pricing periods the agreement's own rates cannot reach ───
 
-from custom_components.edf_energy.api_client.agreement_tariffs import (
+from custom_components.edfenergy_uk.api_client.agreement_tariffs import (
   agreement_covers_period,
   applicable_rates_to_results,
   parse_applicable_rates,

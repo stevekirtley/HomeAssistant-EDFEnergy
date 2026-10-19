@@ -6,8 +6,8 @@ rows a day per account, so it now fires only on change plus an hourly heartbeat.
 """
 from datetime import datetime, timedelta
 
-from custom_components.edf_energy.api_client.free_electricity_sessions import FreeElectricitySession
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk.api_client.free_electricity_sessions import FreeElectricitySession
+from custom_components.edfenergy_uk.const import (
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
   DATA_SUNDAY_SAVER,
   DOMAIN,
@@ -15,7 +15,7 @@ from custom_components.edf_energy.const import (
   EVENT_NEW_FREE_ELECTRICITY_SESSION,
   REFRESH_RATE_IN_MINUTES_FREE_ELECTRICITY_SESSIONS,
 )
-from custom_components.edf_energy.coordinators.free_electricity_sessions import (
+from custom_components.edfenergy_uk.coordinators.free_electricity_sessions import (
   FreeElectricitySessionsCoordinatorResult,
   refresh_free_electricity_sessions,
 )

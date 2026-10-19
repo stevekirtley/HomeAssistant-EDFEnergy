@@ -1,7 +1,7 @@
 import pytest
 
-from custom_components.edf_energy import DISPLAY_ONLY_OPTIONS, _changed_options, options_update_listener
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk import DISPLAY_ONLY_OPTIONS, _changed_options, options_update_listener
+from custom_components.edfenergy_uk.const import (
   CONFIG_MAIN_SHOW_ACCOUNT_TAB,
   CONFIG_MAIN_API_KEY,
   DOMAIN,
