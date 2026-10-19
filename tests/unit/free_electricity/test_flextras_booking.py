@@ -30,7 +30,7 @@ ACCOUNT_ID = "A-XXXXXX"
 # The capture's dates are in the past now, and the booking path ignores hours that have
 # already run, so these tests pin the clock to just before the days they book.
 BEFORE_THE_CAPTURE = datetime(2026, 10, 5, 12, 0, tzinfo=timezone.utc)
-PROPERTY_ID = "4650459"
+PROPERTY_ID = "1234567"
 
 SELECT_DAYS = {"screen": "CLUB_FLEX_BOOK_HOURS", "components": [{
   "type": "SELECT_DAYS_LIST", "props": {"months": [
