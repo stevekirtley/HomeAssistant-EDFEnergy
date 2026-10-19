@@ -233,13 +233,16 @@ REPAIR_TARIFF_RATES_EMPTY = "tariff_rates_empty_{}_{}"
 REPAIR_TARGET_RATE_NOT_SUPPORTED = "target_rate_not_supported"
 REPAIR_AUTH_TOKEN_EXPIRING_SOON = "auth_token_expiring_soon_{}"
 REPAIR_API_KEY_NEEDED = "api_key_needed_{}"
-REPAIR_SUPERSEDED = "superseded_by_edfenergy_uk"
+# Deliberately the same issue id 20.1.0 used, so an install coming from that release has
+# this notice replaced rather than ending up holding both.
+REPAIR_FINISH_THE_MOVE = "superseded_by_edfenergy_uk"
 
 # The domain this integration becomes in 21.0.0. HACS installs the new release into
 # custom_components/<domain>, and does not remove the directory the old domain was in, so
-# for one restart both can be present. Whichever folder is left over must not load, or
-# every entity collides with its twin and comes back with a "_2" suffix - which is exactly
-# the broken automations the rename is meant to avoid. See async_setup_entry.
+# both can sit there indefinitely. Only one of them ever holds the config entries, and
+# this one holds them until the user hands them over from the other side, so this one
+# carries on working exactly as before and just says there is a step left to do. See
+# async_setup_entry.
 SUCCESSOR_DOMAIN = "edfenergy_uk"
 REPAIR_FREE_ELECTRICITY_EVENT_HISTORY = "free_electricity_event_history_{}"
 

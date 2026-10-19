@@ -340,9 +340,9 @@
         }
       }
     },
-    "superseded": {
-      "title": "EDF Energy has moved to a new folder",
-      "description": "This release replaces `custom_components/{old_domain}` with `custom_components/{new_domain}`. Both are installed at the moment, so the old one has stood down to let the new one take over your accounts, entities and history.\n\nOnce the new one is running, delete `custom_components/{old_domain}` and restart. Nothing is lost by leaving it there, but this notice will keep coming back."
+    "finish_the_move": {
+      "title": "EDF Energy has a new folder - one step left",
+      "description": "`custom_components/{new_domain}` is installed alongside `custom_components/{old_domain}`. Nothing has changed here: this integration is still running your account and every entity, automation and dashboard is working as before.\n\nTo finish the move, go to **Settings > Devices & services > Add integration** and choose **EDF Energy**. It will offer to take over the setup you already have, keeping your account, your entity ids and your history.\n\nOnce it has, delete `custom_components/{old_domain}` and restart."
     }
   },
   "entity": {

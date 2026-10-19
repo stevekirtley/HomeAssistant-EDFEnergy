@@ -24,6 +24,7 @@ nav:
   - services.md
   - events.md
   - Repairs:
+    - ./repairs/new_folder.md
     - ./repairs/account_not_found.md
     - ./repairs/unknown_product.md
     - ./repairs/cost_override_obsolete.md

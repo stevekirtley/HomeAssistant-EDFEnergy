@@ -9,7 +9,7 @@ from homeassistant.core import SupportsResponse, callback
 from homeassistant.components import websocket_api
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
 from homeassistant.util.dt import (utcnow, now)
@@ -105,7 +105,7 @@ from .const import (
   CONFIG_MAIN_REFRESH_EXPIRES_IN,
   CONFIG_MAIN_REFRESH_TOKEN,
   REPAIR_API_KEY_NEEDED,
-  REPAIR_SUPERSEDED,
+  REPAIR_FINISH_THE_MOVE,
   SUCCESSOR_DOMAIN,
   REPAIR_AUTH_TOKEN_EXPIRING_SOON,
   CONFIG_ACCOUNT_ID,
@@ -739,8 +739,8 @@ def _successor_installed(hass) -> bool:
   """Whether the integration this one becomes in 21.0.0 is also installed.
 
   HACS works out where to put an integration from the domain in its manifest, so the new
-  release lands in a new directory and the old one is simply left behind. For one restart
-  both are on disk and both would load.
+  release lands in a new directory and the old one is simply left behind. Both are then on
+  disk until somebody deletes this one.
   """
   return os.path.isdir(os.path.join(hass.config.config_dir, "custom_components", SUCCESSOR_DOMAIN))
 
@@ -748,28 +748,29 @@ def _successor_installed(hass) -> bool:
 async def async_setup_entry(hass, entry):
   """This is called from the config flow."""
   if _successor_installed(hass):
-    # Stand aside completely rather than racing the successor for the entity ids. This is
-    # a short-lived state: the successor takes these entries over as it migrates, after
-    # which there is nothing here to set up.
+    # Both folders present is not a problem to be solved by refusing to run. The config
+    # entries still belong to this domain, and the successor cannot have them until the
+    # user hands them over from its own config flow - so stopping here would take the
+    # account offline for however long it took them to notice. Carry on exactly as before
+    # and leave a notice saying there is a step outstanding.
     ir.async_create_issue(
       hass,
       DOMAIN,
-      REPAIR_SUPERSEDED,
+      REPAIR_FINISH_THE_MOVE,
       is_fixable=False,
       severity=ir.IssueSeverity.WARNING,
-      translation_key="superseded",
+      translation_key="finish_the_move",
       translation_placeholders={"old_domain": DOMAIN, "new_domain": SUCCESSOR_DOMAIN},
+      learn_more_url="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/new_folder/",
     )
-    _LOGGER.warning(
-      "custom_components/%s is installed, so this integration is standing down to let it "
-      "take over. Delete custom_components/%s once it has.",
-      SUCCESSOR_DOMAIN, DOMAIN,
+    _LOGGER.info(
+      "custom_components/%s is installed alongside this one. Nothing has changed here - add "
+      "the new integration from Settings to hand this account over to it.",
+      SUCCESSOR_DOMAIN,
     )
-    raise ConfigEntryError(
-      f"Replaced by {SUCCESSOR_DOMAIN}. Delete custom_components/{DOMAIN} and restart."
-    )
+  else:
+    ir.async_delete_issue(hass, DOMAIN, REPAIR_FINISH_THE_MOVE)
 
-  ir.async_delete_issue(hass, DOMAIN, REPAIR_SUPERSEDED)
   hass.data.setdefault(DOMAIN, {})
 
   if not hass.data[DOMAIN].get("_frontend_registered"):
