@@ -555,6 +555,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../account_tab/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Panel Tabs (beta)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -693,6 +714,27 @@
   
   <span class="md-ellipsis">
     Free Electricity Sessions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/billing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Billing
   </span>
   
 
@@ -1325,11 +1367,17 @@
 <li><strong>Password</strong> — your EDF Energy account password</li>
 <li><strong>Account number</strong> — format <code>A-AAAA1111</code>, shown in the EDF Energy app under <strong>Account</strong> or at the top of any bill</li>
 </ul>
-<p>On first setup, the integration uses your email and password to generate an <strong>API key</strong>, which is then stored securely in Home Assistant. Your password is used only once and is never stored. All subsequent communication with the EDF Energy API uses the stored key.</p>
+<p>On first setup, the integration uses your email and password to create an <strong>API key</strong>, which is then stored securely in Home Assistant. Your password is used only once and is never stored. All subsequent communication with the EDF Energy API uses the stored key.</p>
 <p>If you already have an API key (for example, from a previous setup), you can paste it directly into the <strong>API key</strong> field and leave the email and password blank.</p>
+<div class="admonition warning">
+<p class="admonition-title">Creating a key replaces any existing one</p>
+<p>EDF only issue a usable API key by creating a new one, which invalidates the previous key. If another application is using an EDF API key for this account, it will need the new one.</p>
+<p>Reveal and copy the current key at any time from the <strong>Account</strong> tab of the EDF Energy panel.</p>
+</div>
+<p>EDF intend to add an API key to Your Account in the future which you will be able to share with any applications you grant access to your account data.</p>
 <div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>If you upgrade from an earlier version of this integration that stored a refresh token, the migration to an API key happens automatically on the next restart — no action needed.</p>
+<p class="admonition-title">Upgrading from a version that stored a refresh token</p>
+<p>A repair notification will ask before creating an API key, so that you can update any other application first. The account keeps working on its existing token until you confirm — but not indefinitely, as EDF expire it after 7 days.</p>
 </div>
 <h2 id="calorific-value">Calorific Value<a class="headerlink" href="#calorific-value" title="Permanent link">#</a></h2>
 <p>When calculating gas costs, a calorific value is included in the calculation. Unfortunately this changes from region to region and is not provided by the EDF Energy API. The default value of this is <code>40</code>, but if you check your latest bill you should be able to find the value for you. This will give you a more accurate consumption and cost calculation when your meter reports in <code>m3</code>.</p>
@@ -1403,7 +1451,7 @@
       
     </span>
     <nav>
-      BottlecapDave, stevekirtley
+      BottlecapDave, stevekirtley, stevekirtley
     </nav>
   </span>
 

@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/electricity/">
       
       
-        <link rel="prev" href="../../setup/energy_dashboard/">
+        <link rel="prev" href="../../setup/account_tab/">
       
       
         <link rel="next" href="../gas/">
@@ -378,6 +378,27 @@
   
   <span class="md-ellipsis">
     Energy Dashboard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setup/account_tab/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Panel Tabs (beta)
   </span>
   
 
@@ -786,6 +807,27 @@
   
   <span class="md-ellipsis">
     Free Electricity Sessions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../billing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Billing
   </span>
   
 
@@ -2101,6 +2143,14 @@
 <p class="admonition-title">Info</p>
 <p>If you are on an intelligent tariff, this will not include charges that are done outside of normal off peak hours in certain scenarios. See the <a href="../../faq/#im-on-a-smart-charging-tariff-but-the-cost-sensors-are-out-is-this-normal">FAQ</a> for more information around this.</p>
 </div>
+<div class="admonition info">
+<p class="admonition-title">The sensor and the statistics differ on the standing charge</p>
+<p>This sensor includes the standing charge. Of the two statistics behind the
+<a href="../../setup/energy_dashboard/#previous-day-consumption">energy dashboard</a>, only
+<code>..._previous_accumulative_cost_includingsc</code> does - the plain
+<code>..._previous_accumulative_cost</code> statistic is the energy cost alone. Comparing this
+sensor against that statistic will always leave you a standing charge short.</p>
+</div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This data won't necessarily be available at the stroke of midnight. This integration has no control of this and is at the mercy of when the data is available by EDF Energy. </p>
@@ -2333,7 +2383,7 @@
       
     </span>
     <nav>
-      BottlecapDave, stevekirtley, stevekirtley
+      BottlecapDave, stevekirtley, stevekirtley, stevekirtley
     </nav>
   </span>
 

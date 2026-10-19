@@ -14,7 +14,7 @@
         <link rel="prev" href="../sunday_saver/">
       
       
-        <link rel="next" href="../diagnostics/">
+        <link rel="next" href="../billing/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -387,6 +387,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setup/account_tab/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Panel Tabs (beta)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -603,10 +624,40 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#power-perks-session-feed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Power Perks session feed
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../billing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Billing
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1118,6 +1169,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#power-perks-session-feed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Power Perks session feed
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1193,6 +1253,10 @@
 <h2 id="free-electricity-session-events">Free Electricity Session Events<a class="headerlink" href="#free-electricity-session-events" title="Permanent link">#</a></h2>
 <p><code>event.edf_energy_{{ACCOUNT_ID}}_free_electricity_session_events</code></p>
 <p>Fires whenever the set of sessions changes, and hourly as a heartbeat. Its <code>events</code> attribute lists today's and upcoming sessions in the same shape as the upstream Octopus Energy integration, so tools built for that, such as Predbat, work unchanged. <code>free_electricity_windows</code> carries the last 60 days of history for the panel.</p>
+<h2 id="power-perks-session-feed">Power Perks session feed<a class="headerlink" href="#power-perks-session-feed" title="Permanent link">#</a></h2>
+<p>EDF announce Power Perks sessions by text message only — they are not in any EDF API — so the times are published as a feed that the integration checks every 15 minutes. Requests carry only the integration version; no account details are sent.</p>
+<p>The feed is on by default. Untick <strong>Use the Power Perks session feed</strong> in the integration options to stop the checks. Sessions already known but not yet started are removed when you turn it off.</p>
+<p>With the feed off, you can still add sessions yourself with the <a href="../../services/"><code>register_power_perks_session</code></a> action.</p>
 
 
 

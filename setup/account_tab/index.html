@@ -1,0 +1,1668 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/setup/account_tab/">
+      
+      
+        <link rel="prev" href="../energy_dashboard/">
+      
+      
+        <link rel="next" href="../../entities/electricity/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Panel Tabs (beta) - Home Assistant EDF Energy</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#panel-tabs-beta" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Home Assistant EDF Energy" class="md-header__button md-logo" aria-label="Home Assistant EDF Energy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Home Assistant EDF Energy
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Panel Tabs (beta)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="light-blue" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Home Assistant EDF Energy" class="md-nav__button md-logo" aria-label="Home Assistant EDF Energy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Home Assistant EDF Energy
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Setup
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Setup
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../account/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cost_tracker/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cost Tracker Sensor(s)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tariff_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tariff Comparison
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../energy_dashboard/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Energy Dashboard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Panel Tabs (beta)
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Panel Tabs (beta)
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#turning-it-on-and-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      Turning it on and off
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      The tabs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#predictor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Predictor
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#account" class="md-nav__link">
+    <span class="md-ellipsis">
+      Account
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Account">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      At a glance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Statements
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transactions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refunds" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refunds
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tariffs-and-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tariffs and meters
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#perks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Perks
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Perks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#referrals" class="md-nav__link">
+    <span class="md-ellipsis">
+      Referrals
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#billing-sensors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Billing sensors
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supporting-the-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supporting the work
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-it-is-beta" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why it is beta
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Entities
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Entities
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/electricity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Electricity
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/gas/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gas
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/intelligent/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Intelligent
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/sunday_saver/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sunday Saver
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/free_electricity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Free Electricity Sessions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/billing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Billing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/diagnostics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Diagnostics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Migrations
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Migrations
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migrations/target_timeframes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Migrating Target Rate Sensors To Target Timeframes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../services/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Services
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../events/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Events
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Repairs
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Repairs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/account_not_found/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Account not found
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/unknown_product/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Unknown product
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/cost_override_obsolete/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Cost override deprecated
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/unknown_intelligent_provider/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Unknown Smart Charging provider
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/no_active_tariff/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - No active tariff
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/meter_removed/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Meter removed
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/tariff_rates_empty/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Tariff Rates Empty
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blueprints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blueprints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Architecture Decision Records
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            Architecture Decision Records
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture_decision_records/0001_target_rates_removal/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    0001 - Deprecation and removal of Target Rate Sensors in EDF Energy Integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture_decision_records/0002_intelligent_is_dispatching_behaviour_changes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    0002 - Smart Charging Is Dispatching behavior changes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#turning-it-on-and-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      Turning it on and off
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      The tabs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#predictor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Predictor
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#account" class="md-nav__link">
+    <span class="md-ellipsis">
+      Account
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Account">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      At a glance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Statements
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transactions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refunds" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refunds
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tariffs-and-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tariffs and meters
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#perks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Perks
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Perks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#referrals" class="md-nav__link">
+    <span class="md-ellipsis">
+      Referrals
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#billing-sensors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Billing sensors
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supporting-the-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supporting the work
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-it-is-beta" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why it is beta
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="panel-tabs-beta">Panel Tabs (beta)<a class="headerlink" href="#panel-tabs-beta" title="Permanent link">#</a></h1>
+<p>The EDF Energy panel is a small dashboard: the page you already know is the <strong>Overview</strong>
+tab, and four more sit alongside it.</p>
+<p>It is <strong>on by default</strong> from 19.3.0. Turning it off puts the panel back to exactly the
+single screen it has always been - no tab bar, nothing moved. If you had turned it off
+while it was opt-in, it stays off: the new default only decides for people who never said
+either way.</p>
+<h2 id="turning-it-on-and-off">Turning it on and off<a class="headerlink" href="#turning-it-on-and-off" title="Permanent link">#</a></h2>
+<p>From the panel, which is the quickest way:</p>
+<ol>
+<li>Open the EDF Energy panel and scroll to the bottom of the <strong>Overview</strong></li>
+<li>Flip <strong>Dashboard tabs (beta)</strong></li>
+</ol>
+<p>Or from the settings, if you prefer:</p>
+<ol>
+<li>Go to <strong>Settings &gt; Devices &amp; services &gt; EDF Energy</strong></li>
+<li>Click <strong>Configure</strong> on your account entry</li>
+<li>Tick or untick <strong>Show the dashboard tabs (beta)</strong> and submit</li>
+</ol>
+<p>Both write the same stored setting, so they always agree - there is no separate per-browser
+preference to get out of step. The switch is at the foot of the Overview whichever way it
+is set, so the way back is always in the same place.</p>
+<p>Changing it takes effect immediately and <strong>does not reload the integration</strong>: nothing in the
+backend reads this setting, so your entities are not disturbed. Changing any other option
+still reloads, as it always did.</p>
+<div class="admonition note">
+<p class="admonition-title">Administrators only</p>
+<p>This writes integration configuration, so only an administrator can change it. Everyone
+else sees how it is set and is told why they cannot change it.</p>
+</div>
+<h2 id="the-tabs">The tabs<a class="headerlink" href="#the-tabs" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>What is on it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Overview</strong></td>
+<td>Everything that was on the panel before, unchanged: the car controls, the schemes, and the off-peak and dispatch history</td>
+</tr>
+<tr>
+<td><strong>Charging</strong></td>
+<td>Just the car: the smart charge controls, the off-peak windows and the dispatch windows</td>
+</tr>
+<tr>
+<td><strong>Usage</strong></td>
+<td>The consumption chart</td>
+</tr>
+<tr>
+<td><strong>Predictor</strong></td>
+<td>Whether free electricity looks likely, from the Power Perks Predictor</td>
+</tr>
+<tr>
+<td><strong>Perks</strong></td>
+<td>The schemes - World Cup, Flextras free hours, free electricity sessions - and your referrals</td>
+</tr>
+<tr>
+<td><strong>Account</strong></td>
+<td>The money: balance, statements, transactions, refunds, and your tariffs and meters</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing was taken off the Overview to make room. The Charging and Perks tabs are cuts of
+the same cards, so a change in one place shows up in both.</p>
+<h2 id="predictor">Predictor<a class="headerlink" href="#predictor" title="Permanent link">#</a></h2>
+<p><a href="https://powerperkspredictor.app">powerperkspredictor.app</a> works out whether EDF are likely
+to give away free electricity, from the day-ahead auction and the week's weather. This tab
+shows tomorrow's call, the week ahead with the reasoning behind each day, and how the
+predictions have actually scored. The site itself is linked at the top of the tab - it is
+the full thing, and it works from anywhere.</p>
+<div class="admonition info">
+<p class="admonition-title">Nothing is fetched until you open this tab</p>
+<p>There is no coordinator behind this tab and no entity: the feeds are read when the tab
+is opened and cached for a quarter of an hour, so flicking between tabs does not keep
+asking. An install whose owner never opens the tab never contacts the site at all. The
+artwork is loaded from the site by your browser, so opening the tab is a visit.</p>
+<p>Nothing from it is written to an entity, an attribute or the recorder. It is somebody
+else's forecast rather than anything belonging to your account, so there is nothing
+here to automate against - use the free electricity sensors for that.</p>
+</div>
+<h2 id="account">Account<a class="headerlink" href="#account" title="Permanent link">#</a></h2>
+<h3 id="at-a-glance">At a glance<a class="headerlink" href="#at-a-glance" title="Permanent link">#</a></h3>
+<p>Balance, the last statement, the next payment and how much EDF would refund. These four are
+also published as sensors - see <a href="#billing-sensors">Billing sensors</a> below.</p>
+<h3 id="statements">Statements<a class="headerlink" href="#statements" title="Permanent link">#</a></h3>
+<p>Every statement on the account, newest first, with the period it covers, what it charged
+and the balance it closed on. <strong>Open</strong> fetches the PDF from EDF and opens it in a new tab.</p>
+<div class="admonition info">
+<p class="admonition-title">Statement links are not stored</p>
+<p>EDF hand out a short-lived signed link rather than a permanent URL. It is fetched at the
+moment you press <strong>Open</strong> and expires within the hour, so nothing is cached, written to
+an attribute, or kept anywhere in Home Assistant. Pressing <strong>Open</strong> again gets a fresh
+one.</p>
+</div>
+<h3 id="transactions">Transactions<a class="headerlink" href="#transactions" title="Permanent link">#</a></h3>
+<p>The account ledger - charges, payments, credits and refunds - signed so it reads like a
+statement rather than a column of positive numbers. EDF report every amount positive and
+leave the direction to the entry's type, so the integration applies the sign.</p>
+<p>The running balance after each entry is shown underneath the amount, which makes it
+possible to check the ledger adds up.</p>
+<h3 id="refunds">Refunds<a class="headerlink" href="#refunds" title="Permanent link">#</a></h3>
+<p>How much of your credit balance EDF will actually refund, any past requests and their
+status, and a box to request one.</p>
+<div class="admonition note">
+<p class="admonition-title">EDF saying no is a caveat, not a block</p>
+<p>EDF publish an eligibility flag and a reason, and the panel shows the reason when they
+say no - but it still lets you make the request. The flag has proved unreliable: on one
+account it read <code>HAS_NOT_GIVEN_READINGS_RECENTLY</code> while EDF went on to accept and pay
+two requests made anyway. Whether to refuse is EDF's decision when the request reaches
+them, and a request they do refuse is simply declined at their end. Progress shows up
+under past requests either way.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">The refundable amount is not your balance</p>
+<p>EDF only refund what has been paid in by direct debit, which can be a small fraction
+of a credit balance. The panel will not let you ask for more than EDF quote, and neither
+will the websocket command behind it.</p>
+</div>
+<p>Requesting a refund takes two presses: the first arms the button and tells you what it is
+about to do, the second sends it. It is admin-only, and the amount is checked against EDF's
+own maximum again on the Home Assistant side before anything leaves. Each request carries
+an idempotency key built from the account, the amount and the day, so a double press is the
+same request rather than a second refund.</p>
+<p>Statuses seen so far run <code>REQUESTED</code> → <code>SUBMITTED</code> → <code>PAID</code>.</p>
+<h3 id="tariffs-and-meters">Tariffs and meters<a class="headerlink" href="#tariffs-and-meters" title="Permanent link">#</a></h3>
+<p>Every electricity and gas meter point on the account, with its MPAN or MPRN, meter serial,
+make and firmware, and whether EDF consider it smart.</p>
+<p>Underneath each meter point is its tariff history: the agreement in force marked <strong>Live</strong>,
+and every agreement that has ended beneath it. This comes out of the account information
+the integration already holds, so it costs no extra calls to EDF.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>EDF's API gives the integration tariff and product <em>codes</em>, not the name the tariff is
+marketed under. <code>EDF_EV_FIX_GOELEC_18M_HH</code> is the product EDF call "Go Electric 18m".
+The full tariff code is shown underneath, which is the one to match against a bill.</p>
+</div>
+<h2 id="perks">Perks<a class="headerlink" href="#perks" title="Permanent link">#</a></h2>
+<h3 id="referrals">Referrals<a class="headerlink" href="#referrals" title="Permanent link">#</a></h3>
+<p>Your referral link and reward amounts, how many people have joined on it, and the list of
+them with each one's status - EDF's own wording, so "Paid" and "Switch in progress" appear
+as they do in the app.</p>
+<div class="admonition info">
+<p class="admonition-title">Referral names are not stored</p>
+<p>These are other people's names. They are fetched from EDF while the tab is open and
+rendered, and that is all - there is no sensor, no attribute and no recorder row holding
+them.</p>
+</div>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">#</a></h2>
+<p>One chart covering every meter on the account - electricity import, export and gas together
+- in kWh or in pounds, by <strong>Day</strong> (a month at a time), <strong>Month</strong> (a year at a time) or
+<strong>Year</strong>.</p>
+<p>The cost view uses the
+<a href="../energy_dashboard/#previous-day-consumption"><code>_includingsc</code> statistics</a>, so it includes
+the standing charge and matches your bill. Export has no standing charge, so it uses the
+plain cost statistic.</p>
+<div class="admonition warning">
+<p class="admonition-title">Today will always look empty</p>
+<p>The chart is built from the same daily statistics as the energy dashboard, and EDF
+publish readings <strong>one to two days behind</strong>. The current day, and often yesterday, will
+have nothing against them. That is EDF's data arriving late, not a gap in your meter.</p>
+<p>It also means a brand new install has nothing to chart until the first day's statistics
+land. Days from before you installed the integration are filled in on startup, up to a
+fortnight back.</p>
+</div>
+<h2 id="billing-sensors">Billing sensors<a class="headerlink" href="#billing-sensors" title="Permanent link">#</a></h2>
+<p>Four sensors come with this, and unlike the tabs they are <strong>not</strong> behind the beta flag -
+they are created whichever way the flag is set: account balance, last bill amount, next
+payment amount and refund status. See <a href="../../entities/billing/">Billing entities</a> for what
+each one carries and how to read it.</p>
+<h2 id="supporting-the-work">Supporting the work<a class="headerlink" href="#supporting-the-work" title="Permanent link">#</a></h2>
+<p>At the very foot of the Overview is a short card with the ways to support development: Ko-fi
+and GitHub Sponsors, and referral links for Fuse Energy, Axle Energy and Monzo. Most of them
+credit you as well - Fuse is currently £100 each - and they are only worth anything to people
+who were going to sign up anyway.</p>
+<p>Fuse have no per-person link, so the card calls out the friend code to use at sign up; the
+credit comes from the code rather than from the link.</p>
+<p>It is on the Overview only, there is nothing fetched behind it, and none of it is expected -
+using the integration and reporting what breaks is support enough.</p>
+<h2 id="why-it-is-beta">Why it is beta<a class="headerlink" href="#why-it-is-beta" title="Permanent link">#</a></h2>
+<p>The layout is expected to change between releases. If something looks wrong, please
+<a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues">raise an issue</a> with a
+screenshot rather than assuming it is meant to look that way.</p>
+
+
+
+
+
+
+
+
+  <aside class="md-source-file">
+    
+    
+    
+      
+  
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Contributors">
+      
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4"/></svg>
+      
+    </span>
+    <nav>
+      stevekirtley
+    </nav>
+  </span>
+
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.top", "search.suggest", "search.highlight", "toc.follow"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>

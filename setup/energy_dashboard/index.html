@@ -14,7 +14,7 @@
         <link rel="prev" href="../tariff_comparison/">
       
       
-        <link rel="next" href="../../entities/electricity/">
+        <link rel="next" href="../account_tab/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -495,6 +495,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../account_tab/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Panel Tabs (beta)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -633,6 +654,27 @@
   
   <span class="md-ellipsis">
     Free Electricity Sessions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/billing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Billing
   </span>
   
 
@@ -1274,6 +1316,36 @@
 <p class="admonition-title">Info</p>
 <p>It can take <strong>up to 24 hours</strong> for the external statistics to appear.</p>
 </div>
+<div class="admonition warning">
+<p class="admonition-title">Standing charge</p>
+<p>There are <strong>two</strong> cost statistics per meter, and the difference between them is the
+daily standing charge:</p>
+<table>
+<thead>
+<tr>
+<th>Statistic</th>
+<th>Standing charge</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>..._previous_accumulative_cost_includingsc</code></td>
+<td><strong>included</strong> - matches your bill</td>
+</tr>
+<tr>
+<td><code>..._previous_accumulative_cost</code></td>
+<td>excluded - the cost of the energy only</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>_includingsc</code> one was added in 19.3.0. If you set your dashboard up before then
+you will be using the other, and your daily costs will read low by the standing charge
+(often around 50p a day). Nothing moves on its own - go back into the energy dashboard
+configuration and pick the <code>_includingsc</code> statistic if you want the bill figure.</p>
+<p>The <code>_peak</code> and <code>_off_peak</code> breakdowns never include the standing charge, since a daily
+charge does not belong to one rate band or the other. Export meters have no standing
+charge, so they get no <code>_includingsc</code> statistic.</p>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>I'm still investigating having hourly breakdowns imported on the entity themselves rather than as external statistics, but currently in doing so it's still including the spikes on the day of retrieval. I've opened a <a href="https://community.home-assistant.io/t/help-needed-around-importing-historic-statistics/567726">forum post</a> but awaiting answers.</p>
@@ -1288,7 +1360,8 @@
 <li><strong><code>edf_energy:</code></strong><code>electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_consumption_peak</code> - The total consumption reported by the meter during peak hours for the previous day. This will only be populated if you're on a tariff with two available rates and is <a href="../../faq/#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them">disabled by default</a>. <strong>Please note the different name to the standard entity, do NOT choose sensor.electricity_{{METER}}_{{MPAN}}_previous_accumulative_consumption_peak.</strong></li>
 <li><strong><code>edf_energy:</code></strong><code>electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_consumption_off_peak</code> - The total consumption reported by the meter during off-peak hours for the previous day. This will only be populated if you're on a tariff with two available rates and is <a href="../../faq/#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them">disabled by default</a>. <strong>Please note the different name to the standard entity, do NOT choose sensor.electricity_{{METER}}_{{MPAN}}_previous_accumulative_consumption_off_peak.</strong></li>
 <li>For <code>Use an entity tracking the total costs</code> option you want one of the following:</li>
-<li><code>edf_energy:electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost</code> - The total cost for the previous day. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost.</strong></li>
+<li><code>edf_energy:electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_includingsc</code> - The total cost for the previous day <strong>including the daily standing charge</strong>, which is what EDF actually bill. Pick this one if you want the dashboard to match your bill. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost.</strong></li>
+<li><code>edf_energy:electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost</code> - The cost of the electricity used for the previous day, <strong>excluding the standing charge</strong>. Pick this one if you are measuring what your usage itself cost. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost.</strong></li>
 <li><code>edf_energy:electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_peak</code> - The total cost for the previous day that applied during peak hours. This will only be populated if you're on a tariff with two available rates and is <a href="../../faq/#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them">disabled by default</a>. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_peak.</strong></li>
 <li><code>edf_energy:electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_off_peak</code> - The total cost for the previous day that applied during off-peak hours. This will only be populated if you're on a tariff with two available rates and is <a href="../../faq/#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them">disabled by default</a>. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_previous_accumulative_cost_off_peak.</strong></li>
 </ol>
@@ -1300,8 +1373,9 @@
 <li>For <code>consumed energy</code> you want one of the following</li>
 <li><code>edf_energy:gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_consumption</code> - The total consumption reported by the meter for the previous day in m3. If your meter reports in m3, then this will be an accurate value reported by EDF Energy, otherwise it will be a calculated/estimated value. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_consumption.</strong></li>
 <li><code>edf_energy:gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_consumption_kwh</code> - The total consumption reported by the meter for the previous day in kwh. If your meter reports in kwh, then this will be an accurate value reported by EDF Energy, otherwise it will be a calculated/estimated value. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_consumption_kwh.</strong></li>
-<li>For <code>Use an entity tracking the total costs</code> option you want the following</li>
-<li><code>edf_energy:gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_cost</code> - The total cost for the previous day. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_cost.</strong></li>
+<li>For <code>Use an entity tracking the total costs</code> option you want one of the following</li>
+<li><code>edf_energy:gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_cost_includingsc</code> - The total cost for the previous day <strong>including the daily standing charge</strong>, which is what EDF actually bill. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_cost.</strong></li>
+<li><code>edf_energy:gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_cost</code> - The cost of the gas used for the previous day, <strong>excluding the standing charge</strong>. <strong>Please note the different name to the standard entity, do NOT choose sensor.edf_energy_gas_{{METER_SERIAL_NUMBER}}_{{MPRN_NUMBER}}_previous_accumulative_cost.</strong></li>
 </ol>
 
 
