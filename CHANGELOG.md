@@ -1,4 +1,4 @@
-## [20.1.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.1.1) (2026-10-19)
+## [20.1.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.1.1) (2026-10-22)
 
 
 ### Bug Fixes
