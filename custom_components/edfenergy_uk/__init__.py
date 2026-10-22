@@ -742,6 +742,9 @@ def _old_folder_present(hass) -> str | None:
 
   A version that cannot be read comes back as "unknown" rather than None: the folder being
   there is the thing worth saying, and an unreadable manifest does not change that.
+
+  Reads a file, so it belongs in the executor - Home Assistant spots an open() on the event
+  loop and tells the user to raise a bug against us for it.
   """
   folder = os.path.join(hass.config.config_dir, "custom_components", PREDECESSOR_DOMAIN)
   if not os.path.isdir(folder):
@@ -786,7 +789,7 @@ async def async_setup_entry(hass, entry):
   """This is called from the config flow."""
   # Reaching here means the hand-over is done and the entries belong to this domain, so
   # the only thing left to say about the old folder is that it can go.
-  leftover = _old_folder_present(hass)
+  leftover = await hass.async_add_executor_job(_old_folder_present, hass)
   if leftover is not None:
     _raise_old_folder_repair(hass, leftover)
   else:

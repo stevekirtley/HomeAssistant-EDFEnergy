@@ -31,6 +31,13 @@ class StubHass:
   def __init__(self, config_dir):
     self.config = StubConfig(config_dir)
     self.data = {}
+    self.executor_jobs = []
+
+  async def async_add_executor_job(self, func, *args):
+    # Recorded as well as run: reading the manifest on the event loop makes Home Assistant
+    # log a warning telling the user to report a bug against this integration.
+    self.executor_jobs.append(func.__name__)
+    return func(*args)
 
 
 def _with_old_folder(tmp_path, version="20.1.1", manifest=True):
@@ -151,3 +158,23 @@ async def test_the_notice_is_cleared_once_the_folder_is_gone(tmp_path, monkeypat
 
   assert (DOMAIN, REPAIR_OLD_FOLDER_PRESENT) in deleted
   assert [i for _, i, _ in created if i == REPAIR_OLD_FOLDER_PRESENT] == []
+
+@pytest.mark.asyncio
+async def test_the_manifest_is_read_off_the_event_loop(tmp_path, monkeypatch):
+  """Reading it on the loop makes Home Assistant tell the user to report a bug on us.
+
+  It fires for everyone between installing this version and deleting the old folder, which
+  is exactly the window this notice exists for.
+  """
+  # Arrange
+  hass = _with_old_folder(tmp_path)
+  _capture_issues(monkeypatch)
+
+  # Act
+  try:
+    await async_setup_entry(hass, object())
+  except Exception:
+    pass
+
+  # Assert
+  assert "_old_folder_present" in hass.executor_jobs
