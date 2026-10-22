@@ -120,7 +120,7 @@ async def test_a_notice_points_at_the_step_that_is_left(tmp_path, monkeypatch):
   assert [(d, i) for d, i, _ in created] == [(DOMAIN, REPAIR_FINISH_THE_MOVE)]
   kwargs = created[0][2]
   assert kwargs["translation_key"] == "finish_the_move"
-  assert kwargs["is_fixable"] is False
+  assert kwargs["is_fixable"] is True, "the notice must carry a Fix button"
   assert kwargs["translation_placeholders"] == {
     "old_domain": DOMAIN,
     "new_domain": SUCCESSOR_DOMAIN,

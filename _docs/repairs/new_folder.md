@@ -9,7 +9,9 @@ on running your account exactly as before.
 
 ## Finishing the move
 
-The notice in **Settings > Repairs** has a link that takes you straight to the right place.
+The notice in **Settings > Repairs** has a button that does the whole thing. Open it, read
+what it is about to do, and press **Hand it over**.
+
 If you would rather do it by hand:
 
 1. Go to **Settings > Devices & services** and press **Add integration**.

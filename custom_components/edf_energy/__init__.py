@@ -748,7 +748,7 @@ async def async_setup_entry(hass, entry):
       hass,
       DOMAIN,
       REPAIR_FINISH_THE_MOVE,
-      is_fixable=False,
+      is_fixable=True,
       severity=ir.IssueSeverity.WARNING,
       translation_key="finish_the_move",
       translation_placeholders={"old_domain": DOMAIN, "new_domain": SUCCESSOR_DOMAIN},

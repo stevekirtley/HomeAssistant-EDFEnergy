@@ -343,7 +343,20 @@
     },
     "finish_the_move": {
       "title": "EDF Energy has a new folder - one step left",
-      "description": "`custom_components/{new_domain}` is installed alongside `custom_components/{old_domain}`. Nothing has changed here: this integration is still running your account and every entity, automation and dashboard is working as before.\n\nTo finish the move, [add EDF Energy (UK)](/config/integrations/dashboard/add?domain={new_domain}). It will offer to take over the setup you already have, keeping your account, your entity ids and your history.\n\nIf that link does nothing, go to **Settings > Devices & services > Add integration** and choose **EDF Energy (UK)** - both folders are listed while this one is still here, and the name is what tells them apart.\n\nOnce it has, delete `custom_components/{old_domain}` and restart."
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Finish the move to the new folder",
+            "description": "`custom_components/{new_domain}` is installed alongside `custom_components/{old_domain}`. Nothing has changed yet: this folder is still running your account, and every entity, automation and dashboard is working as before.\n\nSubmit to hand your account over to the new folder. Your account, your API key, every entity id, your history and your Energy dashboard statistics all come across, so automations, scripts, dashboards and template sensors carry on untouched.\n\nAfterwards you can delete `custom_components/{old_domain}` and restart.",
+            "submit": "Hand it over"
+          }
+        },
+        "abort": {
+          "new_folder_not_ready": "`custom_components/{new_domain}` could not be loaded. Restart Home Assistant and try again - a folder HACS has just downloaded is only picked up on a restart.",
+          "take_over_failed": "The hand-over did not finish. Nothing has been left half done on purpose, but check Settings > Devices & services before trying again, and see the log for what went wrong.",
+          "nothing_to_take_over": "There was nothing left to move - the hand-over has already happened. You can delete `custom_components/{old_domain}` and restart."
+        }
+      }
     }
   },
   "entity": {

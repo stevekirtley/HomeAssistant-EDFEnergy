@@ -1,3 +1,4 @@
+import importlib
 import logging
 import voluptuous as vol
 
@@ -19,7 +20,9 @@ from .const import (
   CONFIG_MANUAL_TARIFF_STANDING_CHARGE,
   DOMAIN,
   REPAIR_API_KEY_NEEDED,
+  REPAIR_FINISH_THE_MOVE,
   SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
+  SUCCESSOR_DOMAIN,
 )
 from .utils.repairs import safe_repair_key
 
@@ -191,7 +194,65 @@ class ApiKeyNeededRepairFlow(RepairsFlow):
     return self.async_create_entry(title="", data={})
 
 
+class FinishTheMoveRepairFlow(RepairsFlow):
+  """Hands this account over to the folder the integration moved to.
+
+  The work itself belongs to the new folder and lives there - this only presses the button,
+  because the new one cannot raise a repair of its own. Home Assistant only sets a domain up
+  when something already refers to it, and until the hand-over happens nothing does, so the
+  new folder is inert and the prompt has to come from here.
+
+  Doing it from the new folder's own module rather than repeating it here is deliberate: it
+  is the version that gets tested with the entries it is creating, and this folder is meant
+  to be deleted straight afterwards.
+  """
+
+  async def async_step_init(self, user_input=None):
+    return await self.async_step_confirm()
+
+  async def async_step_confirm(self, user_input=None):
+    if user_input is None:
+      return self.async_show_form(
+        step_id="confirm",
+        data_schema=vol.Schema({}),
+        description_placeholders={
+          "old_domain": DOMAIN,
+          "new_domain": SUCCESSOR_DOMAIN,
+        },
+      )
+
+    try:
+      # Imported here rather than at the top: this folder ships before the new one exists,
+      # and an import in the event loop blocks it.
+      migration = await self.hass.async_add_import_executor_job(
+        importlib.import_module, f"custom_components.{SUCCESSOR_DOMAIN}.migration"
+      )
+    except Exception as err:
+      _LOGGER.warning("Could not load %s to hand over to: %s", SUCCESSOR_DOMAIN, err)
+      return self.async_abort(reason="new_folder_not_ready")
+
+    try:
+      taken = await migration.async_take_over_old_entries(self.hass)
+    except Exception as err:
+      # The hand-over removes the old entries before creating the new ones, so a failure
+      # part way through is worth being loud about - the account may be on neither side.
+      _LOGGER.error("Handing over to %s failed: %s", SUCCESSOR_DOMAIN, err)
+      return self.async_abort(reason="take_over_failed")
+
+    if not taken:
+      # Nothing left to move: somebody did it from Add integration while this sat open.
+      ir.async_delete_issue(self.hass, DOMAIN, REPAIR_FINISH_THE_MOVE)
+      return self.async_abort(reason="nothing_to_take_over")
+
+    _LOGGER.info("Handed %d config entry(s) over to %s", taken, SUCCESSOR_DOMAIN)
+    ir.async_delete_issue(self.hass, DOMAIN, REPAIR_FINISH_THE_MOVE)
+    return self.async_create_entry(title="", data={})
+
+
 async def async_create_fix_flow(hass, issue_id: str, data: dict | None):
+  if issue_id == REPAIR_FINISH_THE_MOVE:
+    return FinishTheMoveRepairFlow()
+
   if issue_id.startswith("api_key_needed"):
     return ApiKeyNeededRepairFlow(data or {})
 
