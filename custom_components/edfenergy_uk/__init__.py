@@ -53,6 +53,7 @@ from .config.main import async_migrate_main_config
 from .config.cost_tracker import async_migrate_cost_tracker_config
 from .utils import get_active_tariff, get_tariff_parts
 from .utils.debug_overrides import async_get_account_debug_override, async_get_meter_debug_override
+from .utils.entity_services import describe_alias
 from .utils.error import RETRYABLE_EXCEPTIONS, api_exception_to_string
 from .storage.account import async_load_cached_account, async_save_cached_account
 from .storage.intelligent_device import async_load_cached_intelligent_devices, async_save_cached_intelligent_devices
@@ -1624,6 +1625,7 @@ def _async_register_services(hass):
   for name, handler, kwargs in aliased:
     if not hass.services.has_service(PREDECESSOR_DOMAIN, name):
       hass.services.async_register(PREDECESSOR_DOMAIN, name, handler, **kwargs)
+    describe_alias(hass, name)
 
 
 # Options that only change what the panel draws. Nothing in the backend reads these, so

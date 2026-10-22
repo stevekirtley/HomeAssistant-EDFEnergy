@@ -17,7 +17,30 @@ The aliases are deprecated and meant to come out a couple of releases after 21.0
 """
 from homeassistant.helpers import service
 
-from ..const import PREDECESSOR_DOMAIN
+from ..const import DOMAIN, PREDECESSOR_DOMAIN
+
+
+def describe_alias(hass, name: str) -> None:
+  """Give the aliased action a description so Home Assistant stops looking for a file.
+
+  Service descriptions are read from the owning integration's services.yaml. The old domain
+  has no folder once the user deletes it, so asking for one logs `Failed to load
+  services.yaml for integration: edf_energy` on every start. Registering the description
+  here puts it in the cache that lookup checks first, and says what the action now is.
+  """
+  service.async_set_service_schema(
+    hass,
+    PREDECESSOR_DOMAIN,
+    name,
+    {
+      "name": f"{name.replace('_', ' ').capitalize()} (deprecated)",
+      "description": (
+        f"Deprecated. Use {DOMAIN}.{name} instead - this name still works and will be "
+        "removed in a later release."
+      ),
+      "fields": {},
+    },
+  )
 
 
 def register_entity_service(platform, name, schema, func, **kwargs) -> None:
@@ -37,3 +60,4 @@ def register_entity_service(platform, name, schema, func, **kwargs) -> None:
     schema=schema,
     **kwargs,
   )
+  describe_alias(platform.hass, name)
