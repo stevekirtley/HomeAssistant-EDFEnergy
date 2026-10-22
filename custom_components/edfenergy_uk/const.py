@@ -233,6 +233,9 @@ REPAIR_TARIFF_RATES_EMPTY = "tariff_rates_empty_{}_{}"
 REPAIR_TARGET_RATE_NOT_SUPPORTED = "target_rate_not_supported"
 REPAIR_AUTH_TOKEN_EXPIRING_SOON = "auth_token_expiring_soon_{}"
 REPAIR_API_KEY_NEEDED = "api_key_needed_{}"
+# Raised once this integration is running and the folder it replaced is still on disk.
+# Nothing is broken at that point - the old folder holds no config entries any more, so
+# it loads nothing - it is simply tidying up.
 REPAIR_OLD_FOLDER_PRESENT = "old_folder_present"
 
 # Where this integration used to live. HACS works out where to put an integration from the
@@ -245,7 +248,6 @@ REPAIR_OLD_FOLDER_PRESENT = "old_folder_present"
 # removed. See _blocking_predecessor.
 DATA_MIGRATION = "MIGRATION_FROM_OLD_DOMAIN"
 PREDECESSOR_DOMAIN = "edf_energy"
-PREDECESSOR_STANDS_DOWN_FROM = (20, 1, 0)
 REPAIR_FREE_ELECTRICITY_EVENT_HISTORY = "free_electricity_event_history_{}"
 
 # Roughly a week of the pre-18.9.8 once-a-minute writes. Below this there's little to reclaim and

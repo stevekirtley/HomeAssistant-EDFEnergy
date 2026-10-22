@@ -1,20 +1,23 @@
-## [21.0.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/21.0.0) (2026-10-19)
+## [21.0.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/21.0.0) (2026-10-22)
 
 
 ### Breaking Changes
 
-* The integration now lives in `custom_components/edfenergy_uk`. Delete the old `custom_components/edf_energy` folder after updating.
+* The integration now lives in `custom_components/edfenergy_uk`. HACS installs the new folder and leaves the old one behind, so there is one step to finish by hand.
 
 
 ### Features
 
-* Accounts, entities, history, statistics and automations are carried over automatically.
-* Action names move to `edfenergy_uk.*`; the old names still work for now.
+* After updating, go to Settings > Devices & services > Add integration and choose EDF Energy. It finds your existing setup and offers to take it over.
+* Taking it over keeps your account, your API key, every entity id, your history and your Energy dashboard statistics, so automations, scripts, dashboards and template sensors carry on untouched.
+* Action names move to `edfenergy_uk.*`. The old `edf_energy.*` names still work, including the entity actions the shipped blueprints call, and are deprecated rather than removed.
 
 
 ### Notes
 
-* 20.1.0 or later stands aside while both folders are present. Coming straight from 19.x, this release waits until the old folder is deleted rather than creating every entity twice.
+* Nothing breaks while you wait. Until you take the setup over, the old folder carries on running your account exactly as before, and the new one sits there doing nothing.
+* Once the hand-over is done, delete `custom_components/edf_energy` and restart. A notice in Repairs will remind you.
+* On 20.1.0 specifically, update to 20.1.1 first. That release removed a check which would otherwise stop the old folder loading as soon as the new one appeared.
 
 ## [20.1.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.1.1) (2026-10-19)
 

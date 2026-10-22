@@ -10,7 +10,7 @@ from homeassistant.core import SupportsResponse, callback
 from homeassistant.components import websocket_api
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
 from homeassistant.util.dt import (utcnow, now)
@@ -38,7 +38,7 @@ from .coordinators.flextras import async_setup_flextras_coordinator, get_propert
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
 from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
 from .coordinators.power_perks import async_setup_power_perks_coordinator, register_manual_session, relay_enabled
-from .migration import async_apply_captured, async_take_over_old_entries
+from .migration import async_apply_captured
 from .coordinators.flextras_hours import (
   drop_past_hours,
   async_book_flextras_hours,
@@ -109,7 +109,6 @@ from .const import (
   REPAIR_API_KEY_NEEDED,
   REPAIR_OLD_FOLDER_PRESENT,
   PREDECESSOR_DOMAIN,
-  PREDECESSOR_STANDS_DOWN_FROM,
   REPAIR_AUTH_TOKEN_EXPIRING_SOON,
   CONFIG_ACCOUNT_ID,
   DATA_BILLING,
@@ -738,106 +737,61 @@ async def _async_close_client(hass, account_id: str):
       await client.async_close()
       _LOGGER.debug('Client closed.')
 
-def _raise_old_folder_repair(hass, stale: str) -> None:
-  """Say why nothing is loading, from wherever noticed it first.
+def _old_folder_present(hass) -> str | None:
+  """The version of the folder this integration replaced, if it is still on disk.
 
-  Raised from async_setup as well as async_setup_entry: straight after an update every
-  entry still belongs to the old domain, so there is nothing here for Home Assistant to
-  set up and async_setup_entry would never run. Without this the integration would simply
-  sit there doing nothing with no explanation anywhere.
+  A version that cannot be read comes back as "unknown" rather than None: the folder being
+  there is the thing worth saying, and an unreadable manifest does not change that.
+  """
+  folder = os.path.join(hass.config.config_dir, "custom_components", PREDECESSOR_DOMAIN)
+  if not os.path.isdir(folder):
+    return None
+  try:
+    with open(os.path.join(folder, "manifest.json"), encoding="utf-8") as handle:
+      return str(json.load(handle).get("version") or "") or "unknown"
+  except Exception:
+    return "unknown"
+
+
+def _raise_old_folder_repair(hass, version: str) -> None:
+  """Say that the folder this one replaced can now be deleted.
+
+  Only raised once this integration is actually running, which means the hand-over has
+  already happened and the old folder holds no config entries. It therefore loads nothing
+  and breaks nothing - leaving it there just means Home Assistant goes on listing a custom
+  integration that does not do anything.
   """
   ir.async_create_issue(
     hass,
     DOMAIN,
     REPAIR_OLD_FOLDER_PRESENT,
     is_fixable=False,
-    severity=ir.IssueSeverity.ERROR,
+    severity=ir.IssueSeverity.WARNING,
     translation_key="old_folder_present",
     translation_placeholders={
       "old_domain": PREDECESSOR_DOMAIN,
       "new_domain": DOMAIN,
-      "old_version": stale,
+      "old_version": version,
     },
+    learn_more_url="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/new_folder/",
   )
-  _LOGGER.error(
-    "custom_components/%s is still installed at version %s, which is too old to stand "
-    "down on its own. Delete that folder and restart; this integration will not load "
-    "until it is gone, to avoid creating every entity twice.",
-    PREDECESSOR_DOMAIN, stale,
+  _LOGGER.info(
+    "custom_components/%s (version %s) is still on disk. It holds nothing now, so it can "
+    "be deleted whenever convenient.",
+    PREDECESSOR_DOMAIN, version,
   )
-
-
-async def async_setup(hass, config):
-  """Run before any config entry is set up.
-
-  The hand-over from the old domain has to happen here rather than in async_setup_entry:
-  the old entries have to be gone before the new entities are created, and by the time an
-  entry is being set up it is already too late for that.
-  """
-  stale = _blocking_predecessor(hass)
-  if stale is not None:
-    # Only worth saying when there is something waiting to be taken over. A fresh install
-    # that happens to have an old folder lying about has nothing to migrate and nothing to
-    # complain about.
-    if hass.config_entries.async_entries(PREDECESSOR_DOMAIN):
-      _raise_old_folder_repair(hass, stale)
-    return True
-
-  try:
-    await async_take_over_old_entries(hass)
-  except Exception as err:
-    # A failed hand-over must not stop the integration loading for somebody who has
-    # nothing to migrate, and the old entries are only removed once the capture succeeded.
-    _LOGGER.error("Could not take over the entries from %s: %s", PREDECESSOR_DOMAIN, err)
-
-  return True
-
-
-def _predecessor_version(hass) -> tuple[int, ...] | None:
-  """The version of the old folder if it is still installed, else None.
-
-  A version that cannot be read comes back as (0,), which counts as too old: an unreadable
-  manifest is not a reason to assume the thing will behave.
-  """
-  manifest = os.path.join(
-    hass.config.config_dir, "custom_components", PREDECESSOR_DOMAIN, "manifest.json"
-  )
-  if not os.path.isfile(manifest):
-    return None
-  try:
-    with open(manifest, encoding="utf-8") as handle:
-      raw = str(json.load(handle).get("version") or "")
-    return tuple(int(part) for part in raw.split(".")[:3]) or (0,)
-  except Exception:
-    return (0,)
-
-
-def _blocking_predecessor(hass) -> str | None:
-  """The old folder's version when it is too old to stand down for us, else None.
-
-  From 20.1.0 the old integration refuses to load once it sees this one installed, so the
-  two can sit side by side for a restart and only this one runs. Anything earlier has no
-  such guard and would create every entity a second time, so this one stays out of the way
-  instead and says what needs removing.
-  """
-  version = _predecessor_version(hass)
-  if version is None or version >= PREDECESSOR_STANDS_DOWN_FROM:
-    return None
-  return ".".join(str(part) for part in version) if version != (0,) else "unknown"
 
 
 async def async_setup_entry(hass, entry):
   """This is called from the config flow."""
-  stale = _blocking_predecessor(hass)
-  if stale is not None:
-    # Stand aside rather than race the old folder for the entity ids. It is still running
-    # and still working, so nothing is lost by waiting until it is removed.
-    _raise_old_folder_repair(hass, stale)
-    raise ConfigEntryError(
-      f"Delete custom_components/{PREDECESSOR_DOMAIN} (version {stale}) and restart."
-    )
+  # Reaching here means the hand-over is done and the entries belong to this domain, so
+  # the only thing left to say about the old folder is that it can go.
+  leftover = _old_folder_present(hass)
+  if leftover is not None:
+    _raise_old_folder_repair(hass, leftover)
+  else:
+    ir.async_delete_issue(hass, DOMAIN, REPAIR_OLD_FOLDER_PRESENT)
 
-  ir.async_delete_issue(hass, DOMAIN, REPAIR_OLD_FOLDER_PRESENT)
   hass.data.setdefault(DOMAIN, {})
 
   if not hass.data[DOMAIN].get("_frontend_registered"):
@@ -1344,9 +1298,8 @@ def _async_register_services(hass):
   # would otherwise simply stop. The aliases are deprecated and meant to come out a couple
   # of releases after 21.0.0.
   #
-  # Only the plain actions can be done this way. The eight entity actions are registered by
-  # their platform, which takes its domain from the integration, so they move with it - see
-  # the release notes.
+  # The entity actions are aliased too, but not here: they are registered by their platform
+  # and go through utils/entity_services.py, which registers each one under both domains.
   aliased = []
 
   def register(name, handler, **kwargs):

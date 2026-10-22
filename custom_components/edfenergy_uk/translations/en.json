@@ -176,6 +176,11 @@
           "product_code": "The product code of the tariff to compare.",
           "tariff_code": "The tariff code of the tariff to compare."
         }
+      },
+      "take_over": {
+        "title": "Take over your existing EDF Energy setup",
+        "description": "EDF Energy has moved to a new folder, and your existing setup for {accounts} is still held by the old one.\n\nTaking it over keeps your account, your API key, every entity id and your history, so automations, scripts, dashboards and template sensors carry on untouched. Energy dashboard statistics, including cost history, come across too.\n\nSubmit to move it over. Afterwards you can delete `custom_components/{old_domain}` and restart.",
+        "submit": "Take it over"
       }
     },
     "error": {
@@ -194,7 +199,8 @@
       "not_supported": "Configuration for target rates is not supported at the moment.",
       "reconfigure_not_supported": "Reconfiguration is not supported.",
       "account_not_found": "Account information is not found",
-      "reconfigure_successful": "Reconfiguration successful"
+      "reconfigure_successful": "Reconfiguration successful",
+      "taken_over": "Your EDF Energy setup has been moved over and is running from the new folder. Every entity id and all your history came with it, so nothing you have built needs changing.\n\nOne step left: delete `custom_components/{old_domain}` and restart Home Assistant."
     }
   },
   "exceptions": {
@@ -341,8 +347,8 @@
       }
     },
     "old_folder_present": {
-      "title": "The old EDF Energy folder is still installed",
-      "description": "This release lives in `custom_components/{new_domain}`, but `custom_components/{old_domain}` (version {old_version}) is still there and is too old to stand down on its own. Loading both would create every entity a second time, so this one has not loaded.\n\nDelete `custom_components/{old_domain}` and restart. Your accounts, entities, history and automations are carried over once it has gone."
+      "title": "The old EDF Energy folder can be deleted",
+      "description": "Your setup has moved to `custom_components/{new_domain}` and is running from there. `custom_components/{old_domain}` (version {old_version}) is still on disk, but it no longer holds anything and does not load.\n\nDelete `custom_components/{old_domain}` and restart Home Assistant. Nothing breaks if you leave it; this notice will just keep coming back."
     }
   },
   "entity": {
