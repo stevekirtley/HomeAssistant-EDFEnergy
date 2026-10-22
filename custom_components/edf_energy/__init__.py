@@ -62,6 +62,7 @@ from .coordinators.intelligent_device import IntelligentDeviceCoordinatorResult,
 
 from .utils.recorder_history import async_count_recorded_states
 from .utils.repairs import safe_repair_key
+from .utils.successor import successor_installed
 
 from .const import (
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
@@ -735,19 +736,9 @@ async def _async_close_client(hass, account_id: str):
       await client.async_close()
       _LOGGER.debug('Client closed.')
 
-def _successor_installed(hass) -> bool:
-  """Whether the integration this one becomes in 21.0.0 is also installed.
-
-  HACS works out where to put an integration from the domain in its manifest, so the new
-  release lands in a new directory and the old one is simply left behind. Both are then on
-  disk until somebody deletes this one.
-  """
-  return os.path.isdir(os.path.join(hass.config.config_dir, "custom_components", SUCCESSOR_DOMAIN))
-
-
 async def async_setup_entry(hass, entry):
   """This is called from the config flow."""
-  if _successor_installed(hass):
+  if successor_installed(hass):
     # Both folders present is not a problem to be solved by refusing to run. The config
     # entries still belong to this domain, and the successor cannot have them until the
     # user hands them over from its own config flow - so stopping here would take the

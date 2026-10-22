@@ -14,6 +14,7 @@ from homeassistant.helpers.typing import DiscoveryInfoType
 from .coordinators.account import AccountCoordinatorResult
 from .config.cost_tracker import validate_cost_tracker_config
 from .config.main import async_validate_main_config
+from .utils.successor import successor_installed
 from .const import (
   CONFIG_COST_TRACKER_DISCOVERY_ACCOUNT_ID,
   CONFIG_COST_TRACKER_DISCOVERY_NAME,
@@ -251,6 +252,14 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
   
   async def async_step_account(self, user_input):
     """Setup the initial account based on the provided user input"""
+    if successor_installed(self.hass):
+      # Both folders are on disk and the two entries in the integration list look alike, so
+      # this is the one that gets picked by mistake. An account set up here would be stranded
+      # on the old domain and have to be moved across by hand afterwards, which is the whole
+      # mess the hand-over exists to avoid. Only the account is refused: target rates, cost
+      # trackers and tariff comparisons still belong to whichever folder holds the account.
+      return self.async_abort(reason="use_the_new_integration")
+
     account_ids = get_account_ids(self.hass)
     errors = await async_validate_main_config(user_input, account_ids) if user_input is not None else {}
 

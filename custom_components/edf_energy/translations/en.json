@@ -194,7 +194,8 @@
       "not_supported": "Configuration for target rates is not supported at the moment.",
       "reconfigure_not_supported": "Reconfiguration is not supported.",
       "account_not_found": "Account information is not found",
-      "reconfigure_successful": "Reconfiguration successful"
+      "reconfigure_successful": "Reconfiguration successful",
+      "use_the_new_integration": "This is the old EDF Energy folder. The new EDF Energy (UK) integration is installed, so add your account from that one instead - it is also where your existing setup is handed over, keeping your entity ids and your history."
     }
   },
   "exceptions": {
@@ -342,7 +343,7 @@
     },
     "finish_the_move": {
       "title": "EDF Energy has a new folder - one step left",
-      "description": "`custom_components/{new_domain}` is installed alongside `custom_components/{old_domain}`. Nothing has changed here: this integration is still running your account and every entity, automation and dashboard is working as before.\n\nTo finish the move, go to **Settings > Devices & services > Add integration** and choose **EDF Energy**. It will offer to take over the setup you already have, keeping your account, your entity ids and your history.\n\nOnce it has, delete `custom_components/{old_domain}` and restart."
+      "description": "`custom_components/{new_domain}` is installed alongside `custom_components/{old_domain}`. Nothing has changed here: this integration is still running your account and every entity, automation and dashboard is working as before.\n\nTo finish the move, go to **Settings > Devices & services > Add integration** and choose **EDF Energy (UK)**. It will offer to take over the setup you already have, keeping your account, your entity ids and your history.\n\nOnce it has, delete `custom_components/{old_domain}` and restart."
     }
   },
   "entity": {

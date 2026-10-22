@@ -8,7 +8,8 @@
 
 ### Notes
 
-* The notice about the new folder now says what is actually left to do: add EDF Energy from Settings once version 21 is installed, and it offers to take over the setup you already have. Nothing happens on its own, and nothing breaks while you leave it.
+* The notice about the new folder now says what is actually left to do: add EDF Energy (UK) from Settings once version 21 is installed, and it offers to take over the setup you already have. Nothing happens on its own, and nothing breaks while you leave it.
+* While both folders are installed the Add integration list shows two entries, so version 21 is named EDF Energy (UK) to tell them apart. Picking the old one by mistake no longer sets a second account up - it stops and points at the new one.
 
 ## [20.1.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.1.0) (2026-10-19)
 

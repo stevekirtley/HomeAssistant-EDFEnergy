@@ -13,7 +13,8 @@ notice saying there is a step left.
 """
 import pytest
 
-from custom_components.edf_energy import _successor_installed, async_setup_entry
+from custom_components.edf_energy import async_setup_entry
+from custom_components.edf_energy.utils.successor import successor_installed
 from custom_components.edf_energy.const import (
   DOMAIN,
   REPAIR_FINISH_THE_MOVE,
@@ -57,18 +58,18 @@ def _capture_issues(monkeypatch):
 def test_successor_is_not_installed_when_only_this_one_is(tmp_path):
   hass = _with_custom_components(tmp_path, DOMAIN)
 
-  assert _successor_installed(hass) is False
+  assert successor_installed(hass) is False
 
 
 def test_successor_is_spotted_when_both_are_installed(tmp_path):
   hass = _with_custom_components(tmp_path, DOMAIN, SUCCESSOR_DOMAIN)
 
-  assert _successor_installed(hass) is True
+  assert successor_installed(hass) is True
 
 
 def test_a_missing_custom_components_directory_is_not_an_error(tmp_path):
   # A container that keeps custom components elsewhere must not crash the check.
-  assert _successor_installed(StubHass(tmp_path)) is False
+  assert successor_installed(StubHass(tmp_path)) is False
 
 
 def test_a_file_of_that_name_does_not_count(tmp_path):
@@ -76,7 +77,7 @@ def test_a_file_of_that_name_does_not_count(tmp_path):
   (tmp_path / "custom_components").mkdir()
   (tmp_path / "custom_components" / SUCCESSOR_DOMAIN).write_text("not a package")
 
-  assert _successor_installed(StubHass(tmp_path)) is False
+  assert successor_installed(StubHass(tmp_path)) is False
 
 
 # ── what setup does about it ─────────────────────────────────────────────────

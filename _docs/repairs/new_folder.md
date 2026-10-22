@@ -10,7 +10,8 @@ on running your account exactly as before.
 ## Finishing the move
 
 1. Go to **Settings > Devices & services** and press **Add integration**.
-2. Choose **EDF Energy**.
+2. Choose **EDF Energy (UK)**. Both are listed while the old folder is still there, and
+   this is the new one.
 3. It will tell you it has found your existing setup and ask to take it over. Confirm.
 
 Your account, your API key, every entity id and your history all carry across, so
@@ -24,7 +25,12 @@ Delete `custom_components/edf_energy` and restart Home Assistant.
 If you leave it there nothing stops working, but the folder is doing nothing and Home
 Assistant will keep listing it.
 
-## If "EDF Energy" is not in the Add integration list
+## If "EDF Energy (UK)" is not in the Add integration list
 
 Restart Home Assistant and try again. The new folder is only picked up on a restart after
 HACS has downloaded it.
+
+## If you pick the wrong one
+
+Nothing happens. The old **EDF Energy** stops short and tells you to use **EDF Energy (UK)**,
+so there is no way to end up with your account set up twice.
