@@ -8,7 +8,7 @@ from homeassistant.components.recorder.statistics import (
     statistics_during_period
 )
 
-from ..const import DOMAIN, PREDECESSOR_DOMAIN
+from ..const import DOMAIN, STATISTICS_SOURCE
 from ..utils import get_active_tariff
 from ..utils.conversions import pence_to_pounds_pence_accurate, round_pounds, consumption_cost_in_pence
 
@@ -138,9 +138,9 @@ def get_statistic_ids_to_remove(now, account_info):
       electricity_tariff = get_active_tariff(now, point["agreements"])
       if electricity_tariff is None:
         for meter in point["meters"]:
-          external_statistic_ids_to_remove.append(f"{DOMAIN}:electricity_{meter['serial_number']}_{point['mpan']}{'_export' if meter['is_export'] == True else ''}_previous_accumulative_consumption")
-          external_statistic_ids_to_remove.append(f"{DOMAIN}:electricity_{meter['serial_number']}_{point['mpan']}{'_export' if meter['is_export'] == True else ''}_previous_accumulative_cost")
-          external_statistic_ids_to_remove.append(f"{DOMAIN}:electricity_{meter['serial_number']}_{point['mpan']}_previous_accumulative_cost")
+          external_statistic_ids_to_remove.append(f"{STATISTICS_SOURCE}:electricity_{meter['serial_number']}_{point['mpan']}{'_export' if meter['is_export'] == True else ''}_previous_accumulative_consumption")
+          external_statistic_ids_to_remove.append(f"{STATISTICS_SOURCE}:electricity_{meter['serial_number']}_{point['mpan']}{'_export' if meter['is_export'] == True else ''}_previous_accumulative_cost")
+          external_statistic_ids_to_remove.append(f"{STATISTICS_SOURCE}:electricity_{meter['serial_number']}_{point['mpan']}_previous_accumulative_cost")
           _LOGGER.info(f'Skipping electricity meter due to no active agreement; mpan: {point["mpan"]}; serial number: {meter["serial_number"]}')
   else:
     _LOGGER.info('No electricity meters available')
@@ -151,20 +151,20 @@ def get_statistic_ids_to_remove(now, account_info):
       gas_tariff = get_active_tariff(now, point["agreements"])
       if gas_tariff is None:
         for meter in point["meters"]:
-          external_statistic_ids_to_remove.append(f"{DOMAIN}:gas_{meter['serial_number']}_{point['mprn']}_previous_accumulative_consumption")
-          external_statistic_ids_to_remove.append(f"{DOMAIN}:gas_{meter['serial_number']}_{point['mprn']}_previous_accumulative_cost")
+          external_statistic_ids_to_remove.append(f"{STATISTICS_SOURCE}:gas_{meter['serial_number']}_{point['mprn']}_previous_accumulative_consumption")
+          external_statistic_ids_to_remove.append(f"{STATISTICS_SOURCE}:gas_{meter['serial_number']}_{point['mprn']}_previous_accumulative_cost")
           _LOGGER.info(f'Skipping gas meter due to no active agreement; mprn: {point["mprn"]}; serial number: {meter["serial_number"]}')
   else:
     _LOGGER.info('No gas meters available')
 
-  # The same ids under the domain this integration used to live in. The move renames them,
-  # but one the rename could not reach - the recorder unavailable at the time, say - would
-  # otherwise be an orphan nothing can clear, because the purge would no longer be looking
-  # for that prefix. Listing both costs nothing but a few harmless misses.
+  # The same ids under this domain's own prefix. Nothing writes those any more - the source
+  # stays what it always was, because the recorder cannot rename an external statistic - but
+  # 21.0.0 wrote a day of them before that was understood, and the purge is the only thing
+  # that would ever clear them. Listing both costs nothing but a few harmless misses.
   external_statistic_ids_to_remove += [
-    f"{PREDECESSOR_DOMAIN}:{statistic_id.split(':', 1)[1]}"
+    f"{DOMAIN}:{statistic_id.split(':', 1)[1]}"
     for statistic_id in list(external_statistic_ids_to_remove)
-    if statistic_id.startswith(f"{DOMAIN}:")
+    if statistic_id.startswith(f"{STATISTICS_SOURCE}:")
   ]
 
   return external_statistic_ids_to_remove

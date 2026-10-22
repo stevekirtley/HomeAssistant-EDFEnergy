@@ -19,7 +19,6 @@ from custom_components.edfenergy_uk.migration import (
   capture_devices,
   capture_entities,
   device_identifier_suffix,
-  statistic_renames,
 )
 
 
@@ -126,36 +125,6 @@ def test_devices_are_captured_against_their_suffix():
   assert list(captured) == ["electricity_sn_mpan"]
   assert captured["electricity_sn_mpan"]["area_id"] == "hall"
   assert captured["electricity_sn_mpan"]["name_by_user"] == "Meter"
-
-
-# ── statistics ───────────────────────────────────────────────────────────────
-
-def test_only_this_integrations_statistics_are_renamed():
-  ids = [
-    f"{PREDECESSOR_DOMAIN}:electricity_sn_mpan_previous_accumulative_cost",
-    "sensor.something_else",
-    "other_integration:electricity_sn_mpan_cost",
-  ]
-
-  assert statistic_renames(ids) == [(
-    f"{PREDECESSOR_DOMAIN}:electricity_sn_mpan_previous_accumulative_cost",
-    f"{DOMAIN}:electricity_sn_mpan_previous_accumulative_cost",
-  )]
-
-
-def test_only_the_prefix_changes_not_the_rest_of_the_id():
-  # The part after the colon is the unique_id, which is a literal and must survive intact -
-  # it is what ties the statistic to its entity.
-  ids = [f"{PREDECESSOR_DOMAIN}:gas_sn_mprn_previous_accumulative_consumption"]
-
-  _, new_id = statistic_renames(ids)[0]
-
-  assert new_id == f"{DOMAIN}:gas_sn_mprn_previous_accumulative_consumption"
-
-
-@pytest.mark.parametrize("ids", [None, [], [None], [123]])
-def test_nothing_to_rename_is_not_an_error(ids):
-  assert statistic_renames(ids) == []
 
 
 # ── putting things back ──────────────────────────────────────────────────────
@@ -271,13 +240,6 @@ class StubHass:
 
 
 @pytest.fixture
-def no_statistics(monkeypatch):
-  async def _noop(hass):
-    return 0
-  monkeypatch.setattr("custom_components.edfenergy_uk.migration.async_rename_statistics", _noop)
-
-
-@pytest.fixture
 def empty_registries(monkeypatch):
   monkeypatch.setattr("custom_components.edfenergy_uk.migration.er.async_get",
                       lambda hass: StubEntityRegistry([]))
@@ -286,7 +248,7 @@ def empty_registries(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_nothing_happens_when_there_is_nothing_to_take_over(no_statistics, empty_registries):
+async def test_nothing_happens_when_there_is_nothing_to_take_over(empty_registries):
   log = []
   hass = StubHass([], log)
 
@@ -296,7 +258,7 @@ async def test_nothing_happens_when_there_is_nothing_to_take_over(no_statistics,
 
 
 @pytest.mark.asyncio
-async def test_the_old_entry_is_removed_before_the_new_one_is_created(no_statistics, empty_registries):
+async def test_the_old_entry_is_removed_before_the_new_one_is_created(empty_registries):
   """The invariant the whole migration rests on.
 
   Removing the old config entry is what releases its entity registry rows, and those rows
@@ -315,7 +277,7 @@ async def test_the_old_entry_is_removed_before_the_new_one_is_created(no_statist
 
 
 @pytest.mark.asyncio
-async def test_every_entry_is_carried_across_with_its_data_and_options(no_statistics, empty_registries):
+async def test_every_entry_is_carried_across_with_its_data_and_options(empty_registries):
   log = []
   hass = StubHass([
     StubOldEntry("old-1", "A-XXXXXX", {"kind": "account"}, {"show_account_tab_beta": False}),
@@ -339,7 +301,7 @@ async def test_every_entry_is_carried_across_with_its_data_and_options(no_statis
 
 
 @pytest.mark.asyncio
-async def test_the_capture_is_stashed_before_anything_is_removed(no_statistics, monkeypatch):
+async def test_the_capture_is_stashed_before_anything_is_removed(monkeypatch):
   # It has to survive until the new entities exist, which is after this returns.
   monkeypatch.setattr(
     "custom_components.edfenergy_uk.migration.er.async_get",
@@ -362,16 +324,3 @@ async def test_the_capture_is_stashed_before_anything_is_removed(no_statistics, 
   assert "gas_a_b" in captured["devices"]
 
 
-@pytest.mark.asyncio
-async def test_a_failed_statistics_rename_does_not_stop_the_hand_over(monkeypatch, empty_registries):
-  # Losing the energy dashboard's history is bad; leaving the entries on a domain with no
-  # code behind them is worse.
-  async def _boom(hass):
-    raise RuntimeError("recorder unavailable")
-  monkeypatch.setattr("custom_components.edfenergy_uk.migration.async_rename_statistics", _boom)
-  log = []
-  hass = StubHass([StubOldEntry("old-1", "A-XXXXXX", {"kind": "account"})], log)
-
-  assert await async_take_over_old_entries(hass) == 1
-  await asyncio.sleep(0)
-  assert [row[0] for row in log] == ["remove", "schedule", "flow"]

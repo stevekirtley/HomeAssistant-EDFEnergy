@@ -348,7 +348,20 @@
     },
     "old_folder_present": {
       "title": "The old EDF Energy folder can be deleted",
-      "description": "Your setup has moved to `custom_components/{new_domain}` and is running from there. `custom_components/{old_domain}` (version {old_version}) is still on disk, but it no longer holds anything and does not load.\n\nDelete `custom_components/{old_domain}` and restart Home Assistant. Nothing breaks if you leave it; this notice will just keep coming back."
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Delete the old folder",
+            "description": "`custom_components/{old_domain}` is still on your system. Your account has already moved, so it is holding nothing and running nothing - it is just a folder Home Assistant goes on listing.\n\nSubmit to delete it. Home Assistant keeps the copy it has already loaded until you restart, so the listing will not go until then.",
+            "submit": "Delete it"
+          }
+        },
+        "abort": {
+          "already_gone": "`custom_components/{old_domain}` has already been deleted. Restart Home Assistant to stop it being listed.",
+          "not_the_old_folder": "`custom_components/{old_domain}` does not hold the integration this one replaced, so it has been left alone. Delete it yourself if you are sure.",
+          "delete_failed": "`custom_components/{old_domain}` could not be deleted - see the log. You can remove the folder yourself and restart."
+        }
+      }
     }
   },
   "entity": {

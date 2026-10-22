@@ -7,7 +7,7 @@ from homeassistant.components.recorder.statistics import (
     async_add_external_statistics
 )
 
-from ..const import DOMAIN
+from ..const import STATISTICS_SOURCE
 from ..utils.rate_information import get_peak_name, get_peak_type, get_unique_rates, has_peak_rates
 from . import (build_cost_statistics, async_get_last_sum)
 
@@ -71,7 +71,7 @@ async def async_import_external_statistics_from_cost(
   if (consumptions is None or len(consumptions) < 1 or rates is None or len(rates) < 1):
     return
 
-  statistic_id = f"{DOMAIN}:{unique_id}".lower()
+  statistic_id = f"{STATISTICS_SOURCE}:{unique_id}".lower()
 
   # Our sum needs to be based from the last total, so we need to grab the last record from the previous day
   latest_total_sum = initial_statistics.total if initial_statistics is not None else await async_get_last_sum(hass, consumptions[0]["start"], statistic_id)
@@ -89,7 +89,7 @@ async def async_import_external_statistics_from_cost(
       has_mean=False,
       has_sum=True,
       name=name,
-      source=DOMAIN,
+      source=STATISTICS_SOURCE,
       statistic_id=statistic_id,
       unit_of_measurement=unit_of_measurement,
       mean_type=StatisticMeanType.NONE,
@@ -117,7 +117,7 @@ async def async_import_external_statistics_from_cost(
           has_mean=False,
           has_sum=True,
           name=f'{name} {get_peak_name(peak_type)}',
-          source=DOMAIN,
+          source=STATISTICS_SOURCE,
           statistic_id=peak_statistic_id,
           unit_of_measurement=unit_of_measurement,
           mean_type=StatisticMeanType.NONE,
@@ -138,7 +138,7 @@ async def async_import_external_statistics_from_cost(
   # zero and taking every day after it down with it.
   total_including_standing_charge = initial_statistics.total_including_standing_charge if initial_statistics is not None else 0
   if standing_charge_in_pence is not None and including_standing_charge_unique_id is not None:
-    including_statistic_id = f"{DOMAIN}:{including_standing_charge_unique_id}".lower()
+    including_statistic_id = f"{STATISTICS_SOURCE}:{including_standing_charge_unique_id}".lower()
     latest_including_sum = (
       initial_statistics.total_including_standing_charge
       if initial_statistics is not None
@@ -156,7 +156,7 @@ async def async_import_external_statistics_from_cost(
         has_mean=False,
         has_sum=True,
         name=including_standing_charge_name,
-        source=DOMAIN,
+        source=STATISTICS_SOURCE,
         statistic_id=including_statistic_id,
         unit_of_measurement=unit_of_measurement,
         mean_type=StatisticMeanType.NONE,

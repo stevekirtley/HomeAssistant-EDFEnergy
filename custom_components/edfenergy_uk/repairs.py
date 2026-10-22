@@ -1,4 +1,8 @@
+import json
 import logging
+import os
+import shutil
+
 import voluptuous as vol
 
 from homeassistant.components.repairs import RepairsFlow
@@ -18,7 +22,9 @@ from .const import (
   CONFIG_MANUAL_TARIFF_OFF_PEAK_RATE,
   CONFIG_MANUAL_TARIFF_STANDING_CHARGE,
   DOMAIN,
+  PREDECESSOR_DOMAIN,
   REPAIR_API_KEY_NEEDED,
+  REPAIR_OLD_FOLDER_PRESENT,
   SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY,
 )
 from .utils.repairs import safe_repair_key
@@ -191,7 +197,82 @@ class ApiKeyNeededRepairFlow(RepairsFlow):
     return self.async_create_entry(title="", data={})
 
 
+class OldFolderRepairFlow(RepairsFlow):
+  """Deletes the folder this integration used to live in.
+
+  The hand-over has already happened by the time this can be raised, so the old folder holds
+  no config entries and is running nothing. Removing it is housekeeping, but it is still a
+  delete, so it is confirmed first and checked before it happens: the manifest inside has to
+  say it is the folder this integration replaced. Deleting the wrong directory under
+  custom_components would take somebody else's integration with it.
+
+  Home Assistant keeps the module it already imported, so the folder goes but the listing
+  does not until a restart. Restarting is left to the user - taking the house down without
+  being asked is a bigger thing than tidying a directory.
+  """
+
+  def _folder(self) -> str:
+    return os.path.join(
+      self.hass.config.config_dir, "custom_components", PREDECESSOR_DOMAIN
+    )
+
+  def _delete(self) -> str | None:
+    """Delete it, in the executor. Returns a reason if it would not be safe to."""
+    folder = self._folder()
+    if not os.path.isdir(folder):
+      return "already_gone"
+
+    manifest = os.path.join(folder, "manifest.json")
+    try:
+      with open(manifest, encoding="utf-8") as handle:
+        domain = json.load(handle).get("domain")
+    except Exception as err:
+      _LOGGER.warning("Could not read %s before deleting it: %s", manifest, err)
+      return "not_the_old_folder"
+
+    if domain != PREDECESSOR_DOMAIN:
+      # Something else is living in that directory. Leave it alone.
+      _LOGGER.warning(
+        "%s holds the integration %s, not %s - not deleting it", folder, domain,
+        PREDECESSOR_DOMAIN,
+      )
+      return "not_the_old_folder"
+
+    shutil.rmtree(folder)
+    return None
+
+  async def async_step_init(self, user_input=None):
+    return await self.async_step_confirm()
+
+  async def async_step_confirm(self, user_input=None):
+    if user_input is None:
+      return self.async_show_form(
+        step_id="confirm",
+        data_schema=vol.Schema({}),
+        description_placeholders={"old_domain": PREDECESSOR_DOMAIN},
+      )
+
+    try:
+      refused = await self.hass.async_add_executor_job(self._delete)
+    except Exception as err:
+      _LOGGER.error("Could not delete custom_components/%s: %s", PREDECESSOR_DOMAIN, err)
+      return self.async_abort(reason="delete_failed")
+
+    if refused == "already_gone":
+      ir.async_delete_issue(self.hass, DOMAIN, REPAIR_OLD_FOLDER_PRESENT)
+      return self.async_abort(reason="already_gone")
+    if refused is not None:
+      return self.async_abort(reason=refused)
+
+    _LOGGER.info("Deleted custom_components/%s", PREDECESSOR_DOMAIN)
+    ir.async_delete_issue(self.hass, DOMAIN, REPAIR_OLD_FOLDER_PRESENT)
+    return self.async_create_entry(title="", data={})
+
+
 async def async_create_fix_flow(hass, issue_id: str, data: dict | None):
+  if issue_id == REPAIR_OLD_FOLDER_PRESENT:
+    return OldFolderRepairFlow()
+
   if issue_id.startswith("api_key_needed"):
     return ApiKeyNeededRepairFlow(data or {})
 

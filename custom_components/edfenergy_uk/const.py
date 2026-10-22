@@ -248,6 +248,14 @@ REPAIR_OLD_FOLDER_PRESENT = "old_folder_present"
 # removed. See _blocking_predecessor.
 DATA_MIGRATION = "MIGRATION_FROM_OLD_DOMAIN"
 PREDECESSOR_DOMAIN = "edf_energy"
+
+# External statistics are keyed by `{source}:{id}` and the recorder cannot rename them: its
+# own update_statistic_id filters on `source == "recorder"`, so a rename of anything with a
+# source of its own matches no rows and reports success. The history is years of Energy
+# dashboard cost data, so the ids stay exactly as they were written and keep the old prefix
+# for good. Nothing a user sees carries it, and new installs get the same ids as everybody
+# else rather than a second variant to support.
+STATISTICS_SOURCE = PREDECESSOR_DOMAIN
 REPAIR_FREE_ELECTRICITY_EVENT_HISTORY = "free_electricity_event_history_{}"
 
 # Roughly a week of the pre-18.9.8 once-a-minute writes. Below this there's little to reclaim and

@@ -20,7 +20,9 @@ dashboard statistics, including cost history, come with it.
 
 ## Afterwards
 
-Delete `custom_components/edf_energy` and restart Home Assistant.
+A second notice appears saying the old folder can go. It has a **Delete it** button that
+removes `custom_components/edf_energy` for you. Restart Home Assistant afterwards - until
+you do, Home Assistant carries on listing the copy it had already loaded.
 
 If you leave it there nothing stops working, but the folder is doing nothing and Home
 Assistant will keep listing it.

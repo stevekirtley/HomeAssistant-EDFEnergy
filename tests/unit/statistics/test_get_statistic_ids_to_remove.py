@@ -1,18 +1,19 @@
 import pytest
 from datetime import datetime
 
-from custom_components.edfenergy_uk.const import DOMAIN, PREDECESSOR_DOMAIN
+from custom_components.edfenergy_uk.const import DOMAIN, STATISTICS_SOURCE
 from custom_components.edfenergy_uk.statistics import get_statistic_ids_to_remove
 
 
 def both_domains(*suffixes):
-  """Each id under this domain and under the one it used to be.
+  """Each id as it is written, and again under this domain's own prefix.
 
-  The move renames these in the recorder, but one the rename could not reach would be an
-  orphan nothing could clear if the purge only looked for the new prefix.
+  The written prefix never changes - the recorder cannot rename an external statistic - but
+  21.0.0 wrote a day of them under this domain before that was understood, and the purge is
+  the only thing that would ever clear those.
   """
-  return ([f"{DOMAIN}:{s}" for s in suffixes]
-          + [f"{PREDECESSOR_DOMAIN}:{s}" for s in suffixes])
+  return ([f"{STATISTICS_SOURCE}:{s}" for s in suffixes]
+          + [f"{DOMAIN}:{s}" for s in suffixes])
 
 def get_account_info():
   return {

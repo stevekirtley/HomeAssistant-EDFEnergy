@@ -11,6 +11,8 @@
 
 * After updating, go to Settings > Devices & services > Add integration and choose EDF Energy (UK). It finds your existing setup and offers to take it over.
 * Taking it over keeps your account, your API key, every entity id, your history and your Energy dashboard statistics, so automations, scripts, dashboards and template sensors carry on untouched.
+* Energy dashboard statistics keep the ids they were written with, so cost history carries over untouched. They were going to be renamed onto the new domain until it turned out the recorder cannot rename an external statistic and reports success anyway.
+* The notice about the old folder has a Delete button that removes it for you, once it has checked that is what the folder actually holds.
 * Action names move to `edfenergy_uk.*`. The old `edf_energy.*` names still work, including the entity actions the shipped blueprints call, and are deprecated rather than removed.
 
 

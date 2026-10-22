@@ -20,8 +20,11 @@ What genuinely is tied to the domain, and so has to be moved here:
 
 * device identifiers are `(DOMAIN, ...)`, so the devices are recreated. Their area and any
   name the user gave them is captured and put back
-* external statistic ids are `{DOMAIN}:{unique_id}`, so they are renamed in the recorder.
-  Without that, the energy dashboard loses its cost history
+* nothing, in the case of external statistics. They were going to be renamed, until the
+  recorder turned out not to be able to: update_statistic_id filters on `source` being
+  "recorder", so renaming one with a source of its own quietly matches no rows and reports
+  success. They are written under the old prefix for good instead, which is why there is
+  nothing here to do about them
 * the entity registry keys on (platform, unique_id) and platform cannot be edited, so the
   old rows have to go before the new entities are created or every entity_id would come
   back with a `_2` suffix. Removing the old config entry is what removes them, and it is
@@ -86,21 +89,6 @@ def capture_devices(registry, old_domain: str = PREDECESSOR_DOMAIN) -> dict:
   return captured
 
 
-def statistic_renames(statistic_ids, old_domain: str = PREDECESSOR_DOMAIN,
-                      new_domain: str = DOMAIN) -> list[tuple[str, str]]:
-  """The (from, to) pairs for external statistics that carry the old domain as their prefix.
-
-  Only this integration's own external statistics are touched: the prefix before the colon
-  is the source, so anything else in the recorder is left alone.
-  """
-  prefix = f"{old_domain}:"
-  renames = []
-  for statistic_id in statistic_ids or ():
-    if isinstance(statistic_id, str) and statistic_id.startswith(prefix):
-      renames.append((statistic_id, f"{new_domain}:{statistic_id[len(prefix):]}"))
-  return renames
-
-
 def apply_entity_customisations(registry, captured: dict) -> tuple[int, list[str]]:
   """Put the captured customisations back. Returns (how many, which ids had to be forced).
 
@@ -162,31 +150,6 @@ def apply_device_customisations(registry, captured: dict) -> int:
   return restored
 
 
-async def async_rename_statistics(hass) -> int:
-  """Rename this integration's external statistics onto the new domain.
-
-  Done through the recorder's own rename rather than by writing the rows again, so the
-  history is kept rather than re-imported: the energy dashboard's cost figures for every
-  past day hang on this.
-  """
-  try:
-    from homeassistant.components.recorder import get_instance
-    from homeassistant.components.recorder.statistics import list_statistic_ids
-  except ImportError:  # pragma: no cover - recorder is a declared dependency
-    return 0
-
-  instance = get_instance(hass)
-  existing = await instance.async_add_executor_job(lambda: list_statistic_ids(hass))
-  renames = statistic_renames([row.get("statistic_id") for row in existing or ()])
-
-  for old_id, new_id in renames:
-    instance.async_update_statistics_metadata(old_id, new_statistic_id=new_id)
-  if renames:
-    _LOGGER.info("Renamed %d external statistic(s) from %s to %s",
-                 len(renames), PREDECESSOR_DOMAIN, DOMAIN)
-  return len(renames)
-
-
 async def async_take_over_old_entries(hass) -> int:
   """Move every config entry from the old domain to this one. Returns how many.
 
@@ -196,9 +159,9 @@ async def async_take_over_old_entries(hass) -> int:
   removing after would hand every entity a `_2` suffix, which is the breakage this is
   meant to prevent.
 
-  Statistics are renamed first of all. They are keyed by their own id rather than by a
-  config entry, so nothing about them depends on the entries still being there, and doing
-  it before anything is removed means a failure here costs nothing.
+  External statistics need nothing doing to them. Their ids keep the prefix they were
+  written with, because the recorder cannot rename an external statistic, so the Energy
+  dashboard's history carries over by not being touched.
   """
   old_entries = list(hass.config_entries.async_entries(PREDECESSOR_DOMAIN))
   if not old_entries:
@@ -217,13 +180,6 @@ async def async_take_over_old_entries(hass) -> int:
     len(captured["entities"]), len(captured["devices"]),
   )
   hass.data.setdefault(DOMAIN, {})[DATA_MIGRATION] = captured
-
-  try:
-    await async_rename_statistics(hass)
-  except Exception as err:
-    # Losing the energy dashboard's history is bad, but stopping here would leave the
-    # entries on a domain with no code behind them, which is worse.
-    _LOGGER.error("Could not rename external statistics during the move: %s", err)
 
   # Everything needed from the old entries, read before they go.
   carried = [

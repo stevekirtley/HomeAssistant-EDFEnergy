@@ -128,7 +128,7 @@ async def test_a_notice_says_the_old_folder_can_go(tmp_path, monkeypatch):
   assert [(d, i) for d, i, _ in created] == [(DOMAIN, REPAIR_OLD_FOLDER_PRESENT)]
   kwargs = created[0][2]
   assert kwargs["translation_key"] == "old_folder_present"
-  assert kwargs["is_fixable"] is False
+  assert kwargs["is_fixable"] is True, "the notice must carry a Delete button"
   # A warning, not an error: nothing is broken, there is just a folder doing nothing.
   assert kwargs["severity"].value == "warning"
   assert kwargs["translation_placeholders"] == {

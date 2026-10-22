@@ -765,7 +765,7 @@ def _raise_old_folder_repair(hass, version: str) -> None:
     hass,
     DOMAIN,
     REPAIR_OLD_FOLDER_PRESENT,
-    is_fixable=False,
+    is_fixable=True,
     severity=ir.IssueSeverity.WARNING,
     translation_key="old_folder_present",
     translation_placeholders={

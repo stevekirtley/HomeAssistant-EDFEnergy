@@ -10,7 +10,7 @@ from homeassistant.components.recorder.statistics import (
 )
 from homeassistant.util.unit_conversion import EnergyConverter, VolumeConverter
 
-from ..const import DOMAIN
+from ..const import STATISTICS_SOURCE
 from ..utils.rate_information import get_peak_name, get_peak_type, get_unique_rates, has_peak_rates
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ async def async_import_external_statistics_from_consumption(
   if (consumptions is None or len(consumptions) < 1 or rates is None or len(rates) < 1):
     return
 
-  statistic_id = f"{DOMAIN}:{unique_id}".lower()
+  statistic_id = f"{STATISTICS_SOURCE}:{unique_id}".lower()
 
   # Our sum needs to be based from the last total, so we need to grab the last record from the previous day
   latest_total_sum = initial_statistics.total if initial_statistics is not None else await async_get_last_sum(hass, consumptions[0]["start"], statistic_id)
@@ -75,7 +75,7 @@ async def async_import_external_statistics_from_consumption(
       has_mean=False,
       has_sum=True,
       name=name,
-      source=DOMAIN,
+      source=STATISTICS_SOURCE,
       statistic_id=statistic_id,
       unit_of_measurement=unit_of_measurement,
       mean_type=StatisticMeanType.NONE,
@@ -103,7 +103,7 @@ async def async_import_external_statistics_from_consumption(
           has_mean=False,
           has_sum=True,
           name=f'{name} {get_peak_name(peak_type)}',
-          source=DOMAIN,
+          source=STATISTICS_SOURCE,
           statistic_id=peak_statistic_id,
           unit_of_measurement=unit_of_measurement,
           mean_type=StatisticMeanType.NONE,

@@ -32,7 +32,7 @@ from homeassistant.components.recorder.statistics import get_last_statistics
 from homeassistant.core import HomeAssistant
 from homeassistant.util.dt import as_local, as_utc
 
-from ..const import DOMAIN
+from ..const import STATISTICS_SOURCE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ BACKFILL_MINIMUM_GAP_DAYS = 2
 
 async def async_get_last_statistic_start(hass: HomeAssistant, statistic_id: str) -> datetime | None:
   """When the most recent statistic we wrote for this id starts, or None if there are none."""
-  full_id = statistic_id if ":" in statistic_id else f"{DOMAIN}:{statistic_id}"
+  full_id = statistic_id if ":" in statistic_id else f"{STATISTICS_SOURCE}:{statistic_id}"
   stats = await get_instance(hass).async_add_executor_job(
     get_last_statistics,
     hass,
