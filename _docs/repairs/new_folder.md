@@ -9,6 +9,9 @@ on running your account exactly as before.
 
 ## Finishing the move
 
+The notice in **Settings > Repairs** has a link that takes you straight to the right place.
+If you would rather do it by hand:
+
 1. Go to **Settings > Devices & services** and press **Add integration**.
 2. Choose **EDF Energy (UK)**. Both are listed while the old folder is still there, and
    this is the new one.
