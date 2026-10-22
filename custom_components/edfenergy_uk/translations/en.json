@@ -1,5 +1,5 @@
 {
-  "title": "EDF Energy",
+  "title": "EDF Energy (UK)",
   "config": {
     "step": {
       "account": {
@@ -179,7 +179,7 @@
       },
       "take_over": {
         "title": "Take over your existing EDF Energy setup",
-        "description": "EDF Energy has moved to a new folder, and your existing setup for {accounts} is still held by the old one.\n\nTaking it over keeps your account, your API key, every entity id and your history, so automations, scripts, dashboards and template sensors carry on untouched. Energy dashboard statistics, including cost history, come across too.\n\nSubmit to move it over. Afterwards you can delete `custom_components/{old_domain}` and restart.",
+        "description": "EDF Energy has moved to a new folder and is now called EDF Energy (UK). Your existing setup for {accounts} is still held by the old one.\n\nTaking it over keeps your account, your API key, every entity id and your history, so automations, scripts, dashboards and template sensors carry on untouched. Energy dashboard statistics, including cost history, come across too.\n\nSubmit to move it over. Afterwards you can delete `custom_components/{old_domain}` and restart.",
         "submit": "Take it over"
       }
     },

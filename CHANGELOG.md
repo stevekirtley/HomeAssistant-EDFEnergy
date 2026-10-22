@@ -4,11 +4,12 @@
 ### Breaking Changes
 
 * The integration now lives in `custom_components/edfenergy_uk`. HACS installs the new folder and leaves the old one behind, so there is one step to finish by hand.
+* The integration is now called EDF Energy (UK). While both folders are installed the Add integration list shows an entry for each, and the name is what tells them apart.
 
 
 ### Features
 
-* After updating, go to Settings > Devices & services > Add integration and choose EDF Energy. It finds your existing setup and offers to take it over.
+* After updating, go to Settings > Devices & services > Add integration and choose EDF Energy (UK). It finds your existing setup and offers to take it over.
 * Taking it over keeps your account, your API key, every entity id, your history and your Energy dashboard statistics, so automations, scripts, dashboards and template sensors carry on untouched.
 * Action names move to `edfenergy_uk.*`. The old `edf_energy.*` names still work, including the entity actions the shipped blueprints call, and are deprecated rather than removed.
 
