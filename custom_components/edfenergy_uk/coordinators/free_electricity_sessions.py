@@ -14,6 +14,7 @@ from ..const import (
   DATA_FREE_ELECTRICITY_SESSIONS,
   DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
+  DATA_FLEXTRAS,
   DATA_FLEXTRAS_HOURS,
   DATA_FLEXTRAS_HOURS_COORDINATOR,
   DATA_POWER_PERKS,
@@ -50,7 +51,8 @@ _LOGGER = logging.getLogger(__name__)
 #     move or hand back until the Thursday before, so they are retracted as well as added.
 #   - "power_perks": Flextras Power Perks sessions. EDF announce these by SMS only, so they
 #     come from a relay that parses the text (see coordinators/power_perks.py), plus any
-#     registered by hand with the register_power_perks_session action.
+#     registered by hand with the register_power_perks_session action. Gated on the account
+#     actually being signed up to Power Perks - see _normalise_power_perks.
 # Adding a future source is a one-line change: write a normaliser and append to _ALWAYS_ON_PROVIDERS
 # (for EDF-confirmed sources) or wire it with a separate opt-in flag.
 
@@ -79,33 +81,44 @@ def _normalise_flextras_hours(result: FlextrasHoursCoordinatorResult | None) -> 
   return list(result.sessions)
 
 
-def _normalise_power_perks(result: PowerPerksCoordinatorResult | None) -> list[FreeElectricitySession]:
+def _power_perks_subscribed(hass, account_id: str) -> bool | None:
+  """Whether EDF say this account is signed up to Power Perks.
+
+  None means we do not know yet. `registered` is left at None until a call to EDF has actually
+  come back - a 404 sets it False, a success sets it from the registration date - so it is the
+  one field that separates "no answer yet" from "answered, and they are not in the scheme".
+  A refresh that fails carries the previous answer forward, so a blip reads as the last known
+  state rather than as unknown.
+  """
+  result = hass.data[DOMAIN][account_id].get(DATA_FLEXTRAS.format(account_id))
+  if result is None or getattr(result, "registered", None) is None:
+    return None
+  return getattr(result, "power_perks_signup_date", None) is not None
+
+
+def _normalise_power_perks(
+  result: PowerPerksCoordinatorResult | None,
+  subscribed: bool | None = None,
+) -> list[FreeElectricitySession]:
+  """Power Perks sessions that apply to this account.
+
+  The relay publishes every session nationally, because EDF announce them by text to everyone
+  in the scheme at once. An account that is not in the scheme never gets them - somebody on
+  Weekend Saver instead, or on a FreePhase tariff, which rules Power Perks out - and handing
+  those windows to the calendar told their battery to charge for free power that was never
+  coming.
+
+  Only the relay feed is gated. A session registered by hand with register_power_perks_session
+  is a deliberate act on this instance and is kept either way.
+
+  `subscribed` is None when EDF have not answered yet, which keeps the feed: dropping a real
+  window from a subscriber over a transient failure would quietly stop a battery charging.
+  """
   if result is None:
     return []
+  if subscribed is False:
+    return list(result.manual_sessions)
   return list(result.all_sessions)
-
-
-def _retract_withdrawn_power_perks(
-  history: list[FreeElectricitySession],
-  power_perks: PowerPerksCoordinatorResult | None,
-  current: datetime,
-) -> list[FreeElectricitySession]:
-  """Drop future Power Perks sessions the relay no longer publishes.
-
-  History normally only grows, so that a finished session stays in the day's feed. But a
-  Power Perks session can be withdrawn - EDF cancel an event, or the relay corrects a text
-  it misread - and a session that has not started yet must follow the feed, or a phantom
-  free window would drive the battery for the whole day. Only sessions that have not begun
-  are dropped, and only when the feed was actually reachable this tick, so an outage never
-  deletes anything. Sessions registered by hand are part of the feed's view and survive.
-  """
-  if power_perks is None or not power_perks.feed_available:
-    return history
-  published = {s.code for s in power_perks.all_sessions}
-  return [
-    s for s in history
-    if s.source != "power_perks" or s.start <= current or s.code in published
-  ]
 
 
 # Sources whose sessions can be taken away again before they start: EDF can cancel a Power
@@ -136,9 +149,9 @@ def _retract_withdrawn_sessions(
   ]
 
 
+# EDF's API only returns these for the accounts they apply to, so there is nothing to gate on.
 _ALWAYS_ON_PROVIDERS: list[tuple[str, Callable[[Any], list[FreeElectricitySession]]]] = [
   (DATA_SUNDAY_SAVER, _normalise_sunday_saver),
-  (DATA_POWER_PERKS, _normalise_power_perks),
   (DATA_FLEXTRAS_HOURS, _normalise_flextras_hours),
 ]
 
@@ -253,6 +266,14 @@ def refresh_free_electricity_sessions(
     upstream = hass.data[DOMAIN][account_id].get(data_key.format(account_id))
     sessions.extend(normaliser(upstream))
 
+  # Power Perks is national, so the relay hands the same sessions to every install; only the
+  # accounts actually in the scheme should receive them.
+  power_perks_subscribed = _power_perks_subscribed(hass, account_id)
+  sessions.extend(_normalise_power_perks(
+    hass.data[DOMAIN][account_id].get(DATA_POWER_PERKS.format(account_id)),
+    power_perks_subscribed,
+  ))
+
   for data_key, normaliser, config_key in _OPT_IN_PROVIDERS:
     if config_key == CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY and not football_enabled:
       continue
@@ -269,9 +290,21 @@ def refresh_free_electricity_sessions(
   history = merge_free_electricity_sessions(existing_history, live_sessions, current)
   power_perks = hass.data[DOMAIN][account_id].get(DATA_POWER_PERKS.format(account_id))
   flextras_hours = hass.data[DOMAIN][account_id].get(DATA_FLEXTRAS_HOURS.format(account_id))
+  # An account that is not in the scheme is treated as a reachable source publishing nothing but
+  # its hand-registered sessions, so any future windows an earlier version already wrote into the
+  # history are cleared rather than left sitting there until they expire.
+  if power_perks_subscribed is False:
+    power_perks_state = (
+      "power_perks", True,
+      {s.code for s in power_perks.manual_sessions} if power_perks is not None else set(),
+    )
+  else:
+    power_perks_state = (
+      "power_perks", power_perks is not None and power_perks.feed_available,
+      {s.code for s in power_perks.all_sessions} if power_perks is not None else set(),
+    )
   history = _retract_withdrawn_sessions(history, [
-    ("power_perks", power_perks is not None and power_perks.feed_available,
-     {s.code for s in power_perks.all_sessions} if power_perks is not None else set()),
+    power_perks_state,
     ("flextras_hours", flextras_hours is not None and flextras_hours.available,
      {s.code for s in flextras_hours.sessions} if flextras_hours is not None else set()),
   ], current)
