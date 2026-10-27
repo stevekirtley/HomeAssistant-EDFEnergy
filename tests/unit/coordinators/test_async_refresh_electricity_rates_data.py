@@ -2093,7 +2093,7 @@ async def test_when_rates_change_correctly_then_unique_rates_changed_event_fired
   ([1, 2, 3, 4, 5, 6], [1, 2, 3]),
 ])
 async def test_when_freephase_dynamic_tariff_and_rates_change_then_unique_rates_changed_not_fired(current_unique_rates: list, previous_unique_rates: list):
-  freephase_tariff_code = "E-1R-EDF_FREEPHASE_DYNAMIC_12M_HH-A"
+  freephase_tariff_code = "E-1R-EDF_FREEPHASE_DYNAMIC_12M_V2_HH-A"
   expected_period_from = (current - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
   expected_period_to = (current + timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
   expected_rates = create_rate_data(expected_period_from, expected_period_to, current_unique_rates, freephase_tariff_code)
@@ -2119,7 +2119,7 @@ async def test_when_freephase_dynamic_tariff_and_rates_change_then_unique_rates_
     unique_rates_changed_called = True
     return None
 
-  account_info = get_account_info(tariff_code=freephase_tariff_code, product_code="EDF_FREEPHASE_DYNAMIC_12M_HH")
+  account_info = get_account_info(tariff_code=freephase_tariff_code, product_code="EDF_FREEPHASE_DYNAMIC_12M_V2_HH")
   existing_rates = ElectricityRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, previous_unique_rates, freephase_tariff_code))
 
   with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):

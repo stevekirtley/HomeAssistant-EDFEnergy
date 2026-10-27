@@ -4,6 +4,11 @@ from custom_components.edfenergy_uk.utils.tariff_check import is_freephase_dynam
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tariff_code,expected_result",[
+  # The product EDF currently sell.
+  ("E-1R-EDF_FREEPHASE_DYNAMIC_12M_V2_HH-A", True),
+  ("E-1R-EDF_FREEPHASE_DYNAMIC_12M_V2_HH-P", True),
+  # The version it replaced. Withdrawn products do not move anybody off them, so an
+  # account can still be on this one and it has to keep being recognised.
   ("E-1R-EDF_FREEPHASE_DYNAMIC_12M_HH-A", True),
   ("E-1R-EDF_FREEPHASE_DYNAMIC_12M_HH-C", True),
   ("E-1R-AGILE-FLEX-22-11-25-B", False),
