@@ -16,6 +16,13 @@
 * Action names move to `edfenergy_uk.*`. The old `edf_energy.*` names still work, including the entity actions the shipped blueprints call, and are deprecated rather than removed. They carry their own description, so deleting the old folder does not leave Home Assistant hunting for a services.yaml that is no longer there.
 
 
+### Bug Fixes
+
+* Power Perks free windows are only added to the free electricity feed for accounts that are actually signed up to Power Perks. An account on Weekend Saver instead was being given windows it would never get. Sessions you added by hand are unaffected.
+* The Power Perks Predictor tab says "overnight" for a free window that runs past midnight, matching the site it reads. It was showing one as if it fell entirely on tomorrow.
+* Notices raised by the old folder are cleared once the hand-over is done, instead of being left on screen describing a move that has already happened.
+
+
 ### Notes
 
 * Nothing breaks while you wait. Until you take the setup over, the old folder carries on running your account exactly as before, and the new one sits there doing nothing.

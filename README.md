@@ -1,5 +1,24 @@
 # Home Assistant EDF Energy
 
+> ## Updating to 21.0.0? There is one step to finish by hand
+>
+> **On 20.1.0, update to 20.1.1 first and restart.** Going straight from 20.1.0 to 21.0.0 stops the
+> integration loading and every entity goes unavailable until the step below is done.
+>
+> Version 21 lives in a new folder, `custom_components/edfenergy_uk`, and is called **EDF Energy (UK)**.
+> HACS installs the new folder and leaves the old one in place. Nothing moves across on its own, and
+> nothing breaks while you wait - the old folder carries on running your account until you do this:
+>
+> 1. **Settings > Devices & services > Add integration**, and choose **EDF Energy (UK)**.
+> 2. It finds your existing setup and offers to take it over. Accept.
+> 3. Delete `custom_components/edf_energy` and restart. A notice in Repairs will remind you.
+>
+> Your account, API key, every entity id, your history and your Energy dashboard statistics all come
+> across, so automations, scripts, dashboards and template sensors carry on untouched.
+>
+> While both folders are installed the Add integration list shows an entry for each. The name is what
+> tells them apart, and **EDF Energy (UK)** is the new one.
+
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/stevekirtley)
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=github)](https://github.com/sponsors/stevekirtley)
