@@ -172,7 +172,10 @@ def parse_outlook(data) -> dict | None:
 
 
 def parse_tomorrow(data) -> dict | None:
-  """Tomorrow's call, which is the firm one - it reads the published auction."""
+  """Tomorrow's call, and the firm one once EDF have published their FreePhase rates.
+
+  Until they do it is a forecast off the day-ahead auction, which is what `status` says.
+  """
   if not isinstance(data, dict):
     return None
   date = _text(data.get("date"), 32)
@@ -184,11 +187,25 @@ def parse_tomorrow(data) -> dict | None:
     if isinstance(window, dict):
       start, end = _text(window.get("start"), 32), _text(window.get("end"), 32)
       if start or end:
-        windows.append({"start": start, "end": end})
+        # A block that opens at 23:00 runs into the day after, and the dates say which
+        # days it actually covers. Dropping them left the panel showing "Tomorrow,
+        # 23:00 - 06:00" for a window that is mostly the night after that, which is both
+        # wrong and a contradiction of the site the figures came from.
+        windows.append({
+          "start": start,
+          "end": end,
+          "hours": _number(window.get("hours")),
+          "start_date": _text(window.get("start_date"), 32),
+          "end_date": _text(window.get("end_date"), 32),
+          "overnight": window.get("overnight") == True,
+        })
     elif isinstance(window, str):
       text = _text(window, 32)
       if text:
-        windows.append({"start": text, "end": None})
+        windows.append({
+          "start": text, "end": None, "hours": None,
+          "start_date": None, "end_date": None, "overnight": False,
+        })
 
   return {
     "date": date,

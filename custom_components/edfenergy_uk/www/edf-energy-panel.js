@@ -1834,7 +1834,13 @@
             <div style="flex:1;min-width:180px">
               <div class="predictor-verdict">${t.free ? 'Free electricity expected' : t.marginal ? 'Close, but probably not free' : 'No free electricity expected'}</div>
               ${t.windows.length
-                ? `<div class="sub">${t.windows.map(w => esc([w.start, w.end].filter(Boolean).join(' - '))).join(' · ')}</div>`
+                ? `<div class="sub">${t.windows.map(w => {
+                    // A window that crosses midnight is labelled the way the site labels
+                    // it. "Tomorrow, 23:00 - 06:00" on its own reads as one evening and
+                    // sends people to bed a day late.
+                    const span = [w.start, w.end].filter(Boolean).join(' - ');
+                    return esc(w.overnight ? `overnight ${span}` : span);
+                  }).join(' · ')}</div>`
                 : ''}
               <div class="kv"><span class="k">Cheapest hour</span><span class="v">${t.cheapest_hour ? esc(t.cheapest_hour) : '—'}${
                 t.cheapest_hour_price !== null && t.cheapest_hour_price !== undefined ? ` at ${t.cheapest_hour_price.toFixed(1)}p` : ''}</span></div>
