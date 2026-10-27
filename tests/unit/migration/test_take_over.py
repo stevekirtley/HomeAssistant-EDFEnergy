@@ -18,6 +18,7 @@ from custom_components.edfenergy_uk.migration import (
   async_take_over_old_entries,
   capture_devices,
   capture_entities,
+  clear_old_notices,
   device_identifier_suffix,
 )
 
@@ -239,12 +240,31 @@ class StubHass:
     return asyncio.ensure_future(coro)
 
 
+class StubIssueRegistry:
+  def __init__(self, keys):
+    self.issues = {key: object() for key in keys}
+
+
+def _issue_registry(monkeypatch, keys):
+  """Patch in an issue registry and record what gets deleted."""
+  deleted = []
+  monkeypatch.setattr("custom_components.edfenergy_uk.migration.ir.async_get",
+                      lambda hass: StubIssueRegistry(keys))
+  monkeypatch.setattr("custom_components.edfenergy_uk.migration.ir.async_delete_issue",
+                      lambda hass, domain, issue_id: deleted.append((domain, issue_id)))
+  return deleted
+
+
 @pytest.fixture
 def empty_registries(monkeypatch):
   monkeypatch.setattr("custom_components.edfenergy_uk.migration.er.async_get",
                       lambda hass: StubEntityRegistry([]))
   monkeypatch.setattr("custom_components.edfenergy_uk.migration.dr.async_get",
                       lambda hass: StubDeviceRegistry([]))
+  monkeypatch.setattr("custom_components.edfenergy_uk.migration.ir.async_get",
+                      lambda hass: StubIssueRegistry([]))
+  monkeypatch.setattr("custom_components.edfenergy_uk.migration.ir.async_delete_issue",
+                      lambda hass, domain, issue_id: None)
 
 
 @pytest.mark.asyncio
@@ -313,6 +333,7 @@ async def test_the_capture_is_stashed_before_anything_is_removed(monkeypatch):
     "custom_components.edfenergy_uk.migration.dr.async_get",
     lambda hass: StubDeviceRegistry([StubDevice("d1", {(PREDECESSOR_DOMAIN, "gas_a_b")})]),
   )
+  _issue_registry(monkeypatch, [])
   log = []
   hass = StubHass([StubOldEntry("old-1", "A-XXXXXX", {"kind": "account"})], log)
 
@@ -324,3 +345,56 @@ async def test_the_capture_is_stashed_before_anything_is_removed(monkeypatch):
   assert "gas_a_b" in captured["devices"]
 
 
+
+
+# ── notices the old domain left behind ──────────────────────────────────
+
+def test_the_old_domains_notices_are_cleared(monkeypatch):
+  # Nothing removes a notice when the folder that raised it goes, so after the hand-over
+  # the 20.1.0 "stood down, waiting to be taken over" notice is still on screen saying
+  # the opposite of what happened.
+  deleted = _issue_registry(monkeypatch, [
+    (PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk"),
+    (PREDECESSOR_DOMAIN, "new_folder"),
+  ])
+
+  assert clear_old_notices(None) == 2
+  assert sorted(deleted) == [
+    (PREDECESSOR_DOMAIN, "new_folder"),
+    (PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk"),
+  ]
+
+
+def test_nobody_elses_notices_are_touched(monkeypatch):
+  deleted = _issue_registry(monkeypatch, [
+    (PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk"),
+    (DOMAIN, "api_key_needed"),
+    ("homeassistant", "config_entry_reauth_edf_energy_abc"),
+    ("recorder", "something_else"),
+  ])
+
+  assert clear_old_notices(None) == 1
+  assert deleted == [(PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk")]
+
+
+def test_no_notices_is_not_an_error(monkeypatch):
+  deleted = _issue_registry(monkeypatch, [])
+
+  assert clear_old_notices(None) == 0
+  assert deleted == []
+
+
+@pytest.mark.asyncio
+async def test_the_hand_over_clears_them(monkeypatch):
+  monkeypatch.setattr("custom_components.edfenergy_uk.migration.er.async_get",
+                      lambda hass: StubEntityRegistry([]))
+  monkeypatch.setattr("custom_components.edfenergy_uk.migration.dr.async_get",
+                      lambda hass: StubDeviceRegistry([]))
+  deleted = _issue_registry(monkeypatch, [(PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk")])
+
+  log = []
+  hass = StubHass([StubOldEntry("old-1", "A-XXXXXX", {"kind": "account"})], log)
+  assert await async_take_over_old_entries(hass) == 1
+  await asyncio.sleep(0)
+
+  assert deleted == [(PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk")]

@@ -33,7 +33,11 @@ What genuinely is tied to the domain, and so has to be moved here:
 import logging
 
 from homeassistant.config_entries import SOURCE_IMPORT
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import (
+  device_registry as dr,
+  entity_registry as er,
+  issue_registry as ir,
+)
 
 from .const import DATA_MIGRATION, DOMAIN, PREDECESSOR_DOMAIN
 
@@ -150,6 +154,28 @@ def apply_device_customisations(registry, captured: dict) -> int:
   return restored
 
 
+def clear_old_notices(hass) -> int:
+  """Delete the repairs the old domain raised. Returns how many went.
+
+  They outlive their own integration. A notice is stored against (domain, issue_id) and
+  nothing removes it when the folder that raised it goes, so after the hand-over the user
+  is left looking at the old domain telling them to wait for a migration that has already
+  happened - and, on 20.1.0, at one that tells them to delete a folder they may have
+  deleted already. Reading it is the only action it offers, and it is wrong.
+
+  Only the old domain's own notices are touched. Anything Home Assistant raised itself
+  about an old entry, reauth being the usual one, is keyed on the entry and goes when the
+  entry does.
+  """
+  registry = ir.async_get(hass)
+  stale = [key for key in registry.issues if key[0] == PREDECESSOR_DOMAIN]
+  for domain, issue_id in stale:
+    ir.async_delete_issue(hass, domain, issue_id)
+  if stale:
+    _LOGGER.info("Cleared %d notice(s) left behind by %s", len(stale), PREDECESSOR_DOMAIN)
+  return len(stale)
+
+
 async def async_take_over_old_entries(hass) -> int:
   """Move every config entry from the old domain to this one. Returns how many.
 
@@ -195,6 +221,10 @@ async def async_take_over_old_entries(hass) -> int:
 
   for entry in old_entries:
     await hass.config_entries.async_remove(entry.entry_id)
+
+  # The old domain's notices refer to a hand-over that has now happened, so they go with
+  # the entries rather than being left on screen contradicting the result.
+  clear_old_notices(hass)
 
   for payload in carried:
     hass.async_create_task(
