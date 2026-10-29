@@ -9,6 +9,14 @@ on running your account exactly as before.
 
 ## Finishing the move
 
+If you updated from 20.1.1 you will have a notice in **Settings > System > Repairs** titled
+**EDF Energy has a new folder - one step left**. Open it and press **Hand it over**. That is
+the whole move - there is nothing to fill in and nothing to reconfigure.
+
+![The Finish the move dialog, with a Hand it over button](../assets/v21-finish-the-move.png)
+
+If you have no such notice, or you updated from an older version, start it yourself instead:
+
 1. Go to **Settings > Devices & services** and press **Add integration**.
 2. Choose **EDF Energy (UK)**. Both are listed while the old folder is still there, and
    this is the new one.
@@ -17,6 +25,9 @@ on running your account exactly as before.
 Your account, your API key, every entity id and your history all carry across, so
 automations, scripts, dashboards and template sensors keep working untouched. Energy
 dashboard statistics, including cost history, come with it.
+
+For the full picture, including what to expect from each version you might be updating from,
+see [Updating to version 21](../migrations/version_21.md).
 
 ## Afterwards
 
