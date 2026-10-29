@@ -9,10 +9,13 @@ on running your account exactly as before.
 
 ## Finishing the move
 
-The notice in **Settings > Repairs** has a button that does the whole thing. Open it, read
-what it is about to do, and press **Hand it over**.
+If you updated from 20.1.1 you will have a notice in **Settings > System > Repairs** titled
+**EDF Energy has a new folder - one step left**. Open it and press **Hand it over**. That is
+the whole move - there is nothing to fill in and nothing to reconfigure.
 
-If you would rather do it by hand:
+![The Finish the move dialog, with a Hand it over button](../assets/v21-finish-the-move.png)
+
+If you have no such notice, or you updated from an older version, start it yourself instead:
 
 1. Go to **Settings > Devices & services** and press **Add integration**.
 2. Choose **EDF Energy (UK)**. Both are listed while the old folder is still there, and
@@ -23,9 +26,14 @@ Your account, your API key, every entity id and your history all carry across, s
 automations, scripts, dashboards and template sensors keep working untouched. Energy
 dashboard statistics, including cost history, come with it.
 
+For the full picture, including what to expect from each version you might be updating from,
+see [Updating to version 21](../migrations/version_21.md).
+
 ## Afterwards
 
-Delete `custom_components/edf_energy` and restart Home Assistant.
+A second notice appears saying the old folder can go. It has a **Delete it** button that
+removes `custom_components/edf_energy` for you. Restart Home Assistant afterwards - until
+you do, Home Assistant carries on listing the copy it had already loaded.
 
 If you leave it there nothing stops working, but the folder is doing nothing and Home
 Assistant will keep listing it.

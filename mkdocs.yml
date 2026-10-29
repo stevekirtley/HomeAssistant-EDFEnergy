@@ -20,6 +20,7 @@ nav:
     - Billing: ./entities/billing.md
     - Diagnostics: ./entities/diagnostics.md
   - Migrations:
+    - ./migrations/version_21.md
     - ./migrations/target_timeframes.md
   - services.md
   - events.md
