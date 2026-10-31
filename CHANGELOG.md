@@ -69,7 +69,7 @@
 
 ### Notes
 
-* The integration moves to a new folder in 21.0.0. This release stands aside if both are installed, so entities and automations carry over untouched.
+* The integration moves to a new folder in 21.0.0. **Update to 20.1.1 before taking version 21** - on this release the integration stops loading as soon as the new folder appears, and every entity goes unavailable until the move is finished by hand. 20.1.1 fixes that and gives you a one-click prompt instead. If you have already updated and are stuck, do not delete the old folder yet; follow [Path B](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/migrations/version_21/#path-b-updating-from-2010).
 
 ## [20.0.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.0.0) (2026-10-16)
 
