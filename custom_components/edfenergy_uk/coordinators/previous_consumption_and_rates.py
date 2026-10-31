@@ -3,7 +3,7 @@ import logging
 from typing import Callable, Any
 import asyncio
 
-from homeassistant.util.dt import (utcnow, as_local, as_utc, start_of_local_day)
+from homeassistant.util.dt import (utcnow, as_local)
 from homeassistant.helpers.update_coordinator import (
   DataUpdateCoordinator
 )
@@ -27,7 +27,7 @@ from ..const import (
 from ..api_client import (ApiException, EDFEnergyApiClient)
 from ..api_client.intelligent_dispatches import IntelligentDispatches
 from ..api_client.intelligent_device import IntelligentDevice
-from ..utils import Tariff, private_rates_to_public_rates
+from ..utils import Tariff, get_expected_slots_in_day, private_rates_to_public_rates
 
 from ..intelligent import adjust_intelligent_rates, is_intelligent_product
 from ..coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
@@ -68,22 +68,6 @@ def contains_consumption(consumptions: list, current_consumption):
       return True
 
   return False
-
-def get_expected_slots_in_day(local_start: datetime) -> int:
-  """How many half hours the local day holding `local_start` is made of.
-
-  Forty eight on almost every day, but forty six and fifty on the two days a year the clocks
-  change. A day that is not the length we assume gets discarded by the caller and never asked
-  for again, so assuming forty eight left a permanent hole in the statistics every October
-  and March.
-  """
-  day = local_start.date()
-  # Both ends have to be taken to UTC before they are subtracted. Two datetimes sharing a
-  # time zone are subtracted on the wall clock, so the day the clocks change comes back as
-  # twenty four hours and the whole point of this is lost.
-  day_start = as_utc(start_of_local_day(day))
-  next_day_start = as_utc(start_of_local_day(day + timedelta(days=1)))
-  return int((next_day_start - day_start).total_seconds() // 1800)
 
 def get_latest_day(consumption_data: list | None):
   if consumption_data is None or len(consumption_data) < 1:

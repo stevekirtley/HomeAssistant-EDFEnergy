@@ -3,7 +3,7 @@ import logging
 import re
 from datetime import datetime, timedelta
 
-from homeassistant.util.dt import (as_local, as_utc, parse_datetime)
+from homeassistant.util.dt import (as_local, as_utc, parse_datetime, start_of_local_day)
 
 from ..const import (
   KNOWN_OFF_PEAK_WINDOWS,
@@ -94,6 +94,25 @@ def get_off_peak_cost(current: datetime, rates: list):
           off_peak_cost = rate["value_inc_vat"]
 
   return off_peak_cost if len(rate_charges) == 2 or len(rate_charges) == 3 else None
+
+def get_expected_slots_in_day(local_start: datetime) -> int:
+  """How many half hours the local day holding `local_start` is made of.
+
+  Forty eight on almost every day, but forty six and fifty on the two days a year the clocks
+  change. A day that is not the length we assume gets discarded and never asked for again, so
+  assuming forty eight left a permanent hole in the statistics every October and March.
+  """
+  day = local_start.date() if isinstance(local_start, datetime) else local_start
+  # Both ends have to be taken to UTC before they are subtracted. Two datetimes sharing a
+  # time zone are subtracted on the wall clock, so the day the clocks change comes back as
+  # twenty four hours and the whole point of this is lost.
+  day_start = as_utc(start_of_local_day(day))
+  next_day_start = as_utc(start_of_local_day(day + timedelta(days=1)))
+  return int((next_day_start - day_start).total_seconds() // 1800)
+
+def get_expected_hours_in_day(local_start: datetime) -> int:
+  """The same thing for hourly statistics, which is how consumption is recorded."""
+  return get_expected_slots_in_day(local_start) // 2
 
 def is_off_peak(current: datetime, rates):
   off_peak_value = get_off_peak_cost(current, rates)

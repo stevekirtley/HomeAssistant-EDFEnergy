@@ -9,10 +9,8 @@ from homeassistant.util.dt import (
   start_of_local_day,
 )
 
-from custom_components.edfenergy_uk.coordinators.previous_consumption_and_rates import (
-  get_expected_slots_in_day,
-  get_latest_day,
-)
+from custom_components.edfenergy_uk.coordinators.previous_consumption_and_rates import get_latest_day
+from custom_components.edfenergy_uk.utils import get_expected_slots_in_day
 
 @pytest.fixture(autouse=True)
 def british_time():
