@@ -57,6 +57,9 @@ from .utils.entity_services import describe_alias
 from .utils.error import RETRYABLE_EXCEPTIONS, api_exception_to_string
 from .storage.account import async_load_cached_account, async_save_cached_account
 from .storage.consumption_gaps import async_load_consumption_gaps
+from .statistics.backfill import async_get_earliest_missing_day, async_record_outstanding_gaps
+from .statistics.consumption import get_electricity_consumption_statistic_unique_id
+from .statistics.refresh import async_refresh_previous_electricity_consumption_data
 from .storage.intelligent_device import async_load_cached_intelligent_devices, async_save_cached_intelligent_devices
 from .storage.intelligent_dispatches import async_load_cached_intelligent_dispatches
 from .storage.intelligent_dispatches_history import IntelligentDispatchesHistory, async_load_cached_intelligent_dispatches_history
@@ -612,6 +615,82 @@ async def websocket_consumption_gaps(hass, connection, msg):
   connection.send_result(msg["id"], {"meters": meters})
 
 @websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/refill_consumption_gaps",
+  vol.Required("account_id"): str,
+  vol.Required("mpan"): str,
+  vol.Required("serial_number"): str,
+  vol.Optional("is_export", default=False): bool,
+})
+@websocket_api.async_response
+async def websocket_refill_consumption_gaps(hass, connection, msg):
+  """Have another go at the days EDF have not supplied for one meter.
+
+  The integration gives up asking after GAP_MAXIMUM_AGE, so this deliberately asks however
+  old the day is - somebody pressing the button has decided it is worth one more try, usually
+  because they have just been on to EDF about it. Whatever is still short afterwards is
+  re-reported, so a run that achieves nothing leaves the notice exactly as it was rather than
+  clearing it and looking like it worked.
+
+  Admin only, since it makes EDF calls and rewrites recorded statistics.
+  """
+  if not connection.user.is_admin:
+    connection.send_error(msg["id"], "unauthorized", "Admin required")
+    return
+
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  client = _client_for_panel(hass, account_id) if account_id is not None else None
+  account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT] if account_id is not None and DATA_ACCOUNT in hass.data[DOMAIN][account_id] else None
+  account_info = account_result.account if account_result is not None else None
+  if client is None or account_info is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  mpan = msg["mpan"]
+  serial_number = msg["serial_number"]
+  is_export = msg["is_export"]
+
+  is_smart_meter = None
+  for point in account_info.get("electricity_meter_points") or []:
+    if point.get("mpan") != mpan:
+      continue
+    for meter in point.get("meters") or []:
+      if meter.get("serial_number") == serial_number:
+        is_smart_meter = meter.get("is_smart_meter") == True
+  if is_smart_meter is None:
+    connection.send_error(msg["id"], "not_found", "Unknown meter")
+    return
+
+  unique_id = get_electricity_consumption_statistic_unique_id(serial_number, mpan, is_export)
+  current = utcnow()
+  before = await async_load_consumption_gaps(hass, mpan, serial_number, is_export)
+
+  start_date = await async_get_earliest_missing_day(
+    hass, unique_id, current, account_info, mpan, serial_number, is_export,
+    maximum_age=None,
+  )
+
+  if start_date is not None:
+    try:
+      await async_refresh_previous_electricity_consumption_data(
+        hass, client, account_id, start_date, mpan, serial_number, is_smart_meter, is_export,
+        notify=False,
+      )
+    except ApiException as err:
+      connection.send_error(msg["id"], "fetch_failed", str(err))
+      return
+
+  days = await async_record_outstanding_gaps(
+    hass, unique_id, current, account_info, mpan, serial_number, is_export,
+  )
+
+  filled = max(len(before.get("days") or []) - len(days), 0)
+  connection.send_result(msg["id"], {
+    "asked_from": start_date,
+    "filled": filled,
+    "days": days,
+  })
+
+@websocket_api.websocket_command({
   vol.Required("type"): "edf_energy/referrals",
   vol.Required("account_id"): str,
 })
@@ -852,6 +931,7 @@ async def async_setup_entry(hass, entry):
     websocket_api.async_register_command(hass, websocket_bills)
     websocket_api.async_register_command(hass, websocket_bill_url)
     websocket_api.async_register_command(hass, websocket_transactions)
+    websocket_api.async_register_command(hass, websocket_refill_consumption_gaps)
     websocket_api.async_register_command(hass, websocket_referrals)
     websocket_api.async_register_command(hass, websocket_consumption_gaps)
     websocket_api.async_register_command(hass, websocket_request_refund)

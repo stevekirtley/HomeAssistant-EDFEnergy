@@ -16,6 +16,7 @@ from custom_components.edfenergy_uk.statistics.gaps import (
   assess_statistic_gap,
   days_to_report,
   is_old_enough_to_chase,
+  is_worth_chasing_again,
 )
 
 MINIMUM_AGE = timedelta(hours=72)
@@ -91,3 +92,26 @@ def test_when_a_day_is_still_short_after_a_refresh_then_it_is_judged_on_what_is_
 
   assert assess_statistic_gap(StatisticGap(day("2026-10-25"), 0, 25)).status == GAP_MISSING_AT_SOURCE
   assert assess_statistic_gap(StatisticGap(day("2026-10-25"), 20, 25)).hours_missing == 5
+
+# ── How long we go on asking ───────────────────────────────────────────────────
+
+MAXIMUM_AGE = timedelta(days=30)
+
+@pytest.mark.parametrize("current,expected", [
+  ("2026-10-25T12:00:00Z", True),   # five days on, very much worth another ask
+  ("2026-11-19T12:00:00Z", True),   # thirty days from the end of the day, just inside
+  ("2026-11-21T12:00:00Z", False),  # past it, so stop spending calls on it
+  ("2027-02-01T12:00:00Z", False),
+])
+def test_how_long_a_day_is_worth_asking_edf_for_again(current: str, expected: bool):
+  assert is_worth_chasing_again(day("2026-10-20"), at(current), MAXIMUM_AGE) == expected
+
+def test_a_day_we_have_stopped_asking_for_is_still_reported():
+  """Giving up on the asking must not quietly drop the day off the Usage tab - it is the one
+  thing the user can act on, and it is no less missing for being old."""
+  assessment = assess_gap(day("2026-10-20"), 48, 0)
+  stale = at("2027-02-01T12:00:00Z")
+
+  assert is_worth_chasing_again(assessment.day, stale, MAXIMUM_AGE) == False
+  assert is_old_enough_to_chase(assessment.day, stale, MINIMUM_AGE) == True
+  assert days_to_report([assessment]) == [assessment]

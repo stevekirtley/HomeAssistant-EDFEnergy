@@ -557,6 +557,8 @@
     .refund-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 16px 14px; }
     .gap-days { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
     .gap-day { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9em; opacity: 0.85; }
+    .gap-actions { margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .gap-checked { font-size: 0.85em; opacity: 0.7; }
     .notice {
       margin: 0 16px 14px; padding: 10px 12px; border-radius: 8px; font-size: 0.88em;
       background: var(--secondary-background-color, #f5f5f5); color: var(--secondary-text-color);
@@ -672,6 +674,7 @@
       this._refundConfirm = false;
       this._refundBusy = false;
       this._refundResult = null;
+      this._gapRetryBusy = null;
     }
 
     set hass(hass) {
@@ -2165,6 +2168,40 @@
       this._render();
     }
 
+    async _retryConsumptionGaps(mpan, serialNumber, isExport) {
+      const accountId = this._accountId();
+      if (!accountId || this._gapRetryBusy) return;
+
+      this._gapRetryBusy = `${mpan}|${serialNumber}|${isExport ? 'export' : 'import'}`;
+      this._render();
+      try {
+        const result = await this._hass.callWS({
+          type: 'edf_energy/refill_consumption_gaps',
+          account_id: accountId,
+          mpan,
+          serial_number: serialNumber,
+          is_export: isExport,
+        });
+        const filled = Number(result?.filled) || 0;
+        const left = (result?.days || []).length;
+        this._toast(
+          filled > 0
+            ? `${filled} day${filled === 1 ? '' : 's'} filled in${left > 0 ? `, ${left} still missing` : ''}`
+            : left > 0
+              ? 'EDF still have no data for those days'
+              : 'Nothing missing any more'
+        );
+        // Re-read rather than trusting what we just rendered - the backend has rewritten the
+        // report, and the chart behind the notice is now built on different numbers.
+        this._consumptionGaps = null;
+        await this._loadConsumptionGaps();
+      } catch (e) {
+        this._toast(e?.message || 'Could not ask EDF for that data');
+      }
+      this._gapRetryBusy = null;
+      this._render();
+    }
+
     async _loadReferrals(force = false) {
       if (this._referralsLoading || (this._referrals !== null && !force)) return;
       const accountId = this._findAccountId(this._hass);
@@ -2540,16 +2577,22 @@
     }
 
     // Days EDF never supplied. Anything the integration could fetch for itself has already been
-    // fetched, so everything here needs EDF to go and look - which is why it says so rather than
-    // offering a button that would do nothing.
+    // fetched, so everything here needs EDF to go and look. The button is for after they have
+    // been chased - we stop asking of our own accord after thirty days, and somebody who has
+    // just been told it is fixed should not have to wait for a restart to find out.
     _renderMissingDataNotice() {
       const meters = this._consumptionGaps?.meters || [];
       if (meters.length === 0) return '';
+
+      // Asking again goes off and talks to EDF, so it is admin only in the backend. Anyone
+      // else still gets told what is missing - they just cannot press the button.
+      const canRetry = this._beta?.can_change !== false;
 
       return meters.map(meter => {
         const days = meter.days || [];
         const hours = days.reduce((total, day) => total + (Number(day.hours_missing) || 0), 0);
         const direction = meter.direction === 'export' ? 'export' : 'import';
+        const busy = this._gapRetryBusy === `${meter.mpan}|${meter.serial_number}|${direction}`;
         const span = days.length === 1
           ? formatDay(days[0].date)
           : `${formatDay(days[0].date)} and ${formatDay(days[days.length - 1].date)}`;
@@ -2563,7 +2606,8 @@
               (${hours} hour${hours === 1 ? '' : 's'} in total) for meter
               ${esc(meter.serial_number)}.
               Your ${direction} figures for ${days.length === 1 ? 'that day' : 'those days'} will
-              read low. Contact EDF and ask them to investigate the missing readings.
+              read low. Contact EDF and ask them to investigate the missing readings, then check
+              again here once they say it is sorted.
             </div>
             <div class="gap-days">
               ${days.map(day => `
@@ -2572,6 +2616,18 @@
                   <span>${day.hours_missing} hour${day.hours_missing === 1 ? '' : 's'} missing${
                     day.status === 'partial_at_source' ? ' (part of the day)' : ''}</span>
                 </div>`).join('')}
+            </div>
+            <div class="gap-actions">
+              ${canRetry ? `
+                <button class="btn-apply" data-action="gap-retry"
+                  data-mpan="${esc(meter.mpan)}" data-serial="${esc(meter.serial_number)}"
+                  data-export="${meter.direction === 'export' ? '1' : ''}"
+                  ${busy ? 'disabled' : ''}>
+                  ${busy ? 'Asking EDF…' : 'Check EDF again'}
+                </button>` : ''}
+              ${meter.last_checked
+                ? `<span class="gap-checked">Last checked ${formatDay(meter.last_checked)}</span>`
+                : ''}
             </div>
           </div>`;
       }).join('');
@@ -3025,6 +3081,11 @@
 
       root.querySelectorAll('[data-bill]').forEach(btn => {
         btn.addEventListener('click', () => this._openBill(btn.dataset.bill, btn.dataset.billType));
+      });
+
+      root.querySelectorAll('[data-action="gap-retry"]').forEach(btn => {
+        btn.addEventListener('click', () => this._retryConsumptionGaps(
+          btn.dataset.mpan, btn.dataset.serial, btn.dataset.export === '1'));
       });
 
       root.querySelector('[data-action="more-bills"]')?.addEventListener('click', () => this._loadMoreBills());

@@ -204,6 +204,15 @@ def is_old_enough_to_chase(day: date, current: datetime, minimum_age: timedelta)
   """
   return as_utc(start_of_local_day(day + timedelta(days=1))) + minimum_age <= as_utc(current)
 
+def is_worth_chasing_again(day: date, current: datetime, maximum_age: timedelta) -> bool:
+  """Whether a day is still young enough to be worth asking EDF for again.
+
+  A day EDF never supply would otherwise be re-imported on every startup for as long as it sat
+  inside the retention window, and the refresh runs from the gap all the way to the present, so
+  that is not a cheap thing to repeat forever. Reporting it does not stop - only the asking.
+  """
+  return as_utc(start_of_local_day(day + timedelta(days=1))) + maximum_age > as_utc(current)
+
 def days_to_report(assessments: list) -> list:
   """The ones the user can actually do something about, oldest first."""
   return sorted(

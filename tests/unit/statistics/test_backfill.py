@@ -106,6 +106,7 @@ async def test_a_gap_inside_the_cap_is_not_shortened(last_statistic):
 
 from custom_components.edfenergy_uk.statistics.backfill import async_get_earliest_missing_day
 from custom_components.edfenergy_uk.statistics.gaps import StatisticGap
+from custom_components.edfenergy_uk.const import GAP_MAXIMUM_AGE
 
 ACCOUNT = {
   "electricity_meter_points": [
@@ -159,14 +160,35 @@ async def test_when_both_ends_have_gaps_then_the_earlier_one_wins(last_statistic
     None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567") == "2026-10-01"
 
 @pytest.mark.asyncio
-async def test_when_the_hole_is_further_back_than_we_will_go_then_it_is_capped(last_statistic, found_gaps):
+async def test_when_the_hole_is_older_than_the_trailing_window_then_the_refresh_still_starts_at_it(
+    last_statistic, found_gaps):
+  """It used to be pulled forward to the trailing backfill's fourteen day window, which starts
+  the refresh after the hole - filling nothing, and leaving the day reported missing for good."""
   last_statistic(NOW - timedelta(days=1))
-  found_gaps(["2026-01-05"])
+  hole = (NOW - timedelta(days=BACKFILL_MAX_DAYS + 6)).date()
+  found_gaps([hole.isoformat()])
 
-  result = await async_get_earliest_missing_day(
-    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567")
+  assert await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567") == hole.strftime("%Y-%m-%d")
 
-  assert result == (NOW - timedelta(days=BACKFILL_MAX_DAYS)).date().strftime("%Y-%m-%d")
+@pytest.mark.asyncio
+async def test_when_the_hole_is_older_than_the_chase_window_then_we_stop_asking(last_statistic, found_gaps):
+  """A day EDF are never going to supply. Asking again costs a refresh from the gap to the
+  present every startup, so it stops - the Usage tab goes on reporting it either way."""
+  last_statistic(NOW - timedelta(days=1))
+  found_gaps([(NOW - GAP_MAXIMUM_AGE - timedelta(days=1)).date().isoformat()])
+
+  assert await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567") is None
+
+@pytest.mark.asyncio
+async def test_a_hole_just_inside_the_chase_window_is_still_asked_for(last_statistic, found_gaps):
+  last_statistic(NOW - timedelta(days=1))
+  hole = (NOW - GAP_MAXIMUM_AGE + timedelta(days=2)).date()
+  found_gaps([hole.isoformat()])
+
+  assert await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567") == hole.strftime("%Y-%m-%d")
 
 @pytest.mark.asyncio
 async def test_when_the_meter_is_not_named_then_only_the_end_is_considered(last_statistic, found_gaps):
@@ -175,3 +197,24 @@ async def test_when_the_meter_is_not_named_then_only_the_end_is_considered(last_
   found_gaps(["2026-10-04"])
 
   assert await async_get_earliest_missing_day(None, STATISTIC_ID, NOW) is None
+
+@pytest.mark.asyncio
+async def test_when_somebody_asks_by_hand_then_the_chase_window_does_not_apply(last_statistic, found_gaps):
+  """The Usage tab's button, pressed after EDF say they have sorted a day we gave up on."""
+  last_statistic(NOW - timedelta(days=1))
+  hole = (NOW - GAP_MAXIMUM_AGE - timedelta(days=20)).date()
+  found_gaps([hole.isoformat()])
+
+  assert await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567",
+    maximum_age=None) == hole.strftime("%Y-%m-%d")
+
+@pytest.mark.asyncio
+async def test_asking_by_hand_still_leaves_a_day_too_recent_alone(last_statistic, found_gaps):
+  """Bypassing the give-up window is not the same as ignoring that EDF publish in arrears."""
+  last_statistic(NOW - timedelta(days=1))
+  found_gaps([(NOW - timedelta(days=1)).date().isoformat()])
+
+  assert await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567",
+    maximum_age=None) is None

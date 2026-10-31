@@ -283,6 +283,9 @@ CONSUMPTION_PAGE_SIZE = 56
 # or two in arrears, so anything younger than this says nothing.
 GAP_RETENTION_DAYS = 90
 GAP_MINIMUM_AGE = timedelta(hours=72)
+# How long a day is worth re-asking EDF for. Past this it is still reported, so it does not
+# disappear quietly, but we stop spending calls on a day EDF are plainly never going to fill.
+GAP_MAXIMUM_AGE = timedelta(days=30)
 
 COORDINATOR_REFRESH_IN_SECONDS = 60
 DISCOVERY_REFRESH_IN_HOURS = 2

@@ -32,12 +32,13 @@ from homeassistant.components.recorder.statistics import get_last_statistics
 from homeassistant.core import HomeAssistant
 from homeassistant.util.dt import as_local, as_utc
 
-from ..const import GAP_MINIMUM_AGE, GAP_RETENTION_DAYS, STATISTICS_SOURCE
+from ..const import GAP_MAXIMUM_AGE, GAP_MINIMUM_AGE, GAP_RETENTION_DAYS, STATISTICS_SOURCE
 from .gaps import (
   assess_statistic_gap,
   async_find_gaps,
   days_to_report,
   is_old_enough_to_chase,
+  is_worth_chasing_again,
   supply_window,
 )
 from ..storage.consumption_gaps import async_save_consumption_gaps
@@ -132,6 +133,7 @@ async def async_get_earliest_missing_day(
   is_export: bool = False,
   retention_in_days: int = GAP_RETENTION_DAYS,
   max_days: int = BACKFILL_MAX_DAYS,
+  maximum_age: timedelta | None = GAP_MAXIMUM_AGE,
 ) -> str | None:
   """The day to start a refresh from, taking holes in the middle into account as well.
 
@@ -139,6 +141,10 @@ async def async_get_earliest_missing_day(
   recent statistic and counts forward from there. A day missed in the middle - the clocks
   changing, or EDF publishing a day late and the normal path moving on past it - is invisible
   to it and stays missing for good. This takes whichever is earlier.
+
+  maximum_age is how old a hole can be and still be worth asking EDF for again. None asks
+  however old it is, which is what the Usage tab's button does when somebody wants another
+  go at a day we had given up on.
   """
   trailing = await async_get_first_missing_day(hass, statistic_id, current, max_days)
 
@@ -148,12 +154,16 @@ async def async_get_earliest_missing_day(
     full_id = statistic_id if ":" in statistic_id else f"{STATISTICS_SOURCE}:{statistic_id}"
     gaps = await async_find_gaps(hass, full_id.lower(), current, retention_in_days,
                                  supply_start, supply_end)
+    # Old enough that EDF publishing late does not explain it, young enough to be worth
+    # asking for again. The refresh starts at the hole itself - clamping it to the trailing
+    # backfill's window would start it after the hole, which fills nothing at all and leaves
+    # the day reported as missing for good.
     chaseable = [gap for gap in gaps
-                 if is_old_enough_to_chase(gap.day, current, GAP_MINIMUM_AGE)]
+                 if is_old_enough_to_chase(gap.day, current, GAP_MINIMUM_AGE)
+                 and (maximum_age is None
+                      or is_worth_chasing_again(gap.day, current, maximum_age))]
     if len(chaseable) > 0:
-      # Never reach back further in one go than the trailing backfill is willing to
-      earliest_allowed = (as_local(current) - timedelta(days=max_days)).date()
-      interior = max(chaseable[0].day, earliest_allowed).strftime("%Y-%m-%d")
+      interior = chaseable[0].day.strftime("%Y-%m-%d")
 
   candidates = [day for day in (trailing, interior) if day is not None]
   if len(candidates) < 1:
