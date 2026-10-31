@@ -30,6 +30,9 @@ BILL_TYPES = ("STATEMENT", "INVOICE", "PRE_KRAKEN_BILL", "PERIOD_BASED_DOCUMENT"
 BILLS_PAGE_SIZE = 24
 TRANSACTIONS_PAGE_SIZE = 50
 REFERRALS_PAGE_SIZE = 100
+# A stop so a connection that keeps answering "there is more" cannot spin. A hundred pages is
+# ten thousand referrals, which nobody has.
+REFERRALS_MAX_PAGES = 100
 
 
 billing_summary_query = '''query($accountNumber: String!) {
@@ -158,7 +161,7 @@ transactions_query = '''query($accountNumber: String!, $first: Int!, $cursor: St
   }
 }'''
 
-referrals_query = '''query($accountNumber: String!, $first: Int!) {
+referrals_query = '''query($accountNumber: String!, $first: Int!, $cursor: String) {
   account(accountNumber: $accountNumber) {
     referralsCreated
     activeReferralSchemes {
@@ -171,9 +174,10 @@ referrals_query = '''query($accountNumber: String!, $first: Int!) {
         combinedRewardAmount
       }
     }
-    referrals(first: $first) {
+    referrals(first: $first, after: $cursor) {
       totalCount
       referringUserTotalPaymentAmount
+      pageInfo { endCursor hasNextPage }
       edges {
         node {
           id
@@ -475,6 +479,11 @@ def parse_referrals(response) -> dict | None:
     "referrals": referrals,
     "total": connection.get("totalCount") if connection.get("totalCount") is not None else account.get("referralsCreated"),
     "total_earned": to_pounds(connection.get("referringUserTotalPaymentAmount")),
+    # EDF cap how many referrals one page may ask for - KT-CT-1202 - and the totals above are
+    # the account's, not the page's, so the paid and pending split only adds up once every
+    # page has been read. The caller follows this cursor.
+    "cursor": (connection.get("pageInfo") or {}).get("endCursor"),
+    "has_more": (connection.get("pageInfo") or {}).get("hasNextPage") == True,
   }
 
 

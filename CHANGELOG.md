@@ -21,6 +21,7 @@
 * Power Perks free windows are only added to the free electricity feed for accounts that are actually signed up to Power Perks. An account on Weekend Saver instead was being given windows it would never get. Sessions you added by hand are unaffected.
 * The Power Perks Predictor tab says "overnight" for a free window that runs past midnight, matching the site it reads. It was showing one as if it fell entirely on tomorrow.
 * Notices raised by the old folder are cleared once the hand-over is done, instead of being left on screen describing a move that has already happened.
+* The referrals card adds up. Only the first hundred referrals were read, so on a bigger account the paid and pending split came to less than the total shown beside it.
 
 
 ### Notes

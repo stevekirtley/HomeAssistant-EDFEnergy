@@ -41,6 +41,7 @@ from .measurements import (
 )
 from .billing import (
   BILLS_PAGE_SIZE,
+  REFERRALS_MAX_PAGES,
   REFERRALS_PAGE_SIZE,
   TRANSACTIONS_PAGE_SIZE,
   account_ledgers_query,
@@ -2283,13 +2284,45 @@ class EDFEnergyApiClient:
     return parse_transactions(response)
 
   async def async_get_referrals(self, account_id: str, first: int = REFERRALS_PAGE_SIZE):
-    """The referral scheme in force and everyone who has joined on the account's link."""
-    response = await self._async_graphql(
-      referrals_query,
-      { "accountNumber": account_id, "first": first },
-      "referrals",
-    )
-    return parse_referrals(response)
+    """The referral scheme in force and everyone who has joined on the account's link.
+
+    Every page is read before answering. EDF will not serve more than a page at a time, but
+    the totals on the connection are the whole account's, so stopping at the first page left
+    the paid and pending split adding up to less than the total it was shown beside.
+    """
+    result = None
+    cursor = None
+
+    for _ in range(REFERRALS_MAX_PAGES):
+      response = await self._async_graphql(
+        referrals_query,
+        { "accountNumber": account_id, "first": first, "cursor": cursor },
+        "referrals",
+      )
+      page = parse_referrals(response)
+      if page is None:
+        break
+
+      if result is None:
+        result = page
+      else:
+        result["referrals"].extend(page["referrals"])
+
+      if not page["has_more"] or page["cursor"] is None or len(page["referrals"]) == 0:
+        break
+
+      cursor = page["cursor"]
+    else:
+      _LOGGER.warning(
+        f"Stopped reading referrals after {REFERRALS_MAX_PAGES} pages for {account_id}"
+      )
+
+    if result is not None:
+      # The cursor is how this method walks the pages and means nothing to the caller.
+      result.pop("cursor", None)
+      result.pop("has_more", None)
+
+    return result
 
   async def async_get_main_ledger_number(self, account_id: str) -> str | None:
     """The account's MAIN ledger number, the `L-...` a repayment has to name."""
