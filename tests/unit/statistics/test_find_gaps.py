@@ -119,3 +119,53 @@ def test_when_a_row_has_no_sum_then_it_is_left_out():
   rows[0]["sum"] = None
 
   assert len(shift_sums(rows, 1.0)) == 1
+
+# ── Never chasing data for days the meter was not on supply ───────────────────
+
+from custom_components.edfenergy_uk.statistics.gaps import supply_window
+
+def a_day(value: str):
+  return datetime.fromisoformat(value).date()
+
+def test_when_a_gap_is_before_the_supply_started_then_it_is_not_a_gap():
+  """Switching in part way through leaves earlier days empty, which is not data going missing."""
+  rows = rows_for({"2026-10-18": 24, "2026-10-22": 24})
+
+  gaps = find_gaps(rows, at("2026-10-23"), RETENTION, supply_start=a_day("2026-10-21"))
+
+  assert [g.day.isoformat() for g in gaps] == []
+
+def test_when_a_gap_is_after_the_supply_ended_then_it_is_not_a_gap():
+  rows = rows_for({"2026-10-18": 24, "2026-10-22": 24})
+
+  gaps = find_gaps(rows, at("2026-10-23"), RETENTION, supply_end=a_day("2026-10-19"))
+
+  assert [g.day.isoformat() for g in gaps] == []
+
+def test_when_a_gap_is_inside_the_supply_window_then_it_is_still_a_gap():
+  rows = rows_for({"2026-10-18": 24, "2026-10-22": 24})
+
+  gaps = find_gaps(rows, at("2026-10-23"), RETENTION,
+                   supply_start=a_day("2026-10-01"), supply_end=a_day("2026-10-31"))
+
+  assert [g.day.isoformat() for g in gaps] == ["2026-10-19", "2026-10-20", "2026-10-21"]
+
+def test_when_agreements_run_back_to_back_then_the_window_spans_them_all():
+  agreements = [
+    {"start": "2026-01-01T00:00:00Z", "end": "2026-06-01T00:00:00Z"},
+    {"start": "2026-06-01T00:00:00Z", "end": "2026-12-01T00:00:00Z"},
+  ]
+
+  assert supply_window(agreements) == (a_day("2026-01-01"), a_day("2026-12-01"))
+
+def test_when_an_agreement_is_open_ended_then_the_window_has_no_end():
+  agreements = [
+    {"start": "2026-01-01T00:00:00Z", "end": "2026-06-01T00:00:00Z"},
+    {"start": "2026-06-01T00:00:00Z", "end": None},
+  ]
+
+  assert supply_window(agreements) == (a_day("2026-01-01"), None)
+
+def test_when_there_are_no_agreements_then_the_window_is_unbounded():
+  assert supply_window([]) == (None, None)
+  assert supply_window(None) == (None, None)
