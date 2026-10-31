@@ -32,7 +32,8 @@ from homeassistant.components.recorder.statistics import get_last_statistics
 from homeassistant.core import HomeAssistant
 from homeassistant.util.dt import as_local, as_utc
 
-from ..const import STATISTICS_SOURCE
+from ..const import GAP_MINIMUM_AGE, GAP_RETENTION_DAYS, STATISTICS_SOURCE
+from .gaps import async_find_gaps, is_old_enough_to_chase, supply_window
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -112,3 +113,57 @@ async def async_get_first_missing_day(
     f"{newest_complete_day}. Importing from {first_missing}."
   )
   return first_missing.strftime("%Y-%m-%d")
+
+
+async def async_get_earliest_missing_day(
+  hass: HomeAssistant,
+  statistic_id: str,
+  current: datetime,
+  account_info = None,
+  mpan: str | None = None,
+  serial_number: str | None = None,
+  is_export: bool = False,
+  retention_in_days: int = GAP_RETENTION_DAYS,
+  max_days: int = BACKFILL_MAX_DAYS,
+) -> str | None:
+  """The day to start a refresh from, taking holes in the middle into account as well.
+
+  async_get_first_missing_day only ever sees a gap at the end, because it reads the most
+  recent statistic and counts forward from there. A day missed in the middle - the clocks
+  changing, or EDF publishing a day late and the normal path moving on past it - is invisible
+  to it and stays missing for good. This takes whichever is earlier.
+  """
+  trailing = await async_get_first_missing_day(hass, statistic_id, current, max_days)
+
+  interior = None
+  if mpan is not None and serial_number is not None:
+    supply_start, supply_end = supply_window(_agreements_for(account_info, mpan))
+    full_id = statistic_id if ":" in statistic_id else f"{STATISTICS_SOURCE}:{statistic_id}"
+    gaps = await async_find_gaps(hass, full_id.lower(), current, retention_in_days,
+                                 supply_start, supply_end)
+    chaseable = [gap for gap in gaps
+                 if is_old_enough_to_chase(gap.day, current, GAP_MINIMUM_AGE)]
+    if len(chaseable) > 0:
+      # Never reach back further in one go than the trailing backfill is willing to
+      earliest_allowed = (as_local(current) - timedelta(days=max_days)).date()
+      interior = max(chaseable[0].day, earliest_allowed).strftime("%Y-%m-%d")
+
+  candidates = [day for day in (trailing, interior) if day is not None]
+  if len(candidates) < 1:
+    return None
+
+  start = min(candidates)
+  _LOGGER.debug(f"Refreshing {statistic_id} from {start} (end {trailing}, middle {interior})")
+  return start
+
+
+def _agreements_for(account_info, mpan: str):
+  """The agreements on the meter point, so a gap outside the supply is not treated as one."""
+  if account_info is None:
+    return []
+
+  for point in account_info.get("electricity_meter_points") or []:
+    if point.get("mpan") == mpan:
+      return point.get("agreements") or []
+
+  return []

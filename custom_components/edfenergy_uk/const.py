@@ -278,6 +278,11 @@ MINIMUM_CONSUMPTION_DATA_LENGTH = 3
 # Enough slots to hold a whole day plus the start of the one after, including the fifty slot
 # day the clocks go back.
 CONSUMPTION_PAGE_SIZE = 56
+# How far back we are willing to go looking for days missing from the statistics, and how old
+# a day has to be before it is treated as missing rather than merely late. EDF publish a day
+# or two in arrears, so anything younger than this says nothing.
+GAP_RETENTION_DAYS = 90
+GAP_MINIMUM_AGE = timedelta(hours=72)
 
 COORDINATOR_REFRESH_IN_SECONDS = 60
 DISCOVERY_REFRESH_IN_HOURS = 2

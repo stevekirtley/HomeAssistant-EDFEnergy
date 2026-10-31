@@ -30,7 +30,8 @@ from ..utils.attributes import dict_to_typed_dict
 
 from ..statistics.consumption import async_import_external_statistics_from_consumption, get_electricity_consumption_statistic_unique_id
 from ..statistics.refresh import async_refresh_previous_electricity_consumption_data
-from ..statistics.backfill import async_get_first_missing_day
+from ..statistics.backfill import async_get_earliest_missing_day
+from ..const import DATA_ACCOUNT, DOMAIN
 from ..api_client import EDFEnergyApiClient
 from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult
 from ..utils.rate_information import get_peak_name, get_rate_index, get_unique_rates
@@ -204,13 +205,22 @@ class EDFEnergyPreviousAccumulativeElectricityConsumption(CoordinatorEntity, EDF
   async def _async_backfill_missed_days(self):
     """Import any days of statistics missed while we weren't running (issue #42).
 
+    Also picks up a day missing from the middle of the history - the clocks changing, or EDF
+    publishing a day late and the normal path moving on past it - which the original backfill
+    could never see, because it reads the most recent statistic and counts forward from there.
+
     In the background: it talks to EDF a day at a time and startup must not wait for it.
     """
     try:
-      start_date = await async_get_first_missing_day(
+      account_result = self._hass.data[DOMAIN][self._account_id].get(DATA_ACCOUNT)
+      start_date = await async_get_earliest_missing_day(
         self._hass,
         get_electricity_consumption_statistic_unique_id(self._serial_number, self._mpan, self._is_export),
-        utcnow()
+        utcnow(),
+        account_result.account if account_result is not None else None,
+        self._mpan,
+        self._serial_number,
+        self._is_export,
       )
       if start_date is None:
         return

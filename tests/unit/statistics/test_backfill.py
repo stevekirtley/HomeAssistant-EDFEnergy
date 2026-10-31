@@ -100,3 +100,78 @@ async def test_a_gap_inside_the_cap_is_not_shortened(last_statistic):
   assert await async_get_first_missing_day(None, STATISTIC_ID, NOW) == (
     (NOW.date() - timedelta(days=BACKFILL_MAX_DAYS - 1)).strftime("%Y-%m-%d")
   )
+
+
+# ── Holes in the middle, not just at the end ──────────────────────────────────
+
+from custom_components.edfenergy_uk.statistics.backfill import async_get_earliest_missing_day
+from custom_components.edfenergy_uk.statistics.gaps import StatisticGap
+
+ACCOUNT = {
+  "electricity_meter_points": [
+    {"mpan": "1234567890123", "agreements": [{"start": "2026-01-01T00:00:00Z", "end": None}]}
+  ]
+}
+
+@pytest.fixture
+def found_gaps(monkeypatch):
+  """Stand in for the recorder lookup the gap finder does."""
+  def _set(days):
+    async def _fake(hass, statistic_id, current, retention_in_days, supply_start=None, supply_end=None):
+      return [StatisticGap(datetime.fromisoformat(day).date(), 0, 24) for day in days]
+    monkeypatch.setattr(
+      "custom_components.edfenergy_uk.statistics.backfill.async_find_gaps", _fake
+    )
+  return _set
+
+@pytest.mark.asyncio
+async def test_when_there_is_no_gap_at_all_then_nothing_is_refreshed(last_statistic, found_gaps):
+  last_statistic(NOW - timedelta(days=1))
+  found_gaps([])
+
+  assert await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567") is None
+
+@pytest.mark.asyncio
+async def test_when_only_the_middle_has_a_hole_then_it_is_refreshed_from_there(last_statistic, found_gaps):
+  """The case the original backfill could never see."""
+  last_statistic(NOW - timedelta(days=1))
+  found_gaps(["2026-10-04"])
+
+  assert await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567") == "2026-10-04"
+
+@pytest.mark.asyncio
+async def test_when_the_hole_is_too_recent_then_it_is_left_alone(last_statistic, found_gaps):
+  """EDF publish in arrears, so a day short yesterday is not a day gone missing."""
+  last_statistic(NOW - timedelta(days=1))
+  found_gaps([(NOW - timedelta(days=1)).date().isoformat()])
+
+  assert await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567") is None
+
+@pytest.mark.asyncio
+async def test_when_both_ends_have_gaps_then_the_earlier_one_wins(last_statistic, found_gaps):
+  last_statistic(NOW - timedelta(days=4))
+  found_gaps(["2026-10-01"])
+
+  assert await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567") == "2026-10-01"
+
+@pytest.mark.asyncio
+async def test_when_the_hole_is_further_back_than_we_will_go_then_it_is_capped(last_statistic, found_gaps):
+  last_statistic(NOW - timedelta(days=1))
+  found_gaps(["2026-01-05"])
+
+  result = await async_get_earliest_missing_day(
+    None, STATISTIC_ID, NOW, ACCOUNT, "1234567890123", "20L1234567")
+
+  assert result == (NOW - timedelta(days=BACKFILL_MAX_DAYS)).date().strftime("%Y-%m-%d")
+
+@pytest.mark.asyncio
+async def test_when_the_meter_is_not_named_then_only_the_end_is_considered(last_statistic, found_gaps):
+  """Callers without the account to hand get the behaviour they always had."""
+  last_statistic(NOW - timedelta(days=1))
+  found_gaps(["2026-10-04"])
+
+  assert await async_get_earliest_missing_day(None, STATISTIC_ID, NOW) is None

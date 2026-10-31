@@ -176,10 +176,8 @@ class GapAssessment:
   def __repr__(self):
     return f"<GapAssessment {self.day} {self.status} {self.hours_missing}h>"
 
-def assess_gap(day: date, slots_expected: int, consumption: list | None) -> GapAssessment:
-  """Judge one day against what EDF answered for it."""
-  slots_held = len(consumption) if consumption is not None else 0
-
+def assess_gap(day: date, slots_expected: int, slots_held: int) -> GapAssessment:
+  """Judge one day by how much of it there is."""
   if slots_held >= slots_expected:
     return GapAssessment(day, GAP_FILLABLE, 0, slots_held, slots_expected)
 
@@ -189,6 +187,14 @@ def assess_gap(day: date, slots_expected: int, consumption: list | None) -> GapA
   status = GAP_MISSING_AT_SOURCE if slots_held == 0 else GAP_PARTIAL_AT_SOURCE
 
   return GapAssessment(day, status, hours_missing, slots_held, slots_expected)
+
+def assess_statistic_gap(gap: StatisticGap) -> GapAssessment:
+  """Judge a day by what the statistics hold after a refresh has been through.
+
+  A refresh imports whatever EDF answered with, so a day still short afterwards is a day EDF
+  could not supply. That saves asking them a second time purely to find out.
+  """
+  return assess_gap(gap.day, gap.hours_expected * 2, gap.hours_held * 2)
 
 def is_old_enough_to_chase(day: date, current: datetime, minimum_age: timedelta) -> bool:
   """Whether a day has been missing long enough to be worth anyone's attention.
