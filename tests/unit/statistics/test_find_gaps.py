@@ -10,7 +10,7 @@ from homeassistant.util.dt import (
   start_of_local_day,
 )
 
-from custom_components.edfenergy_uk.statistics.gaps import StatisticGap, find_gaps, shift_sums
+from custom_components.edfenergy_uk.statistics.gaps import StatisticGap, find_gaps
 
 RETENTION = 90
 
@@ -103,22 +103,6 @@ def test_when_a_gap_is_older_than_retention_then_it_is_left_alone():
 def test_when_there_are_no_rows_then_no_gaps():
   assert find_gaps([], at("2026-10-23"), RETENTION) == []
   assert find_gaps(None, at("2026-10-23"), RETENTION) == []
-
-# ── Moving the running total of everything above a filled hole ────────────────
-
-def test_when_sums_are_shifted_then_every_running_total_moves_and_states_do_not():
-  rows = rows_for({"2026-10-22": 3})
-
-  shifted = shift_sums(rows, 12.5)
-
-  assert [row["sum"] for row in shifted] == [13.5, 14.5, 15.5]
-  assert [row["state"] for row in shifted] == [1.0, 1.0, 1.0]
-
-def test_when_a_row_has_no_sum_then_it_is_left_out():
-  rows = rows_for({"2026-10-22": 2})
-  rows[0]["sum"] = None
-
-  assert len(shift_sums(rows, 1.0)) == 1
 
 # ── Never chasing data for days the meter was not on supply ───────────────────
 

@@ -10,20 +10,20 @@ no breakdown rows at all and is not missing anything - on a real export meter 13
 look like holes if you ask the breakdown series. Filling a day rewrites the breakdowns for it
 anyway, the same way the ordinary import does.
 
-Filling one is not just a matter of writing the day back. Statistics carry a running sum, and
-every row after a hole was written with a sum that never counted the missing day, so the day
-has to go in *and* every later sum has to move up by the day's total. Doing one without the
-other trades a hole for a step.
+Finding a hole is all this does. Filling one is the refresh service's job: it imports a day at
+a time from a start date up to the present, carrying each day's running total into the next,
+so re-importing from the hole forward rebuilds every total above it. Writing the day back on
+its own would trade a hole for a step.
+
+What this adds is knowing where to start it. The backfill already in place (issue #42) reads
+the most recent statistic and fills forward from there, so it only ever sees a gap at the end
+- a hole in the middle of the history is invisible to it.
 """
 import logging
 from datetime import date, datetime, timedelta
 
 from homeassistant.components.recorder import get_instance
-from homeassistant.components.recorder.models import StatisticData
-from homeassistant.components.recorder.statistics import (
-    async_add_external_statistics,
-    statistics_during_period,
-)
+from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.util.dt import (as_local, as_utc, parse_datetime, start_of_local_day,
                                    utc_from_timestamp)
 
@@ -134,50 +134,6 @@ async def async_find_gaps(hass, statistic_id: str, current: datetime, retention_
 
   return find_gaps(stats.get(statistic_id) or [], current, retention_in_days,
                    supply_start, supply_end)
-
-def shift_sums(rows: list, delta: float) -> list[StatisticData]:
-  """Every row moved up by `delta`, which is what filling a hole beneath them means.
-
-  `state` is the figure for the hour itself and is left exactly as it was - only the running
-  total is wrong, and only because of what was never counted below it.
-  """
-  shifted = []
-
-  for row in rows:
-    if row.get("sum") is None:
-      continue
-
-    shifted.append(StatisticData(
-      start=utc_from_timestamp(row["start"]),
-      sum=round(row["sum"] + delta, 6),
-      **({"state": row["state"]} if row.get("state") is not None else {}),
-    ))
-
-  return shifted
-
-async def async_shift_sums_from(hass, statistic_id: str, metadata, start: datetime,
-                                end: datetime, delta: float) -> int:
-  """Move the running total of every row from `start` on up by `delta`. Answers how many moved."""
-  if delta == 0:
-    return 0
-
-  stats = await get_instance(hass).async_add_executor_job(
-    statistics_during_period,
-    hass,
-    start,
-    end,
-    {statistic_id},
-    "hour",
-    None,
-    {"sum", "state"},
-  )
-
-  shifted = shift_sums(stats.get(statistic_id) or [], delta)
-  if len(shifted) > 0:
-    async_add_external_statistics(hass, metadata, shifted)
-
-  _LOGGER.debug(f"Moved {len(shifted)} rows of '{statistic_id}' up by {delta}")
-  return len(shifted)
 
 # ── Telling our problem from EDF's ────────────────────────────────────────────
 
