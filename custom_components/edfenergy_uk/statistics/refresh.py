@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 import re
 import voluptuous as vol
 
@@ -9,7 +9,7 @@ from homeassistant.const import (
   UnitOfVolume
 )
 
-from homeassistant.util.dt import (now, parse_datetime)
+from homeassistant.util.dt import now
 
 from ..api_client import EDFEnergyApiClient
 from ..const import DATA_ACCOUNT, DOMAIN, REGEX_DATE
@@ -24,6 +24,7 @@ from .cost import (async_import_external_statistics_from_cost,
 from ..electricity import calculate_electricity_consumption_and_cost
 from ..gas import calculate_gas_consumption_and_cost
 from ..coordinators import get_electricity_meter_tariff, get_gas_meter_tariff
+from ..utils import get_local_day_start
 
 async def async_refresh_previous_electricity_consumption_data(
   hass: HomeAssistant,
@@ -59,12 +60,16 @@ async def async_refresh_previous_electricity_consumption_data(
       message=f"Consumption data from {start_date} for electricity meter {serial_number}/{mpan} has started"
     )
 
-  period_from = parse_datetime(f'{trimmed_date}T00:00:00Z')
+  # A day is a local day. Stepping from midnight UTC loses the first hour of the day the clocks
+  # go back, which is how the hole this fills got there in the first place.
+  day = date.fromisoformat(trimmed_date)
+  period_from = get_local_day_start(day)
 
   previous_consumption_result = None
   previous_cost_result= None
   while period_from < now():
-    period_to = period_from + timedelta(days=1)
+    day = day + timedelta(days=1)
+    period_to = get_local_day_start(day)
 
     tariff = get_electricity_meter_tariff(period_from, account_info, mpan, serial_number)
     if tariff is None:
@@ -160,12 +165,15 @@ async def async_refresh_previous_gas_consumption_data(
       message=f"Consumption data from {start_date} for gas meter {serial_number}/{mprn} has started"
     )
   
-  period_from = parse_datetime(f'{trimmed_date}T00:00:00Z')
+  # See the electricity refresh - days are local days.
+  day = date.fromisoformat(trimmed_date)
+  period_from = get_local_day_start(day)
   previous_m3_consumption_result = None
   previous_kwh_consumption_result = None
   previous_cost_result = None
   while period_from < now():
-    period_to = period_from + timedelta(days=1)
+    day = day + timedelta(days=1)
+    period_to = get_local_day_start(day)
 
     tariff = get_gas_meter_tariff(period_from, account_info, mprn, serial_number)
     if tariff is None:

@@ -110,6 +110,17 @@ def get_expected_slots_in_day(local_start: datetime) -> int:
   next_day_start = as_utc(start_of_local_day(day + timedelta(days=1)))
   return int((next_day_start - day_start).total_seconds() // 1800)
 
+def get_local_day_start(day) -> datetime:
+  """Midnight local time for `day`, as UTC.
+
+  A day of consumption is a local day, not a twenty four hour block starting at midnight UTC.
+  Through British Summer Time the two are an hour apart, and on the day the clocks go back the
+  local day is twenty five hours long - so stepping in days from midnight UTC asks EDF for an
+  hour less than the day holds, and the first hour of it is never imported.
+  """
+  date = day.date() if isinstance(day, datetime) else day
+  return as_utc(start_of_local_day(date))
+
 def get_expected_hours_in_day(local_start: datetime) -> int:
   """The same thing for hourly statistics, which is how consumption is recorded."""
   return get_expected_slots_in_day(local_start) // 2
