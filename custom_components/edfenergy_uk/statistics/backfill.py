@@ -33,7 +33,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util.dt import as_local, as_utc
 
 from ..const import GAP_MINIMUM_AGE, GAP_RETENTION_DAYS, STATISTICS_SOURCE
-from .gaps import async_find_gaps, is_old_enough_to_chase, supply_window
+from .gaps import (
+  assess_statistic_gap,
+  async_find_gaps,
+  days_to_report,
+  is_old_enough_to_chase,
+  supply_window,
+)
+from ..storage.consumption_gaps import async_save_consumption_gaps
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -167,3 +174,43 @@ def _agreements_for(account_info, mpan: str):
       return point.get("agreements") or []
 
   return []
+
+
+async def async_record_outstanding_gaps(
+  hass: HomeAssistant,
+  statistic_id: str,
+  current: datetime,
+  account_info,
+  mpan: str,
+  serial_number: str,
+  is_export: bool,
+  retention_in_days: int = GAP_RETENTION_DAYS,
+) -> list:
+  """Write down the days still missing once a refresh has been through.
+
+  A refresh imports whatever EDF answered with, so anything still short afterwards is a day
+  EDF could not supply - nothing the integration can do anything about, and so the only kind
+  of gap worth putting in front of the user.
+  """
+  supply_start, supply_end = supply_window(_agreements_for(account_info, mpan))
+  full_id = statistic_id if ":" in statistic_id else f"{STATISTICS_SOURCE}:{statistic_id}"
+
+  gaps = await async_find_gaps(hass, full_id.lower(), current, retention_in_days,
+                               supply_start, supply_end)
+  outstanding = days_to_report([
+    assess_statistic_gap(gap) for gap in gaps
+    if is_old_enough_to_chase(gap.day, current, GAP_MINIMUM_AGE)
+  ])
+
+  days = [assessment.to_dict() for assessment in outstanding]
+  await async_save_consumption_gaps(hass, mpan, serial_number, is_export, days, current)
+
+  if len(days) > 0:
+    _LOGGER.warning(
+      f"EDF have not supplied {len(days)} day(s) of "
+      f"{'export' if is_export else 'import'} 30 minute usage data for "
+      f"{mpan}/{serial_number}: "
+      f"{', '.join(day['date'] for day in days)}"
+    )
+
+  return days

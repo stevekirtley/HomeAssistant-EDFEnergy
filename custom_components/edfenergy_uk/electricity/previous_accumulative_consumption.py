@@ -30,7 +30,7 @@ from ..utils.attributes import dict_to_typed_dict
 
 from ..statistics.consumption import async_import_external_statistics_from_consumption, get_electricity_consumption_statistic_unique_id
 from ..statistics.refresh import async_refresh_previous_electricity_consumption_data
-from ..statistics.backfill import async_get_earliest_missing_day
+from ..statistics.backfill import async_get_earliest_missing_day, async_record_outstanding_gaps
 from ..const import DATA_ACCOUNT, DOMAIN
 from ..api_client import EDFEnergyApiClient
 from ..coordinators.previous_consumption_and_rates import PreviousConsumptionCoordinatorResult
@@ -222,19 +222,29 @@ class EDFEnergyPreviousAccumulativeElectricityConsumption(CoordinatorEntity, EDF
         self._serial_number,
         self._is_export,
       )
-      if start_date is None:
-        return
+      if start_date is not None:
+        await async_refresh_previous_electricity_consumption_data(
+          self._hass,
+          self._client,
+          self._account_id,
+          start_date,
+          self._mpan,
+          self._serial_number,
+          self._is_smart_meter,
+          self._is_export,
+          notify=False
+        )
 
-      await async_refresh_previous_electricity_consumption_data(
+      # Whatever is still short after that is data EDF do not hold, which is the user's to
+      # take up with them rather than ours to keep retrying quietly.
+      await async_record_outstanding_gaps(
         self._hass,
-        self._client,
-        self._account_id,
-        start_date,
+        get_electricity_consumption_statistic_unique_id(self._serial_number, self._mpan, self._is_export),
+        utcnow(),
+        account_result.account if account_result is not None else None,
         self._mpan,
         self._serial_number,
-        self._is_smart_meter,
         self._is_export,
-        notify=False
       )
     except Exception as e:
       # Never let filling in history stop a sensor working. The gap stays, and the next

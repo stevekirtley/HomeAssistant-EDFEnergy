@@ -11,12 +11,16 @@ _LOGGER = logging.getLogger(__name__)
 
 STORE_VERSION = "1"
 
-def _store(hass, mpan: str, serial_number: str):
-  return storage.Store(hass, STORE_VERSION, f"edf_energy.consumption_gaps_{mpan}_{serial_number}")
+def _store(hass, mpan: str, serial_number: str, is_export: bool):
+  return storage.Store(
+    hass, STORE_VERSION,
+    f"edf_energy.consumption_gaps_{mpan}_{serial_number}{'_export' if is_export else ''}"
+  )
 
-async def async_load_consumption_gaps(hass, mpan: str, serial_number: str) -> dict:
+async def async_load_consumption_gaps(hass, mpan: str, serial_number: str,
+                                      is_export: bool) -> dict:
   try:
-    data = await _store(hass, mpan, serial_number).async_load()
+    data = await _store(hass, mpan, serial_number, is_export).async_load()
     if data is not None:
       return data
   except Exception:
@@ -24,9 +28,9 @@ async def async_load_consumption_gaps(hass, mpan: str, serial_number: str) -> di
 
   return {"days": [], "last_checked": None}
 
-async def async_save_consumption_gaps(hass, mpan: str, serial_number: str, days: list,
-                                      last_checked) -> None:
-  await _store(hass, mpan, serial_number).async_save({
+async def async_save_consumption_gaps(hass, mpan: str, serial_number: str, is_export: bool,
+                                      days: list, last_checked) -> None:
+  await _store(hass, mpan, serial_number, is_export).async_save({
     "days": days,
     "last_checked": last_checked.isoformat() if last_checked is not None else None,
   })

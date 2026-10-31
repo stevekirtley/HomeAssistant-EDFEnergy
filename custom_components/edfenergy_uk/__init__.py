@@ -56,6 +56,7 @@ from .utils.debug_overrides import async_get_account_debug_override, async_get_m
 from .utils.entity_services import describe_alias
 from .utils.error import RETRYABLE_EXCEPTIONS, api_exception_to_string
 from .storage.account import async_load_cached_account, async_save_cached_account
+from .storage.consumption_gaps import async_load_consumption_gaps
 from .storage.intelligent_device import async_load_cached_intelligent_devices, async_save_cached_intelligent_devices
 from .storage.intelligent_dispatches import async_load_cached_intelligent_dispatches
 from .storage.intelligent_dispatches_history import IntelligentDispatchesHistory, async_load_cached_intelligent_dispatches_history
@@ -573,6 +574,44 @@ async def websocket_transactions(hass, connection, msg):
 
 
 @websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/consumption_gaps",
+  vol.Required("account_id"): str,
+})
+@websocket_api.async_response
+async def websocket_consumption_gaps(hass, connection, msg):
+  """Days of consumption EDF have not supplied, per meter and per direction.
+
+  Only days the integration could not fix itself are in here - anything EDF still held was
+  fetched and filled, and the user never needed to know about it.
+  """
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT] if account_id is not None and DATA_ACCOUNT in hass.data[DOMAIN][account_id] else None
+  account_info = account_result.account if account_result is not None else None
+  if account_info is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  meters = []
+  for point in account_info.get("electricity_meter_points") or []:
+    for meter in point.get("meters") or []:
+      is_export = meter.get("is_export") == True or point.get("is_export") == True
+      report = await async_load_consumption_gaps(
+        hass, point["mpan"], meter["serial_number"], is_export
+      )
+      if len(report.get("days") or []) < 1:
+        continue
+
+      meters.append({
+        "mpan": point["mpan"],
+        "serial_number": meter["serial_number"],
+        "direction": "export" if is_export else "import",
+        "days": report["days"],
+        "last_checked": report.get("last_checked"),
+      })
+
+  connection.send_result(msg["id"], {"meters": meters})
+
+@websocket_api.websocket_command({
   vol.Required("type"): "edf_energy/referrals",
   vol.Required("account_id"): str,
 })
@@ -814,6 +853,7 @@ async def async_setup_entry(hass, entry):
     websocket_api.async_register_command(hass, websocket_bill_url)
     websocket_api.async_register_command(hass, websocket_transactions)
     websocket_api.async_register_command(hass, websocket_referrals)
+    websocket_api.async_register_command(hass, websocket_consumption_gaps)
     websocket_api.async_register_command(hass, websocket_request_refund)
     www_dir = os.path.join(os.path.dirname(__file__), "www")
     static_paths = []

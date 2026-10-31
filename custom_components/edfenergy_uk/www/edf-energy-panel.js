@@ -555,6 +555,8 @@
       background: var(--card-background-color, #fff); color: var(--primary-text-color);
     }
     .refund-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 16px 14px; }
+    .gap-days { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+    .gap-day { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9em; opacity: 0.85; }
     .notice {
       margin: 0 16px 14px; padding: 10px 12px; border-radius: 8px; font-size: 0.88em;
       background: var(--secondary-background-color, #f5f5f5); color: var(--secondary-text-color);
@@ -653,6 +655,7 @@
       this._transactions = null;
       this._transactionsLoading = false;
       this._transactionsError = null;
+      this._consumptionGaps = null;
       this._referrals = null;
       this._referralsLoading = false;
       this._referralsError = null;
@@ -2147,6 +2150,21 @@
       return out;
     }
 
+    async _loadConsumptionGaps() {
+      if (this._consumptionGaps !== null) return;
+      const accountId = this._accountId();
+      if (!accountId) return;
+      try {
+        this._consumptionGaps = await this._hass.callWS({
+          type: 'edf_energy/consumption_gaps', account_id: accountId,
+        });
+      } catch (e) {
+        // Nothing to tell the user here - a notice that failed to load is not itself news
+        this._consumptionGaps = { meters: [] };
+      }
+      this._render();
+    }
+
     async _loadReferrals(force = false) {
       if (this._referralsLoading || (this._referrals !== null && !force)) return;
       const accountId = this._findAccountId(this._hass);
@@ -2510,6 +2528,7 @@
         return `<div class="card"><div class="empty">Loading meters…</div></div>`;
 
       return `
+        ${this._renderMissingDataNotice()}
         <div id="consumption-slot"></div>
         <div class="card">
           <div class="section-info">
@@ -2518,6 +2537,44 @@
             most recent day or two will usually be missing.
           </div>
         </div>`;
+    }
+
+    // Days EDF never supplied. Anything the integration could fetch for itself has already been
+    // fetched, so everything here needs EDF to go and look - which is why it says so rather than
+    // offering a button that would do nothing.
+    _renderMissingDataNotice() {
+      const meters = this._consumptionGaps?.meters || [];
+      if (meters.length === 0) return '';
+
+      return meters.map(meter => {
+        const days = meter.days || [];
+        const hours = days.reduce((total, day) => total + (Number(day.hours_missing) || 0), 0);
+        const direction = meter.direction === 'export' ? 'export' : 'import';
+        const span = days.length === 1
+          ? formatDay(days[0].date)
+          : `${formatDay(days[0].date)} and ${formatDay(days[days.length - 1].date)}`;
+
+        return `
+          <div class="card">
+            <div class="notice warn">
+              <strong>EDF have not supplied some of your ${direction} 30 minute usage data.</strong>
+              ${days.length === 1 ? 'One day is' : `${days.length} days are`} missing
+              ${days.length === 1 ? 'on' : 'between'} ${span}
+              (${hours} hour${hours === 1 ? '' : 's'} in total) for meter
+              ${esc(meter.serial_number)}.
+              Your ${direction} figures for ${days.length === 1 ? 'that day' : 'those days'} will
+              read low. Contact EDF and ask them to investigate the missing readings.
+            </div>
+            <div class="gap-days">
+              ${days.map(day => `
+                <div class="gap-day">
+                  <span>${formatDay(day.date)}</span>
+                  <span>${day.hours_missing} hour${day.hours_missing === 1 ? '' : 's'} missing${
+                    day.status === 'partial_at_source' ? ' (part of the day)' : ''}</span>
+                </div>`).join('')}
+            </div>
+          </div>`;
+      }).join('');
     }
 
     // Everything the account earns rather than spends: the schemes, the free hours, and
@@ -2766,6 +2823,10 @@
         this._loadBilling();
         this._loadBills();
         this._loadTransactions();
+      } else if (tab === 'usage') {
+        // Reading a stored report, not asking EDF anything - the work was done when the
+        // statistics were last filled in.
+        this._loadConsumptionGaps();
       } else if (tab === 'perks') {
         this._loadReferrals();
       } else if (tab === 'predictor') {
