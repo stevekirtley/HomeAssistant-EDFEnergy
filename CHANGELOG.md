@@ -21,6 +21,7 @@
 * Power Perks free windows are only added to the free electricity feed for accounts that are actually signed up to Power Perks. An account on Weekend Saver instead was being given windows it would never get. Sessions you added by hand are unaffected.
 * The Power Perks Predictor tab says "overnight" for a free window that runs past midnight, matching the site it reads. It was showing one as if it fell entirely on tomorrow.
 * Notices raised by the old folder are cleared once the hand-over is done, instead of being left on screen describing a move that has already happened.
+* Consumption for the day the clocks change is no longer thrown away. A day was only accepted if it held exactly forty eight half hours, so the twenty five hour day every October and the twenty three hour day every March were skipped and never asked for again, leaving a permanent hole in the statistics.
 * The referrals card adds up. Only the first hundred referrals were read, so on a bigger account the paid and pending split came to less than the total shown beside it.
 
 

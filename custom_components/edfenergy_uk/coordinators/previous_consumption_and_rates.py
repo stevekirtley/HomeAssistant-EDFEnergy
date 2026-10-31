@@ -3,7 +3,7 @@ import logging
 from typing import Callable, Any
 import asyncio
 
-from homeassistant.util.dt import (utcnow, as_local)
+from homeassistant.util.dt import (utcnow, as_local, as_utc, start_of_local_day)
 from homeassistant.helpers.update_coordinator import (
   DataUpdateCoordinator
 )
@@ -19,6 +19,7 @@ from ..const import (
   DATA_INTELLIGENT_DISPATCHES,
   EVENT_ELECTRICITY_PREVIOUS_CONSUMPTION_RATES,
   EVENT_GAS_PREVIOUS_CONSUMPTION_RATES,
+  CONSUMPTION_PAGE_SIZE,
   MINIMUM_CONSUMPTION_DATA_LENGTH,
   REFRESH_RATE_IN_MINUTES_PREVIOUS_CONSUMPTION
 )
@@ -68,6 +69,22 @@ def contains_consumption(consumptions: list, current_consumption):
 
   return False
 
+def get_expected_slots_in_day(local_start: datetime) -> int:
+  """How many half hours the local day holding `local_start` is made of.
+
+  Forty eight on almost every day, but forty six and fifty on the two days a year the clocks
+  change. A day that is not the length we assume gets discarded by the caller and never asked
+  for again, so assuming forty eight left a permanent hole in the statistics every October
+  and March.
+  """
+  day = local_start.date()
+  # Both ends have to be taken to UTC before they are subtracted. Two datetimes sharing a
+  # time zone are subtracted on the wall clock, so the day the clocks change comes back as
+  # twenty four hours and the whole point of this is lost.
+  day_start = as_utc(start_of_local_day(day))
+  next_day_start = as_utc(start_of_local_day(day + timedelta(days=1)))
+  return int((next_day_start - day_start).total_seconds() // 1800)
+
 def get_latest_day(consumption_data: list | None):
   if consumption_data is None or len(consumption_data) < 1:
     return None
@@ -80,7 +97,7 @@ def get_latest_day(consumption_data: list | None):
     if (previous_local_start is not None and
         (previous_local_start.day != local_start.day or previous_local_start.month != local_start.month or previous_local_start.year != local_start.year)):
 
-      if len(current_reduced_consumption_data) == 48:
+      if len(current_reduced_consumption_data) == get_expected_slots_in_day(previous_local_start):
         latest_reduced_consumption_data = current_reduced_consumption_data
 
       current_reduced_consumption_data = []
@@ -88,7 +105,8 @@ def get_latest_day(consumption_data: list | None):
     previous_local_start = local_start
     current_reduced_consumption_data.append(consumption)
 
-  if len(current_reduced_consumption_data) == 48:
+  if (previous_local_start is not None and
+      len(current_reduced_consumption_data) == get_expected_slots_in_day(previous_local_start)):
     latest_reduced_consumption_data = current_reduced_consumption_data
 
   _LOGGER.debug(f"Latest day: {latest_reduced_consumption_data[-1]['end'] if latest_reduced_consumption_data is not None and len(latest_reduced_consumption_data) > 0 else None}")
@@ -123,7 +141,7 @@ async def async_fetch_consumption_and_rates(
 
     try:
       if (is_electricity == True):
-        consumption_data = await client.async_get_electricity_consumption(identifier, serial_number, page_size=52, is_export=is_export)
+        consumption_data = await client.async_get_electricity_consumption(identifier, serial_number, page_size=CONSUMPTION_PAGE_SIZE, is_export=is_export)
         consumption_data = get_latest_day(consumption_data)
 
         if consumption_data is not None:
@@ -191,7 +209,7 @@ async def async_fetch_consumption_and_rates(
 
                 _LOGGER.debug(f"Rates adjusted: {rate_data}; device id: {key} dispatches: {item.dispatches.to_dict()}")
       else:
-        consumption_data = await client.async_get_gas_consumption(identifier, serial_number, page_size=52)
+        consumption_data = await client.async_get_gas_consumption(identifier, serial_number, page_size=CONSUMPTION_PAGE_SIZE)
         consumption_data = get_latest_day(consumption_data)
 
         if consumption_data is not None:

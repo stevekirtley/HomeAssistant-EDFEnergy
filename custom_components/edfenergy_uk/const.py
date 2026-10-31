@@ -268,6 +268,9 @@ CONFIG_MAIN_REFRESH_EXPIRES_IN = "refresh_expires_in"
 
 # During BST, two records are returned before the rest of the data is available
 MINIMUM_CONSUMPTION_DATA_LENGTH = 3
+# Enough slots to hold a whole day plus the start of the one after, including the fifty slot
+# day the clocks go back.
+CONSUMPTION_PAGE_SIZE = 56
 
 COORDINATOR_REFRESH_IN_SECONDS = 60
 DISCOVERY_REFRESH_IN_HOURS = 2
