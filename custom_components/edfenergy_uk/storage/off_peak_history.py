@@ -45,31 +45,69 @@ def merge_off_peak_windows(existing: list, new_windows: list, current: datetime,
   kept and nothing is dropped, because a refresh holding only today's rates must not be
   read as tomorrow's windows having been revoked.
 
-  A dispatch revoked while it is running keeps the shape it had, since the part before the
-  revocation did happen. The dispatch history is the record of what actually ran.
+  A dispatch that was reshaped after it began is not simply remembered. Where the rates still
+  carry a window starting at the same moment, that is the same dispatch re-planned, and the
+  new shape replaces the old - keeping both left the list showing a window that ran to a
+  length it never reached, overlapping the one that replaced it (issue #49).
+
+  Where a window that ran is followed by one that overlaps it, the earlier one is clipped back
+  to where the later one begins. The part before the change happened; the part after did not.
   """
   min_time = (current - timedelta(days=60)).replace(hour=0, minute=0, second=0, microsecond=0)
   know_span = span_start is not None and span_end is not None
   new_keys = {(w.start, w.end) for w in new_windows}
+  new_starts = {w.start for w in new_windows}
+
+  def in_span(window) -> bool:
+    return know_span and span_start <= window.start < span_end
 
   def superseded(window) -> bool:
-    return (know_span
-            and window.start > current
-            and span_start <= window.start < span_end
+    """A forecast the rates no longer carry. It never ran, so it goes."""
+    return (window.start > current
+            and in_span(window)
             and (window.start, window.end) not in new_keys)
+
+  def reshaped(window) -> bool:
+    """The rates still start a window here but finish it somewhere else, so this is the same
+    dispatch re-planned rather than one we are remembering. True whether or not it has begun,
+    which is the case the first attempt at this missed."""
+    return (in_span(window)
+            and (window.start, window.end) not in new_keys
+            and window.start in new_starts)
 
   seen = {}
 
-  for w in [*[w for w in existing if not superseded(w)], *new_windows]:
+  for w in [*[w for w in existing if not superseded(w) and not reshaped(w)], *new_windows]:
     key = (w.start, w.end)
     # Prefer the intelligent-adjusted record when there's a clash — it carries more information
     if key not in seen or w.is_intelligent_adjusted:
       seen[key] = w
 
-  return sorted(
+  windows = sorted(
     [w for w in seen.values() if w.start >= min_time],
     key=lambda w: w.start
   )
+
+  return clip_overlapping_windows(windows)
+
+def clip_overlapping_windows(windows: list) -> list:
+  """Pull back any window that runs into the start of the one after it.
+
+  Overlaps come from a dispatch being reshaped while it was running: the record of what had
+  been planned reaches past the point where the replacement takes over. A window left with
+  nothing of itself after clipping is dropped.
+  """
+  clipped = []
+
+  for index, window in enumerate(windows):
+    end = window.end
+    if index + 1 < len(windows) and end > windows[index + 1].start:
+      end = windows[index + 1].start
+
+    if end > window.start:
+      clipped.append(OffPeakWindowRecord(window.start, end, window.is_intelligent_adjusted))
+
+  return clipped
 
 async def async_load_cached_off_peak_history(hass, mpan: str, serial_number: str) -> list:
   store = storage.Store(hass, "1", f"edf_energy.off_peak_history_{mpan}_{serial_number}")

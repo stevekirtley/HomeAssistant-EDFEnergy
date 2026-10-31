@@ -72,6 +72,49 @@ def test_when_every_planned_window_is_revoked_then_none_are_left_behind():
   # Assert
   assert shape(history) == [(0, 5, False)]
 
+def test_when_a_running_window_is_reshaped_then_the_old_shape_does_not_remain():
+  """Reopened #49 - EDF changed the plan after the charge had started, and the revoked window
+  overlapped the start of the newly granted one. The record that had already begun was kept
+  whatever the rates said, so both shapes were listed."""
+  # Arrange - a dispatch running since 10:30, which at 11:00 has started
+  history = merge_off_peak_windows([], [window(10, 14)], NOW, DAY_START, DAY_END)
+  assert shape(history) == [(10, 14, True)]
+
+  # Act - EDF cut it short while it was running
+  history = merge_off_peak_windows(history, [window(10, 12)], NOW, DAY_START, DAY_END)
+
+  # Assert
+  assert shape(history) == [(10, 12, True)]
+
+def test_when_a_running_window_is_replaced_by_a_later_one_then_it_is_clipped():
+  """The replacement starts inside the window it replaced, so the old one is pulled back to
+  where the new one takes over rather than overlapping it."""
+  # Arrange
+  history = merge_off_peak_windows([], [window(9, 14)], NOW, DAY_START, DAY_END)
+
+  # Act - a different plan, starting part way through the one that was running
+  history = merge_off_peak_windows(history, [window(12, 16)], NOW, DAY_START, DAY_END)
+
+  # Assert - the part that ran is kept, the part that was revoked is not
+  assert shape(history) == [(9, 12, True), (12, 16, True)]
+
+def test_when_a_clipped_window_has_nothing_left_then_it_is_dropped():
+  # Arrange - a window that ran, and a replacement starting at the same moment it did
+  history = merge_off_peak_windows([window(10, 14)], [window(10, 16)], NOW, DAY_START, DAY_END)
+
+  # Assert
+  assert shape(history) == [(10, 16, True)]
+
+def test_when_windows_simply_sit_next_to_each_other_then_neither_is_clipped():
+  """Touching is not overlapping - an off-peak run split at an intelligent boundary arrives
+  as two windows meeting exactly."""
+  # Arrange/Act
+  history = merge_off_peak_windows([], [window(0, 5, False), window(5, 7)], NOW,
+                                   DAY_START, DAY_END)
+
+  # Assert
+  assert shape(history) == [(0, 5, False), (5, 7, True)]
+
 # ── What must never be dropped ────────────────────────────────────────────────
 
 def test_when_a_window_has_already_started_then_it_is_kept():
