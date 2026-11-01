@@ -2155,7 +2155,7 @@
 
     async _loadConsumptionGaps() {
       if (this._consumptionGaps !== null) return;
-      const accountId = this._accountId();
+      const accountId = this._findAccountId(this._hass);
       if (!accountId) return;
       try {
         this._consumptionGaps = await this._hass.callWS({
@@ -2169,7 +2169,7 @@
     }
 
     async _retryConsumptionGaps(mpan, serialNumber, isExport) {
-      const accountId = this._accountId();
+      const accountId = this._findAccountId(this._hass);
       if (!accountId || this._gapRetryBusy) return;
 
       this._gapRetryBusy = `${mpan}|${serialNumber}|${isExport ? 'export' : 'import'}`;
