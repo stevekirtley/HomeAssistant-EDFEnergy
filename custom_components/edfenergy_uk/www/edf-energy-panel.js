@@ -3108,6 +3108,9 @@
         const card = this._consumptionCard;
         const feed = () => {
           card.hass = this._hass;
+          // Before the meters, because setting those is what sets the card fetching and the
+          // promotion estimate is asked for in the same pass.
+          card.accountId = this._findAccountId(this._hass);
           card.meters = [
             ...(this._account.electricity || []),
             ...(this._account.gas || []),

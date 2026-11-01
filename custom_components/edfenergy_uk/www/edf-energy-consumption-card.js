@@ -41,6 +41,7 @@
   // none of them, except on a day a free session added a second rate. Shades of the
   // electricity colour, so a split bar still reads as the same fuel.
   const SEGMENTS = {
+    free:     { label: 'Free',            colour: '#f0a92b' },
     off_peak: { label: 'Off-peak',        colour: '#949cfb' },
     standard: { label: 'Standard',        colour: '#6771f7' },
     peak:     { label: 'Peak',            colour: '#2f3ad0' },
@@ -94,6 +95,13 @@
     .total .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
     .total .v { font-weight: 600; font-variant-numeric: tabular-nums; }
     .total.net { padding-left: 14px; border-left: 1px solid rgba(127,127,127,0.28); }
+    .promo { margin: 0 16px 12px; padding: 10px 12px; border-radius: 8px;
+             background: rgba(240, 169, 43, 0.10); border-left: 3px solid #f0a92b; }
+    .promo-figure { display: flex; align-items: baseline; gap: 6px; font-size: 0.9em; }
+    .promo-figure .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .promo-figure .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .promo-credit { font-size: 0.92em; opacity: 0.85; }
+    .promo-note { margin-top: 6px; font-size: 0.82em; opacity: 0.8; line-height: 1.45; }
     .chart { padding: 0 6px 10px; min-height: 260px; }
     .msg { padding: 24px 16px; text-align: center; color: var(--secondary-text-color); }
   `;
@@ -116,6 +124,7 @@
       this._error = null;
       this._fetchToken = 0;
       this._metersKey = null;
+      this._accountId = null;
       this._resizeObserver = null;
       this._drawnWidth = 0;
     }
@@ -124,6 +133,16 @@
       const first = this._hass === null;
       this._hass = hass;
       if (first) this._refresh();
+    }
+
+    /** The account the panel is showing, needed to ask about free promotions. */
+    set accountId(id) {
+      if (id === this._accountId) return;
+      const first = this._accountId === null;
+      this._accountId = id;
+      // Set before the meters on the way in, so the first fetch already has it. Only a
+      // later change needs a refresh of its own.
+      if (!first) this._refresh();
     }
 
     /** Meter points, as the panel's account summary returns them. */
@@ -248,8 +267,13 @@
       // draw once without the split and again with it.
       const splitIds = [];
       for (const stream of streams)
-        for (const split of stream.splits || [])
+        for (const split of stream.splits || []) {
           splitIds.push({ type: split.type, id: isCost ? split.costId : split.id });
+          // The other half of the pair, so a band charged at nothing can be named as free
+          // rather than filed under whichever rate slot it happened to take.
+          splitIds.push({ type: split.type, id: isCost ? split.id : split.costId,
+                          measure: isCost ? 'usage' : 'cost' });
+        }
       const token = ++this._fetchToken;
       this._loading = true;
       this._error = null;
@@ -288,18 +312,29 @@
       }
 
       const bySegment = {};
+      const otherMeasure = {};
       for (const split of splitIds) {
         const rows = stats[split.id];
         if (!rows || !rows.length) continue;
-        const totals = bySegment[split.type] || (bySegment[split.type] = new Array(categories.length).fill(0));
+        const into = split.measure ? otherMeasure : bySegment;
+        const totals = into[split.type] || (into[split.type] = new Array(categories.length).fill(0));
         this._bucket(rows, categories, range, totals);
       }
       const segments = byKind.import
         ? this._assessSplit(byKind.import, bySegment, isCost)
         : null;
+      const freeTypes = segments
+        ? this._freeSegments(
+            isCost ? otherMeasure : bySegment,
+            isCost ? bySegment : otherMeasure,
+            Object.keys(segments))
+        : [];
+
+      const freePromo = await this._freePromoUsage(range, isCost);
+      if (token !== this._fetchToken) return;
 
       this._loading = false;
-      this._data = { categories, byKind, segments, label: range.label };
+      this._data = { categories, byKind, segments, freeTypes, freePromo, label: range.label };
       this._render();
       this._draw();
     }
@@ -313,6 +348,97 @@
         const value = Number(row.change);
         if (!isNaN(value)) into[index] += value;
       }
+    }
+
+    /** A date as the notes read it, rather than as the chart axis does. */
+    _shortDate(value) {
+      const date = new Date(value);
+      if (isNaN(date)) return '';
+      return date.toLocaleDateString(undefined,
+                                     { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    /** The promotion estimate and what it does and does not mean. */
+    _renderFreePromo() {
+      const promo = this._data.freePromo;
+      if (!promo) return '';
+      const sessions = promo.sessions === 1 ? 'one free session' : `${promo.sessions} free sessions`;
+      return `
+        <div class="promo">
+          <div class="promo-figure">
+            <span class="dot" style="background:${SEGMENTS.free.colour}"></span>
+            <span>Free promo (estimated)</span>
+            <span class="v">${esc(promo.consumption.toFixed(2))} kWh</span>
+            ${promo.cost > 0
+              ? `<span class="promo-credit">about ${esc(`£${Number(promo.cost).toFixed(2)}`)}
+                 to come back as credit</span>`
+              : ''}
+          </div>
+          <div class="promo-note">
+            Estimated from the times of ${sessions} in this period. EDF bill these hours at
+            your normal rate and credit the cost back weeks later, so they are not free on
+            the bars above or on your bill. The credit is worked out from EDF's own half
+            hourly readings, so it will not match this to the penny.
+            ${promo.partial
+              ? `No session times are held before ${esc(this._shortDate(promo.history_from))}, so
+                 anything earlier in this period is not counted here.`
+              : ''}
+          </div>
+        </div>`;
+    }
+
+    /** What a free promotion is reckoned to have covered in this period, or null.
+     *
+     *  Both halves are worth having: what was used, and what those hours were charged at,
+     *  which is what the promotion should put back as credit weeks later.
+     */
+    async _freePromoUsage(range, isCost) {
+      if (!this._accountId) return null;
+      try {
+        const result = await this._hass.callWS({
+          type: 'edf_energy/free_promo_usage',
+          account_id: this._accountId,
+          start: range.start.toISOString(),
+          end: range.end.toISOString(),
+        });
+        if (!result || !(result.consumption > 0) || !(result.sessions > 0)) return null;
+        // Windows used to be kept for sixty days, so an install that predates the change can
+        // be looking further back than it has any record of. Better to say so than to let a
+        // figure that is quietly short pass for the whole period.
+        result.partial = !!(result.history_from
+                            && new Date(result.history_from) > range.start);
+        return result;
+      } catch (e) {
+        // An estimate that would not load is not worth taking the chart down over.
+        return null;
+      }
+    }
+
+    /** How a band should be drawn and named, which is not always what it was filed under. */
+    _segmentStyle(type) {
+      return (this._data.freeTypes || []).includes(type) ? SEGMENTS.free : SEGMENTS[type];
+    }
+
+    /** Which rate bands were charged at nothing, and so are free rather than cheap.
+     *
+     *  A tariff with a scheduled free window publishes it as a rate of zero, so the band
+     *  shows usage against no cost. That is a real billed zero, not a promotion credited
+     *  back later - those never reach the published rates at all.
+     *
+     *  Named by what it is rather than by the slot it fell into: the integration labels
+     *  rate bands cheapest first, so on a three rate day the free one takes the "off peak"
+     *  name and the genuine off peak rate is pushed along to "standard".
+     */
+    _freeSegments(usageByType, costByType, types) {
+      const sum = arr => (arr || []).reduce((a, b) => a + b, 0);
+      return types.filter(type => {
+        if (type === 'standing') return false;
+        const usage = sum(usageByType[type]);
+        const cost = sum(costByType[type]);
+        // A band has to have been used before its cost means anything, and the threshold
+        // is above a rounded-down penny rather than at zero.
+        return usage > 0.05 && Math.abs(cost) < 0.005;
+      });
     }
 
     /** The import bar split by rate, or null to draw it whole.
@@ -390,6 +516,7 @@
             ${this._renderTotals(kinds)}
             ${this._renderNetTotal(kinds)}
           </div>
+          ${this._renderFreePromo()}
           <div class="chart" id="chart">${anything ? '' : '<div class="msg">Nothing recorded for this period yet. EDF publish readings a day or two behind.</div>'}</div>`;
       }
 
@@ -447,8 +574,8 @@
         if (k === 'import' && this._data.segments) {
           for (const type of SEGMENT_ORDER) {
             if (!this._data.segments[type]) continue;
-            out.push(entry(SEGMENTS[type].label, SEGMENTS[type].colour,
-                           sum(this._data.segments[type])));
+            const style = this._segmentStyle(type);
+            out.push(entry(style.label, style.colour, sum(this._data.segments[type])));
           }
         } else {
           out.push(entry(SERIES[k].label, SERIES[k].colour, sum(this._data.byKind[k])));
@@ -524,8 +651,8 @@
         if (k === 'import' && segments) {
           for (const type of SEGMENT_ORDER) {
             if (!segments[type]) continue;
-            series.push({ name: SEGMENTS[type].label, group: 'import',
-                          color: SEGMENTS[type].colour,
+            const style = this._segmentStyle(type);
+            series.push({ name: style.label, group: 'import', color: style.colour,
                           data: segments[type].map(v => +v.toFixed(3)) });
           }
         } else {
