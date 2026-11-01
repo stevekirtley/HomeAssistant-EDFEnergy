@@ -7,10 +7,24 @@ from ..api_client.free_electricity_sessions import FreeElectricitySession
 
 _LOGGER = logging.getLogger(__name__)
 
-# Sessions are retained for 60 days to match the Sunday Saver and off-peak history stores. Only
-# today's sessions are ever republished to the events feed (see refresh_free_electricity_sessions),
-# so this history is really here to survive a HA restart and to back a future panel history card.
-_RETENTION_DAYS = 60
+# Kept for ten years rather than the sixty days the other history stores use. A promotion is not
+# a tariff: nothing in the statistics marks its hours out, so these windows are the only record
+# that one happened, and without them a past month cannot be told what was free. The usage they
+# are laid over is kept indefinitely - long term statistics are not touched by the recorder's
+# purge - so the windows were the only thing with an expiry date on them.
+#
+# They cost almost nothing to keep. A session is about two hundred bytes, so a couple a week
+# comes to roughly twenty kilobytes a year. The limit is still here to stop a misbehaving feed
+# growing the store without bound, not to reclaim space.
+_RETENTION_DAYS = 3650
+
+# And never more than this many, however they arrive. Time alone bounded the off peak window
+# history at sixty days and it still reached thirty three kilobytes, because planned dispatches
+# churn all day and every revision landed in it. Sessions do not behave that way - they are
+# deduplicated on their code, so a reshaped one replaces its predecessor rather than joining it
+# - but a bookable scheme writes a code per slot, and a limit that only holds while a feed
+# behaves is not much of a limit. Two thousand is roughly forty years of Power Perks.
+_RETENTION_COUNT = 2000
 
 
 def session_to_dict(session: FreeElectricitySession) -> dict:
@@ -58,10 +72,13 @@ def merge_free_electricity_sessions(
     by_code[session.code] = session
   for session in new_sessions:
     by_code[session.code] = session
-  return sorted(
+  kept = sorted(
     [s for s in by_code.values() if s.end >= min_time],
     key=lambda s: s.start,
   )
+  # Oldest go first if it ever comes to this: the recent ones are the ones a bill is still
+  # being checked against.
+  return kept[-_RETENTION_COUNT:] if len(kept) > _RETENTION_COUNT else kept
 
 
 async def async_load_cached_free_electricity_sessions_history(hass, account_id: str) -> list[FreeElectricitySession]:
