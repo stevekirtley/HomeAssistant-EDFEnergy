@@ -555,10 +555,12 @@
       background: var(--card-background-color, #fff); color: var(--primary-text-color);
     }
     .refund-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 16px 14px; }
-    .gap-days { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+    .gap-body { padding: 0 16px 14px; }
+    .gap-days { display: flex; flex-direction: column; gap: 4px; }
     .gap-day { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9em; opacity: 0.85; }
     .gap-actions { margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .gap-checked { font-size: 0.85em; opacity: 0.7; }
+    .gap-next { margin-top: 10px; font-size: 0.85em; opacity: 0.8; line-height: 1.45; }
     .notice {
       margin: 0 16px 14px; padding: 10px 12px; border-radius: 8px; font-size: 0.88em;
       background: var(--secondary-background-color, #f5f5f5); color: var(--secondary-text-color);
@@ -566,6 +568,10 @@
     .notice.warn {
       background: rgba(255, 152, 0, 0.12); color: var(--primary-text-color);
       border-left: 3px solid #ff9800;
+    }
+    .notice.good {
+      background: rgba(76, 175, 80, 0.12); color: var(--primary-text-color);
+      border-left: 3px solid #4caf50;
     }
     .load-more { padding: 10px 16px 14px; text-align: center; }
 
@@ -675,6 +681,11 @@
       this._refundBusy = false;
       this._refundResult = null;
       this._gapRetryBusy = null;
+      // What the last attempt did, and which meters have had one. The ask takes the better
+      // part of a minute, so the answer has to stay on the page rather than flash past in a
+      // toast, and the notice should stop pointing at a button that has already been tried.
+      this._gapRetryOutcome = null;
+      this._gapRetryTried = {};
     }
 
     set hass(hass) {
@@ -2172,7 +2183,10 @@
       const accountId = this._findAccountId(this._hass);
       if (!accountId || this._gapRetryBusy) return;
 
-      this._gapRetryBusy = `${mpan}|${serialNumber}|${isExport ? 'export' : 'import'}`;
+      const direction = isExport ? 'export' : 'import';
+      const key = `${mpan}|${serialNumber}|${direction}`;
+      this._gapRetryBusy = key;
+      this._gapRetryOutcome = null;
       this._render();
       try {
         const result = await this._hass.callWS({
@@ -2184,19 +2198,44 @@
         });
         const filled = Number(result?.filled) || 0;
         const left = (result?.days || []).length;
-        this._toast(
-          filled > 0
-            ? `${filled} day${filled === 1 ? '' : 's'} filled in${left > 0 ? `, ${left} still missing` : ''}`
-            : left > 0
-              ? 'EDF still have no data for those days'
-              : 'Nothing missing any more'
-        );
+        // Remembered so the notice can stop offering a button they have already pressed and
+        // start pointing at EDF, who are the only ones who can do anything from there.
+        this._gapRetryTried = { ...this._gapRetryTried, [key]: left > 0 };
+        this._gapRetryOutcome = filled > 0
+          ? {
+              ok: true,
+              text: left > 0
+                ? `EDF supplied ${filled} of the missing day${filled === 1 ? '' : 's'}. `
+                  + `${left} ${left === 1 ? 'day is' : 'days are'} still missing at their end.`
+                : `EDF supplied the missing data. ${filled} day${filled === 1 ? '' : 's'} `
+                  + `filled in, and your ${direction} figures are complete again.`,
+            }
+          : left > 0
+            ? {
+                ok: false,
+                text: `EDF still have no ${direction} data for `
+                  + `${left === 1 ? 'that day' : 'those days'}.`,
+              }
+            : { ok: true, text: 'Nothing is missing any more.' };
         // Re-read rather than trusting what we just rendered - the backend has rewritten the
         // report, and the chart behind the notice is now built on different numbers.
         this._consumptionGaps = null;
+        // The chart has already drawn the hole we just filled, and nothing it watches has
+        // changed, so it needs telling. Without this the notice is replaced by a message
+        // saying the day is back while the bar for it is still missing.
+        if (filled > 0) {
+          // A browser that defined the card element earlier in the page's life will not have
+          // picked up a newer card script, so reload is not guaranteed to be there. Dropping
+          // the element instead makes the next render build a fresh one, which fetches as it
+          // connects - the same redraw by a longer road.
+          if (typeof this._consumptionCard?.reload === 'function') this._consumptionCard.reload();
+          else this._consumptionCard = null;
+        }
         await this._loadConsumptionGaps();
       } catch (e) {
-        this._toast(e?.message || 'Could not ask EDF for that data');
+        this._gapRetryOutcome = {
+          ok: false, text: e?.message || 'Could not ask EDF for that data.',
+        };
       }
       this._gapRetryBusy = null;
       this._render();
@@ -2565,6 +2604,7 @@
         return `<div class="card"><div class="empty">Loading meters…</div></div>`;
 
       return `
+        ${this._renderGapOutcome()}
         ${this._renderMissingDataNotice()}
         <div id="consumption-slot"></div>
         <div class="card">
@@ -2580,6 +2620,19 @@
     // fetched, so everything here needs EDF to go and look. The button is for after they have
     // been chased - we stop asking of our own accord after thirty days, and somebody who has
     // just been told it is fixed should not have to wait for a restart to find out.
+    // What the last attempt came back with. Kept until the tab is left rather than shown
+    // for a couple of seconds: the ask takes most of a minute, and a notice that simply
+    // disappears looks like nothing happened at all.
+    _renderGapOutcome() {
+      if (!this._gapRetryOutcome) return '';
+      return `
+        <div class="card">
+          <div class="notice ${this._gapRetryOutcome.ok ? 'good' : 'warn'}">
+            ${esc(this._gapRetryOutcome.text)}
+          </div>
+        </div>`;
+    }
+
     _renderMissingDataNotice() {
       const meters = this._consumptionGaps?.meters || [];
       if (meters.length === 0) return '';
@@ -2592,7 +2645,9 @@
         const days = meter.days || [];
         const hours = days.reduce((total, day) => total + (Number(day.hours_missing) || 0), 0);
         const direction = meter.direction === 'export' ? 'export' : 'import';
-        const busy = this._gapRetryBusy === `${meter.mpan}|${meter.serial_number}|${direction}`;
+        const key = `${meter.mpan}|${meter.serial_number}|${direction}`;
+        const busy = this._gapRetryBusy === key;
+        const tried = this._gapRetryTried[key] === true;
         const span = days.length === 1
           ? formatDay(days[0].date)
           : `${formatDay(days[0].date)} and ${formatDay(days[days.length - 1].date)}`;
@@ -2606,28 +2661,42 @@
               (${hours} hour${hours === 1 ? '' : 's'} in total) for meter
               ${esc(meter.serial_number)}.
               Your ${direction} figures for ${days.length === 1 ? 'that day' : 'those days'} will
-              read low. Contact EDF and ask them to investigate the missing readings, then check
-              again here once they say it is sorted.
+              read low.
             </div>
-            <div class="gap-days">
-              ${days.map(day => `
-                <div class="gap-day">
-                  <span>${formatDay(day.date)}</span>
-                  <span>${day.hours_missing} hour${day.hours_missing === 1 ? '' : 's'} missing${
-                    day.status === 'partial_at_source' ? ' (part of the day)' : ''}</span>
-                </div>`).join('')}
-            </div>
-            <div class="gap-actions">
-              ${canRetry ? `
-                <button class="btn-apply" data-action="gap-retry"
-                  data-mpan="${esc(meter.mpan)}" data-serial="${esc(meter.serial_number)}"
-                  data-export="${meter.direction === 'export' ? '1' : ''}"
-                  ${busy ? 'disabled' : ''}>
-                  ${busy ? 'Asking EDF…' : 'Check EDF again'}
-                </button>` : ''}
-              ${meter.last_checked
-                ? `<span class="gap-checked">Last checked ${formatDay(meter.last_checked)}</span>`
-                : ''}
+            <div class="gap-body">
+              <div class="gap-days">
+                ${days.map(day => `
+                  <div class="gap-day">
+                    <span>${formatDay(day.date)}</span>
+                    <span>${day.hours_missing} hour${day.hours_missing === 1 ? '' : 's'} missing${
+                      day.status === 'partial_at_source' ? ' (part of the day)' : ''}</span>
+                  </div>`).join('')}
+              </div>
+              <div class="gap-actions">
+                ${canRetry ? `
+                  <button class="btn-apply" data-action="gap-retry"
+                    data-mpan="${esc(meter.mpan)}" data-serial="${esc(meter.serial_number)}"
+                    data-export="${meter.direction === 'export' ? '1' : ''}"
+                    ${busy ? 'disabled' : ''}>
+                    ${busy ? 'Requesting from EDF…' : 'Request Missing Data from EDF APIs'}
+                  </button>` : ''}
+                ${meter.last_checked
+                  ? `<span class="gap-checked">Last checked ${formatDay(meter.last_checked)}</span>`
+                  : ''}
+              </div>
+              <div class="gap-next">
+                ${!canRetry
+                  ? 'Contact EDF and ask them to investigate the missing readings.'
+                  : tried
+                    ? `EDF have been asked again and still have nothing for
+                       ${days.length === 1 ? 'that day' : 'those days'}. Contact EDF and ask them
+                       to investigate the missing readings, then check again here once they say
+                       it is sorted.`
+                    : `Try this first - EDF may have filled
+                       ${days.length === 1 ? 'it' : 'them'} in since we last looked. If it comes
+                       back empty, the readings are missing at EDF's end and only they can put
+                       it right.`}
+              </div>
             </div>
           </div>`;
       }).join('');
