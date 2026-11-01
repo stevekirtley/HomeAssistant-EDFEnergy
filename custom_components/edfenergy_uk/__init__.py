@@ -13,7 +13,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
-from homeassistant.util.dt import (utcnow, now)
+from homeassistant.util.dt import (utcnow, now, as_local, parse_datetime)
 from homeassistant.util import dt as dt_util
 from homeassistant.const import (
     EVENT_HOMEASSISTANT_STOP
@@ -59,6 +59,9 @@ from .storage.account import async_load_cached_account, async_save_cached_accoun
 from .storage.consumption_gaps import async_load_consumption_gaps
 from .statistics.backfill import async_get_earliest_missing_day, async_record_outstanding_gaps
 from .statistics.consumption import get_electricity_consumption_statistic_unique_id
+from .statistics.cost import get_electricity_cost_statistic_unique_id
+from .statistics.free_usage import async_estimate_free_usage
+from .storage.free_electricity_sessions_history import async_load_cached_free_electricity_sessions_history
 from .statistics.refresh import async_refresh_previous_electricity_consumption_data
 from .storage.intelligent_device import async_load_cached_intelligent_devices, async_save_cached_intelligent_devices
 from .storage.intelligent_dispatches import async_load_cached_intelligent_dispatches
@@ -124,6 +127,7 @@ from .const import (
   DATA_CLIENT,
   DATA_ELECTRICITY_RATES_COORDINATOR_KEY,
   DATA_ACCOUNT,
+  STATISTICS_SOURCE,
   REFRESH_RATE_IN_MINUTES_INTELLIGENT,
   REPAIR_ACCOUNT_NOT_FOUND,
   REPAIR_INVALID_API_KEY,
@@ -577,6 +581,74 @@ async def websocket_transactions(hass, connection, msg):
 
 
 @websocket_api.websocket_command({
+  vol.Required("type"): "edf_energy/free_promo_usage",
+  vol.Required("account_id"): str,
+  vol.Required("start"): str,
+  vol.Required("end"): str,
+})
+@websocket_api.async_response
+async def websocket_free_promo_usage(hass, connection, msg):
+  """How much was used during free promotions in a period, estimated.
+
+  Promotions are not a tariff. The electricity is billed at the ordinary rate and the cost
+  credited back later, so nothing in the statistics marks the hours out - the session history
+  is the only record that a window happened. The figure is therefore an estimate, and the
+  panel says so.
+
+  Scheduled free windows on a tariff that publishes them are not in here. Those are a real
+  rate of zero and already show in the rate breakdown.
+  """
+  account_id = _account_id_for_panel(hass, msg["account_id"])
+  account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT] if account_id is not None and DATA_ACCOUNT in hass.data[DOMAIN][account_id] else None
+  account_info = account_result.account if account_result is not None else None
+  if account_info is None:
+    connection.send_error(msg["id"], "not_found", "Unknown account")
+    return
+
+  start = parse_datetime(msg["start"])
+  end = parse_datetime(msg["end"])
+  if start is None or end is None or end <= start:
+    connection.send_error(msg["id"], "invalid_format", "Bad period")
+    return
+
+  history = await async_load_cached_free_electricity_sessions_history(hass, account_id)
+  windows = [(s.start, s.end) for s in history]
+
+  total = 0.0
+  cost = 0.0
+  sessions = 0
+  covered_from = None
+  for point in account_info.get("electricity_meter_points") or []:
+    if point.get("is_export") == True:
+      continue
+    for meter in point.get("meters") or []:
+      if meter.get("is_export") == True or not meter.get("serial_number"):
+        continue
+      statistic_id = f"{STATISTICS_SOURCE}:{get_electricity_consumption_statistic_unique_id(meter.get('serial_number'), point.get('mpan'), False)}"
+      cost_statistic_id = f"{STATISTICS_SOURCE}:{get_electricity_cost_statistic_unique_id(meter.get('serial_number'), point.get('mpan'), False)}"
+      estimate = await async_estimate_free_usage(hass, statistic_id, windows, start, end,
+                                                 cost_statistic_id)
+      total += estimate.consumption
+      cost += estimate.cost
+      sessions = max(sessions, estimate.sessions)
+      if estimate.covered_from is not None and (covered_from is None or estimate.covered_from < covered_from):
+        covered_from = estimate.covered_from
+
+  connection.send_result(msg["id"], {
+    "consumption": round(total, 3),
+    # What those hours were billed at, which is what the promotion should credit back. Ours
+    # is hourly and EDF work from their own half hourly readings, so it will not match to
+    # the penny.
+    "cost": round(cost, 2),
+    "sessions": sessions,
+    # The oldest session still held, so the panel can say when it is looking further back
+    # than the history reaches rather than quietly reporting a short figure.
+    "history_from": as_local(min((s.start for s in history), default=None)).isoformat() if len(history) > 0 else None,
+    "covered_from": as_local(covered_from).isoformat() if covered_from is not None else None,
+  })
+
+
+@websocket_api.websocket_command({
   vol.Required("type"): "edf_energy/consumption_gaps",
   vol.Required("account_id"): str,
 })
@@ -934,6 +1006,7 @@ async def async_setup_entry(hass, entry):
     websocket_api.async_register_command(hass, websocket_refill_consumption_gaps)
     websocket_api.async_register_command(hass, websocket_referrals)
     websocket_api.async_register_command(hass, websocket_consumption_gaps)
+    websocket_api.async_register_command(hass, websocket_free_promo_usage)
     websocket_api.async_register_command(hass, websocket_request_refund)
     www_dir = os.path.join(os.path.dirname(__file__), "www")
     static_paths = []
