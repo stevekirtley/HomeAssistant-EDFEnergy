@@ -36,6 +36,19 @@
     gas:    { label: 'Gas',         colour: '#e4567c' },
   };
 
+  // Import split by rate, where the tariff had one. The integration writes these per day,
+  // deciding from how many distinct rates that day had - so a single rate customer has
+  // none of them, except on a day a free session added a second rate. Shades of the
+  // electricity colour, so a split bar still reads as the same fuel.
+  const SEGMENTS = {
+    off_peak: { label: 'Off-peak',        colour: '#949cfb' },
+    standard: { label: 'Standard',        colour: '#6771f7' },
+    peak:     { label: 'Peak',            colour: '#2f3ad0' },
+    standing: { label: 'Standing charge', colour: '#8a8f99' },
+  };
+  // Drawn in this order from the bottom of the bar up.
+  const SEGMENT_ORDER = ['off_peak', 'standard', 'peak', 'standing'];
+
   // Rough luminance of a CSS colour, used only to decide light or dark chrome. Anything
   // it cannot parse falls back to light, which is what the card looked like before.
   function isDark(colour) {
@@ -80,6 +93,7 @@
     .total { display: flex; align-items: baseline; gap: 6px; font-size: 0.9em; }
     .total .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
     .total .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .total.net { padding-left: 14px; border-left: 1px solid rgba(127,127,127,0.28); }
     .chart { padding: 0 6px 10px; min-height: 260px; }
     .msg { padding: 24px 16px; text-align: center; color: var(--secondary-text-color); }
   `;
@@ -121,6 +135,13 @@
       this._refresh();
     }
 
+    /** Re-read the statistics behind the chart, keeping the period and unit on screen.
+     *  The panel calls this when it has just filled in days that were missing, because
+     *  nothing about the card's own inputs has changed - only the data underneath them. */
+    reload() {
+      this._refresh();
+    }
+
     // ── Statistic ids ───────────────────────────────────────────────────────────
 
     _streams() {
@@ -140,8 +161,16 @@
             });
           } else if (point.mpan) {
             const suffix = point.is_export ? '_export' : '';
+            const base = `edf_energy:electricity_${serial}_${point.mpan}${suffix}`;
             out.push({
               kind: point.is_export ? 'export' : 'import',
+              // Only import is split. Export has the same statistics but a bar of what was
+              // sold at which rate answers a question nobody asked.
+              splits: point.is_export ? [] : ['off_peak', 'standard', 'peak'].map(type => ({
+                type,
+                id: `${base}_previous_accumulative_consumption_${type}`,
+                costId: `${base}_previous_accumulative_cost_${type}`,
+              })),
               id: `edf_energy:electricity_${serial}_${point.mpan}${suffix}_previous_accumulative_consumption`,
               // Export meters have no standing charge, so they have no _includingsc
               // statistic - their cost view falls back to the plain one.
@@ -212,7 +241,15 @@
       if (!streams.length) { this._data = null; this._render(); return; }
 
       const range = this._range();
-      const ids = streams.map(s => (this._unit === 'cost' ? s.costId : s.id));
+      const isCost = this._unit === 'cost';
+      const ids = streams.map(s => (isCost ? s.costId : s.id));
+      // Asked for alongside the totals rather than in a second call. The recorder is happy
+      // to be handed ids it holds nothing for, and one round trip means the chart does not
+      // draw once without the split and again with it.
+      const splitIds = [];
+      for (const stream of streams)
+        for (const split of stream.splits || [])
+          splitIds.push({ type: split.type, id: isCost ? split.costId : split.id });
       const token = ++this._fetchToken;
       this._loading = true;
       this._error = null;
@@ -224,7 +261,7 @@
           type: 'recorder/statistics_during_period',
           start_time: range.start.toISOString(),
           end_time: range.end.toISOString(),
-          statistic_ids: ids,
+          statistic_ids: [...ids, ...splitIds.map(s => s.id)],
           period: range.bucket,
           // "change" is the movement within each bucket. Asking for "sum" instead would
           // hand back a running total that has to be differenced, and the first bucket of
@@ -246,21 +283,81 @@
       const byKind = {};
       for (let i = 0; i < streams.length; i++) {
         const stream = streams[i];
-        const rows = stats[ids[i]] || [];
         const totals = byKind[stream.kind] || (byKind[stream.kind] = new Array(categories.length).fill(0));
-        for (const row of rows) {
-          const key = this._bucketKey(row.start, range);
-          const index = categories.indexOf(key);
-          if (index === -1) continue;
-          const value = Number(row.change);
-          if (!isNaN(value)) totals[index] += value;
-        }
+        this._bucket(stats[ids[i]] || [], categories, range, totals);
       }
 
+      const bySegment = {};
+      for (const split of splitIds) {
+        const rows = stats[split.id];
+        if (!rows || !rows.length) continue;
+        const totals = bySegment[split.type] || (bySegment[split.type] = new Array(categories.length).fill(0));
+        this._bucket(rows, categories, range, totals);
+      }
+      const segments = byKind.import
+        ? this._assessSplit(byKind.import, bySegment, isCost)
+        : null;
+
       this._loading = false;
-      this._data = { categories, byKind, label: range.label };
+      this._data = { categories, byKind, segments, label: range.label };
       this._render();
       this._draw();
+    }
+
+    /** Add a statistic's rows into per-bucket totals. */
+    _bucket(rows, categories, range, into) {
+      for (const row of rows) {
+        const key = this._bucketKey(row.start, range);
+        const index = categories.indexOf(key);
+        if (index === -1) continue;
+        const value = Number(row.change);
+        if (!isNaN(value)) into[index] += value;
+      }
+    }
+
+    /** The import bar split by rate, or null to draw it whole.
+     *
+     *  Only worth showing when every bucket adds up. Coverage is decided per day, from how
+     *  many distinct rates that day had, so one window can hold a mix - a free session on
+     *  an otherwise single rate tariff writes a split for that day alone. Drawing some bars
+     *  split and the rest whole invites exactly the wrong comparison, so it is all or
+     *  nothing across the window.
+     *
+     *  In the cost view the total carries the standing charge and the rate series do not,
+     *  so what is left over becomes a segment of its own rather than a discrepancy.
+     */
+    _assessSplit(totals, bySegment, isCost) {
+      const present = SEGMENT_ORDER.filter(t => t !== 'standing' && bySegment[t]);
+      if (!present.length) return null;
+
+      const standing = isCost ? new Array(totals.length).fill(0) : null;
+      let anything = false;
+
+      for (let i = 0; i < totals.length; i++) {
+        const total = totals[i];
+        const segs = present.reduce((a, t) => a + bySegment[t][i], 0);
+        if (Math.abs(total) < 0.0005 && Math.abs(segs) < 0.0005) continue;
+        anything = true;
+        // Proportional, since a year of kWh and a single day are not owed the same absolute
+        // accuracy, with a floor so buckets near zero are not held to an impossible standard.
+        const tolerance = Math.max(0.05, Math.abs(total) * 0.005);
+        if (isCost) {
+          // The rate series have to account for the usage, leaving the standing charge. A
+          // bucket where they came back empty would hand the whole bar to the standing
+          // charge, which is nonsense, so that fails here rather than being drawn.
+          const rest = total - segs;
+          if (segs <= 0 || rest < -tolerance) return null;
+          standing[i] = Math.max(rest, 0);
+        } else if (Math.abs(total - segs) > tolerance) {
+          return null;
+        }
+      }
+      if (!anything) return null;
+
+      const out = {};
+      for (const type of present) out[type] = bySegment[type];
+      if (isCost && standing.some(v => v > 0.005)) out.standing = standing;
+      return out;
     }
 
     // ── Rendering ───────────────────────────────────────────────────────────────
@@ -290,14 +387,8 @@
         const anything = kinds.some(k => this._data.byKind[k].some(v => v !== 0));
         body = `
           <div class="totals">
-            ${kinds.map(k => {
-              const total = this._data.byKind[k].reduce((a, b) => a + b, 0);
-              return `<div class="total">
-                <span class="dot" style="background:${SERIES[k].colour}"></span>
-                <span>${esc(SERIES[k].label)}</span>
-                <span class="v">${esc(this._format(total))}</span>
-              </div>`;
-            }).join('')}
+            ${this._renderTotals(kinds)}
+            ${this._renderNetTotal(kinds)}
           </div>
           <div class="chart" id="chart">${anything ? '' : '<div class="msg">Nothing recorded for this period yet. EDF publish readings a day or two behind.</div>'}</div>`;
       }
@@ -339,6 +430,47 @@
         if (this._offset === 0) return;
         this._offset -= 1; this._refresh();
       });
+    }
+
+    /** The figures above the chart. With the rate split drawn, electricity is listed by
+     *  segment instead of as one number, so the key matches the bar underneath it. */
+    _renderTotals(kinds) {
+      const sum = arr => arr.reduce((a, b) => a + b, 0);
+      const entry = (label, colour, total) => `
+        <div class="total">
+          <span class="dot" style="background:${colour}"></span>
+          <span>${esc(label)}</span>
+          <span class="v">${esc(this._format(total))}</span>
+        </div>`;
+      const out = [];
+      for (const k of kinds) {
+        if (k === 'import' && this._data.segments) {
+          for (const type of SEGMENT_ORDER) {
+            if (!this._data.segments[type]) continue;
+            out.push(entry(SEGMENTS[type].label, SEGMENTS[type].colour,
+                           sum(this._data.segments[type])));
+          }
+        } else {
+          out.push(entry(SERIES[k].label, SERIES[k].colour, sum(this._data.byKind[k])));
+        }
+      }
+      return out.join('');
+    }
+
+    /** What the period actually cost once export earnings are taken off. Only in the cost
+     *  view, and only when there is an export meter - in kWh a net figure would be two
+     *  different things subtracted from each other. */
+    _renderNetTotal(kinds) {
+      if (this._unit !== 'cost' || !kinds.includes('export')) return '';
+      const sum = kind => this._data.byKind[kind].reduce((a, b) => a + b, 0);
+      const paid = kinds.filter(k => k !== 'export').reduce((a, k) => a + sum(k), 0);
+      const net = paid - sum('export');
+      const text = `${net < 0 ? '-' : ''}£${Math.abs(net).toFixed(2)}`;
+      return `
+        <div class="total net">
+          <span>Net cost</span>
+          <span class="v">${esc(text)}</span>
+        </div>`;
     }
 
     /** Width of the chart area, or 0 while the browser has yet to lay it out. */
@@ -386,13 +518,31 @@
       const foreColor = (styles.getPropertyValue('--primary-text-color') || '').trim();
       const dark = isDark(styles.getPropertyValue('--card-background-color'));
 
+      const segments = this._data.segments;
+      const series = [];
+      for (const k of kinds) {
+        if (k === 'import' && segments) {
+          for (const type of SEGMENT_ORDER) {
+            if (!segments[type]) continue;
+            series.push({ name: SEGMENTS[type].label, group: 'import',
+                          color: SEGMENTS[type].colour,
+                          data: segments[type].map(v => +v.toFixed(3)) });
+          }
+        } else {
+          series.push({ name: SERIES[k].label, group: k, color: SERIES[k].colour,
+                        data: this._data.byKind[k].map(v => +v.toFixed(3)) });
+        }
+      }
+
       const chart = new ApexCharts(container, {
-        chart: { type: 'bar', width, height: 280, stacked: true, toolbar: { show: false },
+        // Stacking is only switched on when there is something to stack. Without the rate
+        // split every series is its own group, and asking for groups there gains nothing.
+        chart: { type: 'bar', width, height: 280, stacked: !!segments, toolbar: { show: false },
                  fontFamily: 'inherit', background: 'transparent',
                  foreColor: foreColor || undefined, animations: { enabled: false } },
         theme: { mode: dark ? 'dark' : 'light' },
-        series: kinds.map(k => ({ name: SERIES[k].label, data: this._data.byKind[k].map(v => +v.toFixed(3)) })),
-        colors: kinds.map(k => SERIES[k].colour),
+        series,
+        colors: series.map(s => s.color),
         xaxis: { categories: this._data.categories, tickPlacement: 'on',
                  labels: { rotate: 0, hideOverlappingLabels: true } },
         yaxis: { labels: { formatter: v => (unit === 'cost' ? `£${Number(v).toFixed(2)}` : Number(v).toFixed(0)) } },
@@ -407,7 +557,7 @@
           intersect: false,
           y: { formatter: v => (v == null ? '—' : (unit === 'cost' ? `£${Number(v).toFixed(2)}` : `${Number(v).toFixed(2)} kWh`)) },
         },
-        plotOptions: { bar: { columnWidth: '68%', borderRadius: 2 } },
+        plotOptions: { bar: { columnWidth: '85%', borderRadius: 2 } },
       });
       this._chart = chart;
       this._drawnWidth = width;
