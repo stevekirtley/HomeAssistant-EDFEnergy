@@ -20,7 +20,6 @@ from ..const import (
   DATA_INTELLIGENT_DISPATCHES,
   DATA_INTELLIGENT_DISPATCHES_COORDINATOR,
   INTELLIGENT_SOURCE_BUMP_CHARGE_OPTIONS,
-  STARTED_DISPATCH_MAX_LENGTH,
   REFRESH_RATE_IN_MINUTES_INTELLIGENT,
 )
 
@@ -85,29 +84,6 @@ class IntelligentDispatchesCoordinatorResult(BaseCoordinatorResult):
     self.requests_current_hour = requests_current_hour
     self.requests_current_hour_last_reset = requests_current_hour_last_reset
 
-def extend_started_dispatch(new_started_dispatches: list[SimpleIntelligentDispatchItem],
-                            current: datetime,
-                            max_length: timedelta | None = None) -> bool:
-  """Record that a dispatch is running for the half hour `current` falls in.
-
-  Answers whether the half hour is now covered. An existing dispatch finishing on the
-  boundary is lengthened rather than a second one being started beside it.
-  """
-  start = current.replace(minute=0 if current.minute < 30 else 30, second=0, microsecond=0)
-  end = start + timedelta(minutes=30)
-
-  for started_dispatch in new_started_dispatches:
-    if started_dispatch.end == end:
-      # Already covering the current 30 minute period
-      return True
-    elif started_dispatch.end == start:
-      if max_length is not None and end - started_dispatch.start > max_length:
-        return False
-      started_dispatch.end = end
-      return True
-
-  return False
-
 def merge_started_dispatches(current: datetime,
                              current_state: str,
                              started_dispatches: list[SimpleIntelligentDispatchItem],
@@ -116,26 +92,31 @@ def merge_started_dispatches(current: datetime,
   new_started_dispatches = list(map(lambda item: SimpleIntelligentDispatchItem(item.start, item.end), new_started_dispatches))
 
   if current_state == "SMART_CONTROL_IN_PROGRESS":
-    covered = False
     for planned_dispatch in planned_dispatches:
       if planned_dispatch.start <= current and planned_dispatch.end >= current:
         # Skip any bump charges
         if (planned_dispatch.source.lower() in INTELLIGENT_SOURCE_BUMP_CHARGE_OPTIONS if planned_dispatch.source is not None else False):
           continue
 
-        covered = True
+        # A started dispatch is only ever recorded for a half hour a planned dispatch covers.
+        # Nothing is inferred from the state alone: SMART_CONTROL_IN_PROGRESS means the device
+        # is plugged in and under smart control, which it stays while it sits idle waiting for
+        # its next window, so it says nothing about whether a charge is running now.
+        is_extended = False
         start = current.replace(minute=0 if current.minute < 30 else 30, second=0, microsecond=0)
-        if extend_started_dispatch(new_started_dispatches, current) == False:
-          new_started_dispatches.append(SimpleIntelligentDispatchItem(start, start + timedelta(minutes=30)))
+        end = start + timedelta(minutes=30)
+        for started_dispatch in new_started_dispatches:
+          if (started_dispatch.end == end):
+            # Skip as we are already covering the current 30 minute period
+            is_extended = True
+            break
+          elif (started_dispatch.end == start):
+            started_dispatch.end = end
+            is_extended = True
+            break
 
-    if covered == False:
-      # The car is still being charged under smart control with nothing planned covering now.
-      # That is what a charge that could not finish by the ready by time looks like: the plan
-      # stops at the ready by, the charging does not, and EDF still treat it as a dispatch. A
-      # dispatch already running is carried on so the off peak sensors do not drop out from
-      # under a charge that is still going (#51). Nothing new is started here - without a plan
-      # to go on, the only thing worth trusting is that a charge we already saw has not ended.
-      extend_started_dispatch(new_started_dispatches, current, STARTED_DISPATCH_MAX_LENGTH)
+        if is_extended == False:
+          new_started_dispatches.append(SimpleIntelligentDispatchItem(start, end))
 
   return new_started_dispatches
 

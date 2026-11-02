@@ -164,12 +164,6 @@ STORAGE_ACCOUNT_DEBUG_OVERRIDE_NAME = "edf_energy.{}-override.json"
 
 INTELLIGENT_SOURCE_SMART_CHARGE_OPTIONS = ["smart-charge", "smart"]
 INTELLIGENT_SOURCE_BUMP_CHARGE_OPTIONS = ["bump-charge", "boost"]
-# How long a dispatch carried on past its plan may grow to. An overnight charge legitimately
-# runs six or seven hours before it overruns at all, so this is not a limit on the overrun
-# itself - it is here to stop a device left reporting that it is charging from extending a
-# dispatch for ever.
-STARTED_DISPATCH_MAX_LENGTH = timedelta(hours=14)
-
 REGEX_HOURS = "^[0-9]+(\\.[0-9]+)*$"
 REGEX_TIME = "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
 REGEX_ENTITY_NAME = "^[a-z0-9_]+$"

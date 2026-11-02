@@ -32,35 +32,8 @@ def test_when_plan_covers_now_then_running_dispatch_extended():
 
   assert as_tuples(result) == [(at("01:00"), at("03:00"))]
 
-def test_when_charge_overruns_ready_by_then_running_dispatch_carries_on():
-  """#51 - the plan stops at the ready by time, the charge does not, and the off peak sensors
-  went off underneath a car that was still charging."""
-  result = merge_started_dispatches(at("07:10"), "SMART_CONTROL_IN_PROGRESS",
-                                    [started("01:00", "07:00")], [planned("01:00", "07:00")])
-
-  assert as_tuples(result) == [(at("01:00"), at("07:30"))]
-
-def test_when_charge_overruns_with_no_plan_left_then_running_dispatch_carries_on():
-  result = merge_started_dispatches(at("07:40"), "SMART_CONTROL_IN_PROGRESS",
-                                    [started("01:00", "07:30")], [])
-
-  assert as_tuples(result) == [(at("01:00"), at("08:00"))]
-
-def test_when_dispatch_reaches_the_length_limit_then_it_stops_growing():
-  """A device left saying it is charging must not extend a dispatch indefinitely."""
-  result = merge_started_dispatches(at("20:40"), "SMART_CONTROL_IN_PROGRESS",
-                                    [started("06:30", "20:30")], [])
-
-  assert as_tuples(result) == [(at("06:30"), at("20:30"))]
-
-def test_when_dispatch_is_long_but_under_the_limit_then_it_carries_on():
-  result = merge_started_dispatches(at("12:10"), "SMART_CONTROL_IN_PROGRESS",
-                                    [started("01:00", "12:00")], [])
-
-  assert as_tuples(result) == [(at("01:00"), at("12:30"))]
-
 def test_when_nothing_was_running_then_no_dispatch_invented():
-  """Without a plan to go on, the only thing worth trusting is a charge already seen."""
+  """No plan covering now means no record, whatever the device says it is doing."""
   result = merge_started_dispatches(at("07:10"), "SMART_CONTROL_IN_PROGRESS", [], [])
 
   assert as_tuples(result) == []
@@ -82,3 +55,25 @@ def test_when_plan_is_a_bump_charge_then_dispatch_not_recorded():
                                     [planned("01:00", "07:00", "bump-charge")])
 
   assert as_tuples(result) == []
+
+def test_when_plugged_in_and_idle_between_windows_then_dispatch_not_extended():
+  """A charge that has finished, with the next window hours away.
+
+  SMART_CONTROL_IN_PROGRESS stays true the whole time the car sits plugged in under smart
+  control, so inferring a dispatch from it ran a finished charge on for hours: the off peak
+  sensors stayed on, the discounted rate was applied to half hours nobody charged in, and
+  each refresh extended the same window again because it ended on the boundary.
+  """
+  result = merge_started_dispatches(at("18:45"), "SMART_CONTROL_IN_PROGRESS",
+                                    [started("09:30", "13:30")],
+                                    [planned("23:00", "23:30")])
+
+  assert as_tuples(result) == [(at("09:30"), at("13:30"))]
+
+def test_when_a_bump_charge_follows_a_dispatch_then_dispatch_not_extended():
+  """A bump charge is deliberately not a dispatch, and must not inherit one that just ended."""
+  result = merge_started_dispatches(at("07:10"), "SMART_CONTROL_IN_PROGRESS",
+                                    [started("01:00", "07:00")],
+                                    [planned("07:00", "09:00", "bump-charge")])
+
+  assert as_tuples(result) == [(at("01:00"), at("07:00"))]

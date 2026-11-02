@@ -34,7 +34,6 @@
 * Free session history is kept beyond 60 days, so the free promotion estimate still works on an older month. Dates and times only, and capped.
 * The referrals card adds up. Only the first hundred referrals were read, so on a bigger account the paid and pending split came to less than the total shown beside it.
 * A smart charging plan changed after the charge had started no longer leaves both shapes in the off peak window list. The window that ran is clipped back to where its replacement takes over instead of overlapping it.
-* Off peak sensors no longer go off underneath a charge that is still running. A charge that cannot finish by the ready by time carries on past the end of its plan, and the sensors were following the plan rather than the car.
 
 
 ### Notes
