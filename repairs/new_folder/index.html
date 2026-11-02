@@ -646,6 +646,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../migrations/version_21/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Updating To Version 21
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../migrations/target_timeframes/" class="md-nav__link">
         
   
@@ -1206,9 +1227,11 @@ for a while both are on your system and there is one step to finish by hand.</p>
 <p>Nothing is broken in the meantime. Until you complete the step below, the old folder carries
 on running your account exactly as before.</p>
 <h2 id="finishing-the-move">Finishing the move<a class="headerlink" href="#finishing-the-move" title="Permanent link">#</a></h2>
-<p>The notice in <strong>Settings &gt; Repairs</strong> has a button that does the whole thing. Open it, read
-what it is about to do, and press <strong>Hand it over</strong>.</p>
-<p>If you would rather do it by hand:</p>
+<p>If you updated from 20.1.1 you will have a notice in <strong>Settings &gt; System &gt; Repairs</strong> titled
+<strong>EDF Energy has a new folder - one step left</strong>. Open it and press <strong>Hand it over</strong>. That is
+the whole move - there is nothing to fill in and nothing to reconfigure.</p>
+<p><img alt="The Finish the move dialog, with a Hand it over button" src="../../assets/v21-finish-the-move.png" /></p>
+<p>If you have no such notice, or you updated from an older version, start it yourself instead:</p>
 <ol>
 <li>Go to <strong>Settings &gt; Devices &amp; services</strong> and press <strong>Add integration</strong>.</li>
 <li>Choose <strong>EDF Energy (UK)</strong>. Both are listed while the old folder is still there, and
@@ -1218,8 +1241,12 @@ what it is about to do, and press <strong>Hand it over</strong>.</p>
 <p>Your account, your API key, every entity id and your history all carry across, so
 automations, scripts, dashboards and template sensors keep working untouched. Energy
 dashboard statistics, including cost history, come with it.</p>
+<p>For the full picture, including what to expect from each version you might be updating from,
+see <a href="../../migrations/version_21/">Updating to version 21</a>.</p>
 <h2 id="afterwards">Afterwards<a class="headerlink" href="#afterwards" title="Permanent link">#</a></h2>
-<p>Delete <code>custom_components/edf_energy</code> and restart Home Assistant.</p>
+<p>A second notice appears saying the old folder can go. It has a <strong>Delete it</strong> button that
+removes <code>custom_components/edf_energy</code> for you. Restart Home Assistant afterwards - until
+you do, Home Assistant carries on listing the copy it had already loaded.</p>
 <p>If you leave it there nothing stops working, but the folder is doing nothing and Home
 Assistant will keep listing it.</p>
 <h2 id="if-edf-energy-uk-is-not-in-the-add-integration-list">If "EDF Energy (UK)" is not in the Add integration list<a class="headerlink" href="#if-edf-energy-uk-is-not-in-the-add-integration-list" title="Permanent link">#</a></h2>

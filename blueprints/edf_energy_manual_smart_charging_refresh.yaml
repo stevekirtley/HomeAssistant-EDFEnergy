@@ -112,7 +112,7 @@ actions:
   - delay:
       milliseconds: >
          {{ millisecond_jitter }}
-  - action: edf_energy.refresh_intelligent_dispatches
+  - action: edfenergy_uk.refresh_intelligent_dispatches
     target:
       entity_id: !input intelligent_dispatches_sensor
   - choose: []

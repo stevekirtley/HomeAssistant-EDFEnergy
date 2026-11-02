@@ -644,6 +644,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../migrations/version_21/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Updating To Version 21
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../migrations/target_timeframes/" class="md-nav__link">
         
   
@@ -1662,14 +1683,14 @@
 <ul>
 <li>OHME</li>
 </ul>
-<p>Assuming you're with a valid Smart Charging provider, another reason might be you've turned on <a href="../setup/account/#manually-refresh-intelligent-dispatches">manual dispatch refetches</a>, which turns off automatic refreshing. If you're not calling the service (either manually or via the provided <a href="../services/#edf_energyrefresh_intelligent_dispatches">blueprint</a>), then the dispatches won't be available to adjust the off peak sensor.</p>
-<p>If you are with an accepted provider and are getting dispatch information, then you can use this <a href="../services/#edf_energyget_point_in_time_intelligent_dispatch_history">available service</a> to see what state the dispatches are at a given point in time when you believe the off peak sensor should be on. If you are seeing dispatches available based on your settings and still having issues, please raise an issue.</p>
+<p>Assuming you're with a valid Smart Charging provider, another reason might be you've turned on <a href="../setup/account/#manually-refresh-intelligent-dispatches">manual dispatch refetches</a>, which turns off automatic refreshing. If you're not calling the service (either manually or via the provided <a href="../services/#edfenergy_ukrefresh_intelligent_dispatches">blueprint</a>), then the dispatches won't be available to adjust the off peak sensor.</p>
+<p>If you are with an accepted provider and are getting dispatch information, then you can use this <a href="../services/#edfenergy_ukget_point_in_time_intelligent_dispatch_history">available service</a> to see what state the dispatches are at a given point in time when you believe the off peak sensor should be on. If you are seeing dispatches available based on your settings and still having issues, please raise an issue.</p>
 <h2 id="the-integration-provides-features-i-dont-need-can-i-turn-the-feature-off">The integration provides features I don't need, can I turn the feature off?<a class="headerlink" href="#the-integration-provides-features-i-dont-need-can-i-turn-the-feature-off" title="Permanent link">#</a></h2>
 <p>There is no config option to turn features on/off. This is because the required data is not cut and dry per feature as some data is shared among "features" (e.g. rate data is required to determine if consumption data is peak or off peak).</p>
 <p>However, the integration only requests the data specified above that is needed for the provided entities to function. If you disable the entities that you don't need, then the integration won't request the corresponding data. </p>
 <p>Disabling entities is easy. All you need to do is</p>
 <ol>
-<li>Go to the <a href="https://my.home-assistant.io/redirect/integration/?domain=edf_energy">EDF Energy</a> integration.</li>
+<li>Go to the <a href="https://my.home-assistant.io/redirect/integration/?domain=edfenergy_uk">EDF Energy</a> integration.</li>
 <li>Click on <code>entities</code></li>
 <li>Go into multi-select mode and select the entities you want to disable</li>
 <li>Select <code>Disable selected</code></li>
@@ -1707,7 +1728,7 @@
 <p>If you receiving warnings along the lines of</p>
 <blockquote>
 <p>Update of sensor.edf_energy_xxx is taking over x seconds</p>
-<p>Updating edf_energy sensor took longer than the scheduled update interval</p>
+<p>Updating edfenergy_uk sensor took longer than the scheduled update interval</p>
 </blockquote>
 <p>then yes, this is expected. This is a default warning built into Home Assistant, however with this integration it's perfectly valid for you to receive this when the sensors attempt to update the data. This is for a number of reasons</p>
 <ol>
@@ -1724,7 +1745,7 @@
 <p>Some entities are disabled by default. This is usually because the entities are not applicable for all tariffs or are for niche scenarios. By having these entities disabled, it also doesn't overwhelm new users when they install the integration otherwise most users will be presented with over 40 different entities.</p>
 <p>Enabling entities is easy. All you need to do is</p>
 <ol>
-<li>Go to the <a href="https://my.home-assistant.io/redirect/integration/?domain=edf_energy">EDF Energy</a> integration.</li>
+<li>Go to the <a href="https://my.home-assistant.io/redirect/integration/?domain=edfenergy_uk">EDF Energy</a> integration.</li>
 <li>Click on <code>entities</code></li>
 <li>Find and click on the entity you want to enable. This is usually indicated by a "no entry" sign in the <code>status</code>.</li>
 <li>Click on the settings/cog button</li>
@@ -1805,7 +1826,7 @@ order by last_updated_ts desc
 </ol>
 <p>Alternatively</p>
 <ol>
-<li>Navigate to the <a href="https://my.home-assistant.io/redirect/integration/?domain=edf_energy">EDF Energy integration</a></li>
+<li>Navigate to the <a href="https://my.home-assistant.io/redirect/integration/?domain=edfenergy_uk">EDF Energy integration</a></li>
 <li>Click the three dots next to your account configuration</li>
 <li>Click on "Download diagnostics"</li>
 <li>Take the contents of the downloads json file and paste into the bug report. Remember to surround the contents with ``` both at the start and end.</li>

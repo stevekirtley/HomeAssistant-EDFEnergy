@@ -1,0 +1,1691 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/migrations/version_21/">
+      
+      
+        <link rel="prev" href="../../entities/diagnostics/">
+      
+      
+        <link rel="next" href="../target_timeframes/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Updating To Version 21 - Home Assistant EDF Energy</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#updating-to-version-21" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Home Assistant EDF Energy" class="md-header__button md-logo" aria-label="Home Assistant EDF Energy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Home Assistant EDF Energy
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Updating To Version 21
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="light-blue" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Home Assistant EDF Energy" class="md-nav__button md-logo" aria-label="Home Assistant EDF Energy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Home Assistant EDF Energy
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Setup
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Setup
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setup/account/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setup/cost_tracker/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cost Tracker Sensor(s)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setup/tariff_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tariff Comparison
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setup/energy_dashboard/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Energy Dashboard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setup/account_tab/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Panel Tabs (beta)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Entities
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Entities
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/electricity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Electricity
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/gas/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gas
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/intelligent/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Intelligent
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/sunday_saver/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sunday Saver
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/free_electricity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Free Electricity Sessions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/billing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Billing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../entities/diagnostics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Diagnostics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Migrations
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Migrations
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Updating To Version 21
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Updating To Version 21
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#first-check-which-version-you-are-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      First, check which version you are on
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-a-updating-from-2011" class="md-nav__link">
+    <span class="md-ellipsis">
+      Path A: updating from 20.1.1
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-b-updating-from-2010" class="md-nav__link">
+    <span class="md-ellipsis">
+      Path B: updating from 20.1.0
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Path B: updating from 20.1.0">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#if-you-have-already-updated" class="md-nav__link">
+    <span class="md-ellipsis">
+      If you have already updated
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-c-updating-from-2000-or-any-19x" class="md-nav__link">
+    <span class="md-ellipsis">
+      Path C: updating from 20.0.0 or any 19.x
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#afterwards-deleting-the-old-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      Afterwards: deleting the old folder
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-carries-over" class="md-nav__link">
+    <span class="md-ellipsis">
+      What carries over
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Questions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#will-my-automations-break" class="md-nav__link">
+    <span class="md-ellipsis">
+      Will my automations break?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#do-i-need-my-password-again" class="md-nav__link">
+    <span class="md-ellipsis">
+      Do I need my password again?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-has-it-moved-at-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why has it moved at all?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-just-delete-the-old-folder-and-let-the-new-one-pick-things-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      Can I just delete the old folder and let the new one pick things up?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#i-pressed-the-old-edf-energy-in-the-add-integration-list-by-mistake" class="md-nav__link">
+    <span class="md-ellipsis">
+      I pressed the old EDF Energy in the Add integration list by mistake
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-do-i-get-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      Where do I get help?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../target_timeframes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Migrating Target Rate Sensors To Target Timeframes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../services/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Services
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../events/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Events
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Repairs
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Repairs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/new_folder/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - EDF Energy has a new folder
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/account_not_found/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Account not found
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/unknown_product/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Unknown product
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/cost_override_obsolete/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Cost override deprecated
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/unknown_intelligent_provider/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Unknown Smart Charging provider
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/no_active_tariff/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - No active tariff
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/meter_removed/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Meter removed
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repairs/tariff_rates_empty/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Tariff Rates Empty
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blueprints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blueprints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Architecture Decision Records
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            Architecture Decision Records
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture_decision_records/0001_target_rates_removal/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    0001 - Deprecation and removal of Target Rate Sensors in EDF Energy Integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture_decision_records/0002_intelligent_is_dispatching_behaviour_changes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    0002 - Smart Charging Is Dispatching behavior changes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#first-check-which-version-you-are-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      First, check which version you are on
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-a-updating-from-2011" class="md-nav__link">
+    <span class="md-ellipsis">
+      Path A: updating from 20.1.1
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-b-updating-from-2010" class="md-nav__link">
+    <span class="md-ellipsis">
+      Path B: updating from 20.1.0
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Path B: updating from 20.1.0">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#if-you-have-already-updated" class="md-nav__link">
+    <span class="md-ellipsis">
+      If you have already updated
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-c-updating-from-2000-or-any-19x" class="md-nav__link">
+    <span class="md-ellipsis">
+      Path C: updating from 20.0.0 or any 19.x
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#afterwards-deleting-the-old-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      Afterwards: deleting the old folder
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-carries-over" class="md-nav__link">
+    <span class="md-ellipsis">
+      What carries over
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Questions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#will-my-automations-break" class="md-nav__link">
+    <span class="md-ellipsis">
+      Will my automations break?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#do-i-need-my-password-again" class="md-nav__link">
+    <span class="md-ellipsis">
+      Do I need my password again?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-has-it-moved-at-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why has it moved at all?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-just-delete-the-old-folder-and-let-the-new-one-pick-things-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      Can I just delete the old folder and let the new one pick things up?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#i-pressed-the-old-edf-energy-in-the-add-integration-list-by-mistake" class="md-nav__link">
+    <span class="md-ellipsis">
+      I pressed the old EDF Energy in the Add integration list by mistake
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-do-i-get-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      Where do I get help?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="updating-to-version-21">Updating To Version 21<a class="headerlink" href="#updating-to-version-21" title="Permanent link">#</a></h1>
+<p>Version 21 installs into a new folder, <code>custom_components/edfenergy_uk</code>, and is listed as
+<strong>EDF Energy (UK)</strong> instead of <strong>EDF Energy</strong>. Everything the integration does is unchanged.</p>
+<p>HACS downloads the new folder but leaves the old one in place, and Home Assistant will not
+start using the new folder on its own. There is one step to finish by hand, and what you see
+on screen depends entirely on which version you are updating <strong>from</strong>.</p>
+<p>Nothing is lost at any point. Your account, your API key, every entity id, your history and
+your Energy dashboard statistics all come across, so automations, scripts, dashboards and
+template sensors carry on untouched.</p>
+<h2 id="first-check-which-version-you-are-on">First, check which version you are on<a class="headerlink" href="#first-check-which-version-you-are-on" title="Permanent link">#</a></h2>
+<p>In HACS, open <strong>EDF Energy</strong>. The version you have installed is shown at the top of the page.</p>
+<table>
+<thead>
+<tr>
+<th>You are on</th>
+<th>What happens when you update</th>
+<th>What you need to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>20.1.1</strong></td>
+<td>The integration keeps running and puts a notice in <strong>Repairs</strong></td>
+<td>One click. <a href="#path-a-updating-from-2011">Go to Path A</a></td>
+</tr>
+<tr>
+<td><strong>20.1.0</strong></td>
+<td>The integration stops loading and every entity goes unavailable</td>
+<td>Update to 20.1.1 <strong>first</strong>. <a href="#path-b-updating-from-2010">Go to Path B</a></td>
+</tr>
+<tr>
+<td><strong>20.0.0 or any 19.x</strong></td>
+<td>Nothing changes and nothing prompts you</td>
+<td>Start the move yourself. <a href="#path-c-updating-from-2000-or-any-19x">Go to Path C</a></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">The short version</p>
+<p>Whatever you are on, updating to <strong>20.1.1</strong> and restarting before you take version 21 gives
+you the easiest path. From 20.1.1 the integration walks you through the rest.</p>
+</div>
+<hr />
+<h2 id="path-a-updating-from-2011">Path A: updating from 20.1.1<a class="headerlink" href="#path-a-updating-from-2011" title="Permanent link">#</a></h2>
+<p>This is the guided path. After HACS downloads version 21 and you restart, the old folder
+carries on running your account exactly as before — nothing goes unavailable — and a notice
+appears in <strong>Settings &gt; System &gt; Repairs</strong>:</p>
+<p><img alt="The repair notice saying EDF Energy has a new folder" src="../../assets/v21-repairs-notice.png" /></p>
+<p>Click it, and you get this:</p>
+<p><img alt="The Finish the move dialog, with a Hand it over button" src="../../assets/v21-finish-the-move.png" /></p>
+<p>Press <strong>Hand it over</strong>. That is the whole move — there is nothing to fill in and nothing to
+reconfigure. Your account is now running from the new folder.</p>
+<p>Then follow <a href="#afterwards-deleting-the-old-folder">Afterwards</a> to clear out the old folder.</p>
+<div class="admonition info">
+<p class="admonition-title">If the notice does not appear</p>
+<p>Restart Home Assistant. A folder HACS has only just downloaded is not picked up until a
+restart, and the notice is raised when the integration next starts.</p>
+</div>
+<hr />
+<h2 id="path-b-updating-from-2010">Path B: updating from 20.1.0<a class="headerlink" href="#path-b-updating-from-2010" title="Permanent link">#</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Update to 20.1.1 first</p>
+<p>Going straight from 20.1.0 to version 21 stops the integration loading. Every entity goes
+unavailable and stays that way until you finish the move by hand.</p>
+<p>In HACS, update to <strong>20.1.1</strong>, restart Home Assistant, and then take version 21. You will
+then be on <a href="#path-a-updating-from-2011">Path A</a> and get the one-click prompt.</p>
+</div>
+<h3 id="if-you-have-already-updated">If you have already updated<a class="headerlink" href="#if-you-have-already-updated" title="Permanent link">#</a></h3>
+<p>Your EDF Energy entry in <strong>Settings &gt; Devices &amp; services</strong> will be showing an error, and the
+log will have:</p>
+<div class="highlight"><pre><span></span><code>Replaced by edfenergy_uk. Delete custom_components/edf_energy and restart.
+</code></pre></div>
+<p>There is also a notice in Repairs titled <strong>EDF Energy has moved to a new folder</strong>.</p>
+<div class="admonition danger">
+<p class="admonition-title">Do not follow that advice</p>
+<p>Both that message and that notice tell you to delete <code>custom_components/edf_energy</code> and
+restart. <strong>That does not fix it</strong>, and if you do it first you are left with your account
+attached to a folder that is no longer there, with nothing on screen explaining why.</p>
+<p>This was wrong in 20.1.0 and is corrected from 20.1.1 onwards. Use the steps below instead.</p>
+</div>
+<p>To recover, hand the account over from the new integration's own setup screen. These are the
+same steps as <a href="#path-c-updating-from-2000-or-any-19x">Path C</a> below.</p>
+<ol>
+<li>Go to <strong>Settings &gt; Devices &amp; services</strong> and press <strong>Add integration</strong>.</li>
+<li>
+<p>Search for <code>EDF</code>. While both folders are installed you will see an entry for each, and the
+   name is what tells them apart — the new one has <strong>(UK)</strong> on the end.</p>
+<p><img alt="The Add integration list showing EDF Energy and EDF Energy (UK)" src="../../assets/v21-add-integration-both.png" /></p>
+</li>
+<li>
+<p>Choose <strong>EDF Energy (UK)</strong>. It finds the setup the old folder is holding and offers to take
+   it over:</p>
+<p><img alt="The Take over your existing EDF Energy setup dialog, with a Take it over button" src="../../assets/v21-take-over.png" /></p>
+</li>
+<li>
+<p>Press <strong>Take it over</strong>. You get a confirmation that the move is done, and your entities come
+   back:</p>
+<p><img alt="Confirmation that the setup has been moved to the new folder" src="../../assets/v21-taken-over.png" /></p>
+</li>
+</ol>
+<p>This works whether or not you have already deleted the old folder, so if you followed the wrong
+advice before reading this, the same steps still put you right.</p>
+<p>Then follow <a href="#afterwards-deleting-the-old-folder">Afterwards</a>.</p>
+<hr />
+<h2 id="path-c-updating-from-2000-or-any-19x">Path C: updating from 20.0.0 or any 19.x<a class="headerlink" href="#path-c-updating-from-2000-or-any-19x" title="Permanent link">#</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Nothing will prompt you</p>
+<p>These versions know nothing about the new folder. After you update, <strong>the old folder simply
+carries on working</strong> — every entity stays available and nothing appears in Repairs — while
+the new folder sits on disk doing nothing.</p>
+<p>It looks like the update worked. It downloaded, but none of version 21 is running, and it
+will stay that way until you do the step below. HACS will show version 21 as installed, so
+nothing further will remind you.</p>
+</div>
+<p>The tidiest route is to update to <strong>20.1.1</strong> first and restart, which puts you on
+<a href="#path-a-updating-from-2011">Path A</a> and does the rest for you.</p>
+<p>If you are already on version 21, start the move yourself using the <strong>Add integration</strong> steps
+shown in <a href="#if-you-have-already-updated">Path B</a> above — search for <code>EDF</code>, choose
+<strong>EDF Energy (UK)</strong>, and press <strong>Take it over</strong>.</p>
+<p>Then follow <a href="#afterwards-deleting-the-old-folder">Afterwards</a>.</p>
+<hr />
+<h2 id="afterwards-deleting-the-old-folder">Afterwards: deleting the old folder<a class="headerlink" href="#afterwards-deleting-the-old-folder" title="Permanent link">#</a></h2>
+<p>Once your account has moved, the notice from the old folder goes and a new one takes its place:</p>
+<p><img alt="The repair notice saying the old EDF Energy folder can be deleted" src="../../assets/v21-delete-old-folder.png" /></p>
+<p>Press <strong>Delete it</strong>, then restart Home Assistant. Until you restart, Home Assistant carries on
+listing the copy it had already loaded — that is expected and harmless.</p>
+<p>If you would rather do it yourself, delete the <code>custom_components/edf_energy</code> folder and restart.
+Leaving it in place does not break anything, but Home Assistant will keep listing it and the
+notice will keep coming back.</p>
+<h2 id="what-carries-over">What carries over<a class="headerlink" href="#what-carries-over" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Comes across</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Account number and API key</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Every entity id</td>
+<td>Yes, unchanged</td>
+</tr>
+<tr>
+<td>Entity history</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Energy dashboard statistics, including cost history</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Automations, scripts, dashboards, template sensors</td>
+<td>Keep working untouched</td>
+</tr>
+<tr>
+<td>Cost tracker and tariff comparison sensors</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>You do not need to re-enter your credentials, and you do not need to edit anything that refers
+to an EDF Energy entity.</p>
+<h2 id="questions">Questions<a class="headerlink" href="#questions" title="Permanent link">#</a></h2>
+<h3 id="will-my-automations-break">Will my automations break?<a class="headerlink" href="#will-my-automations-break" title="Permanent link">#</a></h3>
+<p>No. Entity ids are preserved exactly, so anything that refers to them carries on working.</p>
+<h3 id="do-i-need-my-password-again">Do I need my password again?<a class="headerlink" href="#do-i-need-my-password-again" title="Permanent link">#</a></h3>
+<p>No. Your stored API key moves across with the account.</p>
+<h3 id="why-has-it-moved-at-all">Why has it moved at all?<a class="headerlink" href="#why-has-it-moved-at-all" title="Permanent link">#</a></h3>
+<p>The folder name and the listed name both needed to change for the integration to be distinct
+within HACS. The rename is the whole of it — no features have been removed.</p>
+<h3 id="can-i-just-delete-the-old-folder-and-let-the-new-one-pick-things-up">Can I just delete the old folder and let the new one pick things up?<a class="headerlink" href="#can-i-just-delete-the-old-folder-and-let-the-new-one-pick-things-up" title="Permanent link">#</a></h3>
+<p>No. Home Assistant only starts an integration that something already refers to, and until the
+hand-over has happened nothing refers to the new folder. Deleting the old folder first leaves
+your account attached to nothing. Always hand it over first, then delete.</p>
+<h3 id="i-pressed-the-old-edf-energy-in-the-add-integration-list-by-mistake">I pressed the old EDF Energy in the Add integration list by mistake<a class="headerlink" href="#i-pressed-the-old-edf-energy-in-the-add-integration-list-by-mistake" title="Permanent link">#</a></h3>
+<p>From 20.1.1 that is harmless — the old one stops short and points you at <strong>EDF Energy (UK)</strong>.
+Nothing can end up set up twice.</p>
+<h3 id="where-do-i-get-help">Where do I get help?<a class="headerlink" href="#where-do-i-get-help" title="Permanent link">#</a></h3>
+<p>See the <a href="../../repairs/new_folder/">new folder repair notes</a>, the <a href="../../faq/">FAQ</a>, or raise a
+<a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy/discussions">discussion</a>.</p>
+
+
+
+
+
+
+
+
+  <aside class="md-source-file">
+    
+    
+    
+      
+  
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Contributors">
+      
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4"/></svg>
+      
+    </span>
+    <nav>
+      stevekirtley
+    </nav>
+  </span>
+
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.top", "search.suggest", "search.highlight", "toc.follow"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>

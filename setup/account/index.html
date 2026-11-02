@@ -814,6 +814,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../migrations/version_21/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Updating To Version 21
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../migrations/target_timeframes/" class="md-nav__link">
         
   
@@ -1421,12 +1442,12 @@
 <h2 id="sunday-saver">Sunday Saver<a class="headerlink" href="#sunday-saver" title="Permanent link">#</a></h2>
 <h3 id="automatically-enrol-in-sunday-saver">Automatically enrol in Sunday Saver<a class="headerlink" href="#automatically-enrol-in-sunday-saver" title="Permanent link">#</a></h3>
 <p>When enabled (the default), the integration will automatically opt your account into the EDF Energy Sunday Saver challenge each month. Sunday Saver provides free electricity for a set window on Sunday mornings.</p>
-<p>If you prefer to manage enrolment manually — for example to review the terms before each month's challenge — disable this toggle and use the <a href="../../services/#edf_energyjoin_sunday_saver"><code>join_sunday_saver</code></a> service instead.</p>
+<p>If you prefer to manage enrolment manually — for example to review the terms before each month's challenge — disable this toggle and use the <a href="../../services/#edfenergy_ukjoin_sunday_saver"><code>join_sunday_saver</code></a> service instead.</p>
 <p>When the integration successfully enrols your account for the first time, a persistent notification will appear in Home Assistant to confirm.</p>
 <p>See the <a href="../../entities/sunday_saver/">Sunday Saver entities</a> for the sensors exposed by this feature.</p>
 <h2 id="smart-charging-settings">Smart Charging Settings<a class="headerlink" href="#smart-charging-settings" title="Permanent link">#</a></h2>
 <h3 id="manually-refresh-intelligent-dispatches">Manually refresh intelligent dispatches<a class="headerlink" href="#manually-refresh-intelligent-dispatches" title="Permanent link">#</a></h3>
-<p>By default, Smart Charging dispatches are retrieved <a href="../../faq/#how-often-is-data-refreshed">periodically</a>. This is fine for most scenarios, but this can be a little slow depending on what else you're doing off the back of the dispatches. If you have other ways of knowing when new dispatches should be available (e.g. your charger changes to a charging state or a manual button in your HA dashboard), then you can turn on <code>Manually refresh intelligent dispatches</code>. This will disable the periodic refreshing and expose a <a href="../../services/#edf_energyrefresh_intelligent_dispatches">service</a> which can be called to refresh the dispatches.</p>
+<p>By default, Smart Charging dispatches are retrieved <a href="../../faq/#how-often-is-data-refreshed">periodically</a>. This is fine for most scenarios, but this can be a little slow depending on what else you're doing off the back of the dispatches. If you have other ways of knowing when new dispatches should be available (e.g. your charger changes to a charging state or a manual button in your HA dashboard), then you can turn on <code>Manually refresh intelligent dispatches</code>. This will disable the periodic refreshing and expose a <a href="../../services/#edfenergy_ukrefresh_intelligent_dispatches">service</a> which can be called to refresh the dispatches.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This should only be turned on if you know what you're doing. Turning this on and not calling the service/action can result in rate and Smart Charging related sensors not updating correctly.</p>

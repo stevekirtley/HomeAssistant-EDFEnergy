@@ -8,7 +8,7 @@ Usage:
     EDF_API_KEY=sk_live_xxx python3 edf_campaign_snapshot.py [label]
 
 If EDF_API_KEY is unset and the script is running on the Home Assistant host,
-it reads the key straight out of the edf_energy config entry. The key is used
+it reads the key straight out of the edfenergy_uk config entry. The key is used
 in-process only and is never printed or written to the output file.
 """
 import json
@@ -29,7 +29,7 @@ def api_key_from_config_entry():
     except (OSError, KeyError, ValueError):
         return None
     for entry in entries:
-        if entry.get("domain") == "edf_energy":
+        if entry.get("domain") == "edfenergy_uk":
             key = entry.get("data", {}).get("api_key")
             if key:
                 return key

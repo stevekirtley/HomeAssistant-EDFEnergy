@@ -970,6 +970,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../migrations/version_21/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Updating To Version 21
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../migrations/target_timeframes/" class="md-nav__link">
         
   
@@ -1713,7 +1734,7 @@
 <p>However, there have <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues/901">been reports</a> of some sensors misbehaving. To counteract this, if there is less than a 10% decrease, then the difference between the new and old state will be recorded.</p>
 </div>
 <h3 id="dont-automatically-reset-the-cost-sensor">Don't automatically reset the cost sensor<a class="headerlink" href="#dont-automatically-reset-the-cost-sensor" title="Permanent link">#</a></h3>
-<p>By default, the sensor will automatically reset when a new reading has been received and it's a different day to the previous reading. There may be times that you want to track costs for something over this threshold (e.g. how much it last cost you to charge your car). In these scenarios, you can turn off the automatic resets. In this scenario, you are in charge of resetting the core sensor via it's <a href="../../services/#edf_energyreset_cost_tracker">available service</a>.</p>
+<p>By default, the sensor will automatically reset when a new reading has been received and it's a different day to the previous reading. There may be times that you want to track costs for something over this threshold (e.g. how much it last cost you to charge your car). In these scenarios, you can turn off the automatic resets. In this scenario, you are in charge of resetting the core sensor via it's <a href="../../services/#edfenergy_ukreset_cost_tracker">available service</a>.</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>The weekly and monthly sensors will reset as normal with this settings turned on.</p>
@@ -1727,7 +1748,7 @@
 <h3 id="month-sensor-day-reset">Month sensor day reset<a class="headerlink" href="#month-sensor-day-reset" title="Permanent link">#</a></h3>
 <p>This is the day of the month the accumulative month sensor should reset. This must be between 1 and 28 (inclusively). This defaults to the 1st.</p>
 <h2 id="handling-exporting">Handling Exporting<a class="headerlink" href="#handling-exporting" title="Permanent link">#</a></h2>
-<p>Due to everyone's HA setup being different for how they track importing/exporting, the sensors themselves assume that all consumption changes should be tracked and the cost calculated. However, you may wish to turn off tracking when you're exporting. This can be done via the related <a href="../../services/#edf_energyupdate_cost_tracker">services</a>.</p>
+<p>Due to everyone's HA setup being different for how they track importing/exporting, the sensors themselves assume that all consumption changes should be tracked and the cost calculated. However, you may wish to turn off tracking when you're exporting. This can be done via the related <a href="../../services/#edfenergy_ukupdate_cost_tracker">services</a>.</p>
 <h2 id="entities">Entities<a class="headerlink" href="#entities" title="Permanent link">#</a></h2>
 <h3 id="cost-sensor">Cost sensor<a class="headerlink" href="#cost-sensor" title="Permanent link">#</a></h3>
 <p><code>sensor.edf_energy_cost_tracker_{{COST_TRACKER_NAME}}</code></p>
@@ -2131,7 +2152,7 @@
       
     </span>
     <nav>
-      BottlecapDave, David Kendall, stevekirtley
+      BottlecapDave, David Kendall, stevekirtley, stevekirtley
     </nav>
   </span>
 
