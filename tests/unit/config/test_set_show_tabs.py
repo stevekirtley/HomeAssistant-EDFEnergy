@@ -1,8 +1,8 @@
 """Turning the dashboard tabs on and off from the panel."""
 import pytest
 
-from custom_components.edf_energy import websocket_set_show_tabs
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk import websocket_set_show_tabs
+from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,

@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 import pytest
 import mock
 
-from custom_components.edf_energy.api_client import EDFEnergyApiClient, AuthenticationException, ApiException
-from custom_components.edf_energy.coordinators.account import AccountCoordinatorResult, async_refresh_account
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient, AuthenticationException, ApiException
+from custom_components.edfenergy_uk.coordinators.account import AccountCoordinatorResult, async_refresh_account
 
 current = datetime.strptime("2025-08-30T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 expected_next_refresh = datetime.strptime("2025-08-30T16:30:00+01:00", "%Y-%m-%dT%H:%M:%S%z")

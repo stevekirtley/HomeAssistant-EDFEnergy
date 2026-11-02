@@ -6,8 +6,8 @@
 
 # from integration import (get_test_context)
 
-# from custom_components.edf_energy.sensor_utils import async_get_live_consumption
-# from custom_components.edf_energy.api_client import EDFEnergyApiClient
+# from custom_components.edfenergy_uk.sensor_utils import async_get_live_consumption
+# from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient
 
 # @pytest.mark.asyncio
 # async def test_when_get_live_consumption_is_called_then_last_5_minutes_returned_returned():

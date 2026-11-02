@@ -1,7 +1,19 @@
 import pytest
 from datetime import datetime
 
-from custom_components.edf_energy.statistics import get_statistic_ids_to_remove
+from custom_components.edfenergy_uk.const import DOMAIN, STATISTICS_SOURCE
+from custom_components.edfenergy_uk.statistics import get_statistic_ids_to_remove
+
+
+def both_domains(*suffixes):
+  """Each id as it is written, and again under this domain's own prefix.
+
+  The written prefix never changes - the recorder cannot rename an external statistic - but
+  21.0.0 wrote a day of them under this domain before that was understood, and the purge is
+  the only thing that would ever clear those.
+  """
+  return ([f"{STATISTICS_SOURCE}:{s}" for s in suffixes]
+          + [f"{DOMAIN}:{s}" for s in suffixes])
 
 def get_account_info():
   return {
@@ -75,10 +87,7 @@ def test_when_electricity_meter_have_valid_tariff_then_electricity_meters_return
   result = get_statistic_ids_to_remove(now, account_info)
 
   # Assert
-  assert len(result) == 3
-  assert result[0] == "edf_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_consumption"
-  assert result[1] == "edf_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_cost"
-  assert result[2] == "edf_energy:electricity_elec-sn_elec-mpan_previous_accumulative_cost"
+  assert result == both_domains("electricity_elec-sn_elec-mpan_export_previous_accumulative_consumption", "electricity_elec-sn_elec-mpan_export_previous_accumulative_cost", "electricity_elec-sn_elec-mpan_previous_accumulative_cost")
 
 def test_when_gas_meter_have_valid_tariff_then_gas_meters_returned():
   # Arrange
@@ -89,9 +98,7 @@ def test_when_gas_meter_have_valid_tariff_then_gas_meters_returned():
   result = get_statistic_ids_to_remove(now, account_info)
 
   # Assert
-  assert len(result) == 2
-  assert result[0] == "edf_energy:gas_gas-sn_gas-mprn_previous_accumulative_consumption"
-  assert result[1] == "edf_energy:gas_gas-sn_gas-mprn_previous_accumulative_cost"
+  assert result == both_domains("gas_gas-sn_gas-mprn_previous_accumulative_consumption", "gas_gas-sn_gas-mprn_previous_accumulative_cost")
 
 def test_when_electricity_and_gas_meter_have_valid_tariff_then_electricity_and_gas_meters_returned():
   # Arrange
@@ -102,9 +109,4 @@ def test_when_electricity_and_gas_meter_have_valid_tariff_then_electricity_and_g
   result = get_statistic_ids_to_remove(now, account_info)
 
   # Assert
-  assert len(result) == 5
-  assert result[0] == "edf_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_consumption"
-  assert result[1] == "edf_energy:electricity_elec-sn_elec-mpan_export_previous_accumulative_cost"
-  assert result[2] == "edf_energy:electricity_elec-sn_elec-mpan_previous_accumulative_cost"
-  assert result[3] == "edf_energy:gas_gas-sn_gas-mprn_previous_accumulative_consumption"
-  assert result[4] == "edf_energy:gas_gas-sn_gas-mprn_previous_accumulative_cost"
+  assert result == both_domains("electricity_elec-sn_elec-mpan_export_previous_accumulative_consumption", "electricity_elec-sn_elec-mpan_export_previous_accumulative_cost", "electricity_elec-sn_elec-mpan_previous_accumulative_cost", "gas_gas-sn_gas-mprn_previous_accumulative_consumption", "gas_gas-sn_gas-mprn_previous_accumulative_cost")

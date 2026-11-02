@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 import pytest
 
-from custom_components.edf_energy.api_client.free_electricity_sessions import FreeElectricitySession
-from custom_components.edf_energy.free_electricity import get_next_free_electricity_session_event
+from custom_components.edfenergy_uk.api_client.free_electricity_sessions import FreeElectricitySession
+from custom_components.edfenergy_uk.free_electricity import get_next_free_electricity_session_event
 
 
 def _session(start_str: str, end_str: str, code: str = "test") -> FreeElectricitySession:

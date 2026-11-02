@@ -3,8 +3,8 @@ from datetime import datetime
 
 from unit import (create_consumption_data, create_rate_data)
 
-from custom_components.edf_energy.statistics import build_cost_statistics
-from custom_components.edf_energy.statistics.cost import (
+from custom_components.edfenergy_uk.statistics import build_cost_statistics
+from custom_components.edfenergy_uk.statistics.cost import (
   get_electricity_cost_including_standing_charge_statistic_name,
   get_electricity_cost_including_standing_charge_statistic_unique_id,
   get_electricity_cost_statistic_unique_id,

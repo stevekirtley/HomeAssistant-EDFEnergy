@@ -2,8 +2,8 @@ from datetime import (datetime)
 import pytest
 
 from unit import (create_rate_data)
-from custom_components.edf_energy.utils.rate_information import get_next_rate_information
-from custom_components.edf_energy.api_client import rates_to_thirty_minute_increments
+from custom_components.edfenergy_uk.utils.rate_information import get_next_rate_information
+from custom_components.edfenergy_uk.api_client import rates_to_thirty_minute_increments
 from .. import agile_rates
 
 @pytest.mark.asyncio

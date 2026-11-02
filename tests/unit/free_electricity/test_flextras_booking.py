@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from custom_components.edf_energy.api_client.flextras_hours import (
+from custom_components.edfenergy_uk.api_client.flextras_hours import (
   booking_payload,
   booking_window,
   parse_bookable_days,
@@ -18,8 +18,8 @@ from custom_components.edf_energy.api_client.flextras_hours import (
   parse_day_slots,
   slot_id,
 )
-from custom_components.edf_energy.const import DATA_CLIENT, DATA_FLEXTRAS_HOURS, DOMAIN
-from custom_components.edf_energy.coordinators.flextras_hours import (
+from custom_components.edfenergy_uk.const import DATA_CLIENT, DATA_FLEXTRAS_HOURS, DOMAIN
+from custom_components.edfenergy_uk.coordinators.flextras_hours import (
   apply_mode,
   async_book_flextras_hours,
   drop_past_hours,

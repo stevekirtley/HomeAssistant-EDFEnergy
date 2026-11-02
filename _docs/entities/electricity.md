@@ -159,7 +159,7 @@ This is `on` when you're within your tariff's off peak period, and `off` at all 
 
 !!! note
 
-    Sensor came on when you did/didn't expected it to and you're on an intelligent tariff? You can see what the state of your dispatches were at the time by using the [get_point_in_time_intelligent_dispatch_history service](../services.md#edf_energyget_point_in_time_intelligent_dispatch_history)
+    Sensor came on when you did/didn't expected it to and you're on an intelligent tariff? You can see what the state of your dispatches were at the time by using the [get_point_in_time_intelligent_dispatch_history service](../services.md#edfenergy_ukget_point_in_time_intelligent_dispatch_history)
 
 | Attribute | Type | Description |
 |-----------|------|-------------|

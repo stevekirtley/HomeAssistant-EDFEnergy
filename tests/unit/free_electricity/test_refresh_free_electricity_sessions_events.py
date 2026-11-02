@@ -6,8 +6,8 @@ rows a day per account, so it now fires only on change plus an hourly heartbeat.
 """
 from datetime import datetime, timedelta
 
-from custom_components.edf_energy.api_client.free_electricity_sessions import FreeElectricitySession
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk.api_client.free_electricity_sessions import FreeElectricitySession
+from custom_components.edfenergy_uk.const import (
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
   DATA_SUNDAY_SAVER,
   DOMAIN,
@@ -15,7 +15,7 @@ from custom_components.edf_energy.const import (
   EVENT_NEW_FREE_ELECTRICITY_SESSION,
   REFRESH_RATE_IN_MINUTES_FREE_ELECTRICITY_SESSIONS,
 )
-from custom_components.edf_energy.coordinators.free_electricity_sessions import (
+from custom_components.edfenergy_uk.coordinators.free_electricity_sessions import (
   FreeElectricitySessionsCoordinatorResult,
   refresh_free_electricity_sessions,
 )
@@ -169,25 +169,26 @@ def test_when_only_the_history_changes_then_event_is_still_fired():
   """The panel's history card is driven by free_electricity_windows, so a change confined to the
   retained history has to reach the entity even when today's events are untouched.
 
-  The 60 day purge is the case that does this - it drops an old window without affecting today.
-  The existing result is built by hand so the heartbeat is not due, isolating change detection."""
-  # Arrange - a window old enough to fall outside retention at `current`
+  A window that has already finished is the case that does this - it joins the history without
+  ever becoming one of today's events. The existing result is built by hand so the heartbeat is
+  not due, isolating change detection."""
+  # Arrange - nothing held, and yesterday's window about to be reported
   current = datetime.fromisoformat("2026-08-04T12:00:00+00:00")
-  old_session = session("sunday_saver_20260601",
-                        datetime.fromisoformat("2026-06-01T18:00:00+00:00"),
-                        datetime.fromisoformat("2026-06-01T20:00:00+00:00"))
-  hass = build_hass([old_session])
+  hass = build_hass([])
+  hass.data[DOMAIN][ACCOUNT_ID][DATA_SUNDAY_SAVER.format(ACCOUNT_ID)] = sunday_saver_result(
+    "2026-08-03T18:00:00+00:00", "2026-08-03T20:00:00+00:00"
+  )
   # Today's events are empty both before and after, and next_refresh is an hour out
   existing_result = FreeElectricitySessionsCoordinatorResult(current, 1, [], False, False)
 
   # Act
   result, fired = run(hass, current, existing_result)
 
-  # Assert - the purge alone was enough to fire
+  # Assert - the history moving was enough on its own
   assert current < existing_result.next_refresh, "heartbeat must not be due, or this proves nothing"
   assert len(fired) == 1
   assert fired[0]["events"] == []
-  assert fired[0]["free_electricity_windows"] == []
+  assert [w["code"] for w in fired[0]["free_electricity_windows"]] == ["sunday_saver_20260803"]
 
 
 def test_when_new_session_appears_then_new_session_event_still_fires():

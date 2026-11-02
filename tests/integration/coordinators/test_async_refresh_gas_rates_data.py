@@ -6,9 +6,9 @@ from homeassistant.util.dt import (set_default_time_zone)
 
 from integration import (create_rate_data, get_test_context)
 
-from custom_components.edf_energy.api_client import EDFEnergyApiClient
-from custom_components.edf_energy.coordinators.gas_rates import GasRatesCoordinatorResult, async_refresh_gas_rates_data
-from custom_components.edf_energy.utils import Tariff
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient
+from custom_components.edfenergy_uk.coordinators.gas_rates import GasRatesCoordinatorResult, async_refresh_gas_rates_data
+from custom_components.edfenergy_uk.utils import Tariff
 
 pytestmark = pytest.mark.xfail(reason="GraphQL token refresh blocked by CloudFront on GitHub Actions runner IPs", strict=False)
 

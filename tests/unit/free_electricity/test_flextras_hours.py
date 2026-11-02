@@ -7,21 +7,21 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from custom_components.edf_energy.api_client.flextras_hours import parse_booked_hours
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk.api_client.flextras_hours import parse_booked_hours
+from custom_components.edfenergy_uk.const import (
   DATA_FLEXTRAS_HOURS,
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
   DATA_POWER_PERKS,
   DOMAIN,
   REFRESH_RATE_IN_MINUTES_FLEXTRAS_HOURS,
 )
-from custom_components.edf_energy.coordinators.flextras_hours import (
+from custom_components.edfenergy_uk.coordinators.flextras_hours import (
   FlextrasHoursCoordinatorResult,
   async_refresh_flextras_hours,
   session_code,
   windows_to_sessions,
 )
-from custom_components.edf_energy.coordinators.free_electricity_sessions import (
+from custom_components.edfenergy_uk.coordinators.free_electricity_sessions import (
   _normalise_flextras_hours,
   refresh_free_electricity_sessions,
 )

@@ -8,8 +8,8 @@ from datetime import timedelta
 import pytest
 from homeassistant.util.dt import utcnow
 
-from custom_components.edf_energy.const import DATA_PREDICTOR, DOMAIN, PREDICTOR_CACHE_MINUTES
-from custom_components.edf_energy.predictor import (
+from custom_components.edfenergy_uk.const import DATA_PREDICTOR, DOMAIN, PREDICTOR_CACHE_MINUTES
+from custom_components.edfenergy_uk.predictor import (
   MAX_OUTLOOK_DAYS,
   MAX_TEXT,
   async_get_predictor,
@@ -164,17 +164,72 @@ def test_tomorrow_is_read():
 
 def test_a_free_day_with_windows_is_read():
   data = {**TOMORROW, "free": True, "free_hours": 4,
-          "windows": [{"start": "11:00", "end": "15:00"}]}
+          "windows": [{"start": "11:00", "end": "15:00", "hours": 4,
+                       "start_date": "2026-10-17", "end_date": "2026-10-17",
+                       "overnight": False}]}
   tomorrow = parse_tomorrow(data)
 
   assert tomorrow["free"] == True
-  assert tomorrow["windows"] == [{"start": "11:00", "end": "15:00"}]
+  assert tomorrow["windows"] == [{"start": "11:00", "end": "15:00", "hours": 4,
+                                  "start_date": "2026-10-17", "end_date": "2026-10-17",
+                                  "overnight": False}]
 
 def test_windows_given_as_plain_text_still_work():
   # Guarding the shape rather than assuming it: a string window must not become a blank row.
   tomorrow = parse_tomorrow({**TOMORROW, "windows": ["11:00-15:00"]})
 
-  assert tomorrow["windows"] == [{"start": "11:00-15:00", "end": None}]
+  assert tomorrow["windows"] == [{"start": "11:00-15:00", "end": None, "hours": None,
+                                  "start_date": None, "end_date": None,
+                                  "overnight": False}]
+
+# ── windows that cross midnight ────────────────────────────────────────
+
+def test_an_overnight_window_keeps_the_flag_and_both_dates():
+  # The 23:00 block is the common free window and most of it falls on the day after the
+  # one the panel calls tomorrow. Without these fields the panel said "Tomorrow,
+  # 23:00 - 06:00" while the site it reads said "overnight".
+  data = {**TOMORROW, "free": True, "free_hours": 7,
+          "windows": [{"start": "23:00", "end": "06:00", "hours": 7,
+                       "start_date": "2026-10-17", "end_date": "2026-10-18",
+                       "overnight": True}]}
+  window = parse_tomorrow(data)["windows"][0]
+
+  assert window["overnight"] == True
+  assert window["start_date"] == "2026-10-17"
+  assert window["end_date"] == "2026-10-18"
+  assert window["hours"] == 7
+
+def test_a_window_inside_one_day_is_not_overnight():
+  data = {**TOMORROW, "windows": [{"start": "11:00", "end": "15:00",
+                                   "start_date": "2026-10-17",
+                                   "end_date": "2026-10-17", "overnight": False}]}
+
+  assert parse_tomorrow(data)["windows"][0]["overnight"] == False
+
+@pytest.mark.parametrize("value,expected", [
+  (True, True),
+  (1, True),       # same reading as `free` gives it - unambiguous enough to honour
+  (False, False),
+  ("yes", False),  # a string is not an answer, however much it looks like one
+  ("true", False),
+  (None, False),
+  (0, False),
+])
+def test_overnight_is_only_overnight_when_the_feed_says_so(value, expected):
+  data = {**TOMORROW, "windows": [{"start": "23:00", "end": "06:00", "overnight": value}]}
+
+  assert parse_tomorrow(data)["windows"][0]["overnight"] == expected
+
+def test_a_window_missing_the_new_fields_is_still_read():
+  # The feed gained these fields after the panel shipped, so an older or trimmed payload
+  # has to stay readable rather than drop the window.
+  data = {**TOMORROW, "windows": [{"start": "23:00", "end": "06:00"}]}
+  window = parse_tomorrow(data)["windows"][0]
+
+  assert window["start"] == "23:00"
+  assert window["overnight"] == False
+  assert window["start_date"] is None
+  assert window["hours"] is None
 
 @pytest.mark.parametrize("value,expected", [
   (True, True),
@@ -221,7 +276,7 @@ async def test_the_site_is_asked_once_within_the_cache_window(monkeypatch):
   async def fake_fetch(hass):
     calls.append(1)
     return {"outlook": parse_outlook(OUTLOOK), "tomorrow": None, "scores": None, "site": "s"}
-  monkeypatch.setattr("custom_components.edf_energy.predictor.async_fetch_predictor", fake_fetch)
+  monkeypatch.setattr("custom_components.edfenergy_uk.predictor.async_fetch_predictor", fake_fetch)
   hass = StubHass()
   now = utcnow()
 
@@ -238,7 +293,7 @@ async def test_the_site_is_asked_again_once_the_cache_is_stale(monkeypatch):
   async def fake_fetch(hass):
     calls.append(1)
     return {"outlook": parse_outlook(OUTLOOK), "tomorrow": None, "scores": None, "site": "s"}
-  monkeypatch.setattr("custom_components.edf_energy.predictor.async_fetch_predictor", fake_fetch)
+  monkeypatch.setattr("custom_components.edfenergy_uk.predictor.async_fetch_predictor", fake_fetch)
   hass = StubHass()
   now = utcnow()
 
@@ -254,7 +309,7 @@ async def test_a_failed_fetch_is_not_cached(monkeypatch):
   async def fake_fetch(hass):
     calls.append(1)
     return {"outlook": None, "tomorrow": None, "scores": None, "site": "s"}
-  monkeypatch.setattr("custom_components.edf_energy.predictor.async_fetch_predictor", fake_fetch)
+  monkeypatch.setattr("custom_components.edfenergy_uk.predictor.async_fetch_predictor", fake_fetch)
   hass = StubHass()
   now = utcnow()
 

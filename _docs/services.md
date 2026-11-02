@@ -6,7 +6,11 @@ There are a few services available within this integration, which are detailed h
 
 The following services are available if you have set up at least one [cost tracker](./setup/cost_tracker.md).
 
-### edf_energy.update_cost_tracker
+!!! info "Action names changed in 21.0.0"
+
+    These actions used to be `edf_energy.*`. The old names still work, so an existing automation or an imported blueprint keeps running, but they are deprecated and will be removed a couple of releases from now - use the names below.
+
+### edfenergy_uk.update_cost_tracker
 
 This service allows the user to turn the tracking on/off for a given [cost tracker](./setup/cost_tracker.md) sensor.
 
@@ -19,7 +23,7 @@ This service allows the user to turn the tracking on/off for a given [cost track
 
 For automation examples, please refer to the available [blueprints](./blueprints.md#cost-tracker).
 
-### edf_energy.reset_cost_tracker
+### edfenergy_uk.reset_cost_tracker
 
 Resets a given [cost tracker](./setup/cost_tracker.md) sensor back to zero before it's normal reset time.
 
@@ -27,7 +31,7 @@ Resets a given [cost tracker](./setup/cost_tracker.md) sensor back to zero befor
 | ------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------- |
 | `target.entity_id`       | `no`     | The name of the cost tracker sensor(s) that should be reset. |
 
-### edf_energy.adjust_accumulative_cost_tracker
+### edfenergy_uk.adjust_accumulative_cost_tracker
 
 Allows you to adjust the cost/consumption for any given date recorded by an accumulative [cost tracker](./setup/cost_tracker.md) sensor (e.g. week or month).
 
@@ -38,7 +42,7 @@ Allows you to adjust the cost/consumption for any given date recorded by an accu
 | `data.consumption`       | `no`     | The new consumption recorded against the specified date. |
 | `data.cost`              | `no`     | The new cost recorded against the specified date. |
 
-### edf_energy.adjust_cost_tracker
+### edfenergy_uk.adjust_cost_tracker
 
 Allows you to adjust the consumption for any given period recorded by a [cost tracker](./setup/cost_tracker.md) sensor representing today.
 
@@ -52,7 +56,7 @@ Allows you to adjust the consumption for any given period recorded by a [cost tr
 
 The following services are available if you are on a Smart Charging tariff.
 
-### edf_energy.refresh_intelligent_dispatches
+### edfenergy_uk.refresh_intelligent_dispatches
 
 Refreshes Smart Charging dispatches for a given account.
 
@@ -72,7 +76,7 @@ Refreshes Smart Charging dispatches for a given account.
 
 For an automation example, please refer to the available [blueprint](./blueprints.md#manual-smart-charging-dispatch-refreshes).
 
-### edf_energy.get_point_in_time_intelligent_dispatch_history
+### edfenergy_uk.get_point_in_time_intelligent_dispatch_history
 
 Retrieve the Smart Charging dispatch history which was active for a given point in time based on up to the last 48 hours of dispatches that have been captured locally. This can be used to determine why [is dispatching](./entities/intelligent.md#is-dispatching) or [off peak](./entities/electricity.md#off-peak) might have turned on during a certain time period.
 
@@ -93,7 +97,7 @@ Retrieve the Smart Charging dispatch history which was active for a given point 
 
 ## Sunday Saver
 
-### edf_energy.join_sunday_saver
+### edfenergy_uk.join_sunday_saver
 
 Manually opt an account into the current month's Sunday Saver challenge. This is useful if you have disabled [automatic enrolment](./setup/account.md#sunday-saver) and prefer to manage it yourself.
 
@@ -105,7 +109,7 @@ If the account is already enrolled, the service exits silently without making an
 
 ## Flextras
 
-### edf_energy.join_flextras
+### edfenergy_uk.join_flextras
 
 Joins an account to Flextras, EDF's rewards scheme, without opening the mobile app. Safe to run on an account that has previously opted out: bonus hours, tastecard and Power Perks registration all survive, though the registration date resets to the day of rejoining. On success the Flextras coordinator is refreshed so the membership entities update straight away.
 
@@ -115,7 +119,7 @@ Joins an account to Flextras, EDF's rewards scheme, without opening the mobile a
 
 ## Power Perks
 
-### edf_energy.register_power_perks_session
+### edfenergy_uk.register_power_perks_session
 
 Records a Flextras Power Perks free electricity session so it appears in the [free electricity calendar](./entities/free_electricity.md), the session sensors and the session events, exactly like a session picked up automatically.
 
@@ -129,11 +133,11 @@ EDF announce Power Perks sessions by SMS the day before and nowhere else, so the
 
 ## Miscellaneous
 
-### edf_energy.purge_invalid_external_statistic_ids
+### edfenergy_uk.purge_invalid_external_statistic_ids
 
 For removing all external statistics that are associated with meters that don't have an active tariff. This is useful if you've been using the integration and obtained new smart meters.
 
-### edf_energy.refresh_previous_consumption_data
+### edfenergy_uk.refresh_previous_consumption_data
 
 For refreshing the consumption/cost information for a given previous consumption entity. This is useful when you've just installed the integration and want old data brought in or a previous consumption sensor fails to import (e.g. data becomes available outside of the configured offset). The service will raise a notification when the refreshing starts and finishes.
 

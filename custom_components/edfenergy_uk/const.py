@@ -1,0 +1,288 @@
+from datetime import timedelta
+
+DOMAIN = "edfenergy_uk"
+INTEGRATION_VERSION = "21.0.0"
+
+REFRESH_RATE_IN_MINUTES_ACCOUNT = 360 # 6 hours
+REFRESH_RATE_IN_MINUTES_INTELLIGENT = 3
+REFRESH_RATE_IN_MINUTES_INTELLIGENT_DEVICE = 360 # 6 hours
+REFRESH_RATE_IN_MINUTES_RATES = 15
+REFRESH_RATE_IN_MINUTES_PREVIOUS_CONSUMPTION = 30
+REFRESH_RATE_IN_MINUTES_STANDING_CHARGE = 60
+REFRESH_RATE_IN_MINUTES_SUNDAY_SAVER = 60
+REFRESH_RATE_IN_MINUTES_FLEXTRAS = 60
+REFRESH_RATE_IN_MINUTES_EVENT_FREE_ELECTRICITY = 240
+REFRESH_RATE_IN_MINUTES_FREE_ELECTRICITY_SESSIONS = 60
+# Statements are issued monthly and the balance moves once a day at most, so this is as
+# often as it is worth asking. The panel refetches on demand when a tab is opened.
+REFRESH_RATE_IN_MINUTES_BILLING = 120
+# EDF text Power Perks sessions the day before, occasionally the same day, so the relay is
+# polled often enough that a same-day text still lands well ahead of the window.
+REFRESH_RATE_IN_MINUTES_POWER_PERKS = 15
+
+# How much completed dispatch history the dispatches store (and therefore the panel) keeps.
+INTELLIGENT_DISPATCH_RETENTION_IN_DAYS = 60
+
+# Backstops for the dispatch history store. Each history entry used to carry a full copy of
+# the 60 day completed dispatch list, which made the file grow with entries * completed and
+# reach gigabytes for some users - large enough to OOM Home Assistant when loaded. Entries no
+# longer store completed dispatches, and these two caps bound the damage if anything else
+# regresses.
+MAX_INTELLIGENT_DISPATCH_HISTORY_ENTRIES = 5000
+MAX_INTELLIGENT_DISPATCH_HISTORY_FILE_SIZE_IN_BYTES = 20 * 1024 * 1024 # 20MB
+
+CONFIG_VERSION = 9
+
+CONFIG_KIND = "kind"
+CONFIG_KIND_ACCOUNT = "account"
+CONFIG_KIND_TARGET_RATE = "target_rate"
+CONFIG_KIND_ROLLING_TARGET_RATE = "rolling_target_rate"
+CONFIG_KIND_COST_TRACKER = "cost_tracker"
+CONFIG_KIND_TARIFF_COMPARISON = "tariff_comparison"
+
+CONFIG_MAIN_OLD_API_KEY = "Api key"
+CONFIG_MAIN_OLD_ACCOUNT_ID = "Account Id"
+
+CONFIG_MAIN_API_KEY = "api_key"  # kept for migration only
+CONFIG_MAIN_EMAIL = "email"
+CONFIG_MAIN_REFRESH_TOKEN = "refresh_token"
+CONFIG_ACCOUNT_ID = "account_id"
+CONFIG_MAIN_CALORIFIC_VALUE = "calorific_value"
+CONFIG_MAIN_PRICE_CAP_SETTINGS = "price_cap_settings"
+CONFIG_MAIN_ELECTRICITY_PRICE_CAP = "electricity_price_cap"
+CONFIG_MAIN_GAS_PRICE_CAP = "gas_price_cap"
+CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES = "favour_direct_debit_rates"
+CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS = "auto_discover_cost_trackers"
+CONFIG_MAIN_INTELLIGENT_SETTINGS = "intelligent_settings"
+CONFIG_MAIN_MANUAL_TARIFF_RATES = "manual_tariff_rates"
+CONFIG_MANUAL_TARIFF_PEAK_RATE = "peak_rate_inc_vat"
+CONFIG_MANUAL_TARIFF_OFF_PEAK_RATE = "off_peak_rate_inc_vat"
+CONFIG_MANUAL_TARIFF_STANDING_CHARGE = "standing_charge_inc_vat"
+CONFIG_MAIN_INTELLIGENT_MANUAL_DISPATCHES = "intelligent_manual_dispatches"
+CONFIG_MAIN_INTELLIGENT_RATE_MODE = "intelligent_rate_mode"
+CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES = "pending_and_started_dispatches"
+CONFIG_MAIN_INTELLIGENT_RATE_MODE_STARTED_DISPATCHES_ONLY = "started_dispatches_only"
+CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES = "intelligent_minimum_dispatch_duration_in_minutes"
+CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES = 0
+CONFIG_MAIN_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = "intelligent_dispatch_history_retention_in_days"
+CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = 7
+CONFIG_MIN_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = 1
+CONFIG_MAX_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS = 60
+CONFIG_MAIN_FOOTBALL_FREE_ELECTRICITY = "football_free_electricity_enabled"
+CONFIG_MAIN_SUNDAY_SAVER_AUTO_ENROL = "sunday_saver_auto_enrol"
+CONFIG_MAIN_POWER_PERKS_RELAY = "power_perks_relay_enabled"
+
+# Beta features are off unless the user asks for them in the options. They are things that
+# work but are not finished - shapes that may still change, and data that is worth a second
+# pair of eyes before everybody gets it.
+CONFIG_MAIN_SHOW_ACCOUNT_TAB = "show_account_tab_beta"
+
+CONFIG_COST_TRACKER_NAME = "name"
+CONFIG_COST_TRACKER_MPAN = "mpan"
+CONFIG_COST_TRACKER_TARGET_ENTITY_ID = "target_entity_id"
+CONFIG_COST_TRACKER_ENTITY_ACCUMULATIVE_VALUE = "entity_accumulative_value"
+CONFIG_COST_TRACKER_WEEKDAY_RESET = "weekday_reset"
+CONFIG_COST_TRACKER_MONTH_DAY_RESET = "month_day_reset"
+CONFIG_COST_TRACKER_MANUAL_RESET = "manual_reset"
+CONFIG_COST_TRACKER_DISCOVERY_NAME = "discovery_name"
+CONFIG_COST_TRACKER_DISCOVERY_ACCOUNT_ID = "account_id"
+
+CONFIG_TARIFF_COMPARISON_NAME = "name"
+CONFIG_TARIFF_COMPARISON_MPAN_MPRN = "mpan_mprn"
+CONFIG_TARIFF_COMPARISON_PRODUCT_CODE = "product_code"
+CONFIG_TARIFF_COMPARISON_TARIFF_CODE = "tariff_code"
+
+DATA_CONFIG = "CONFIG"
+DATA_ELECTRICITY_RATES_COORDINATOR_KEY = "ELECTRICITY_RATES_COORDINATOR_{}_{}"
+DATA_ELECTRICITY_RATES_KEY = "ELECTRICITY_RATES_{}_{}"
+DATA_CLIENT = "CLIENT"
+DATA_GAS_TARIFF_CODE = "GAS_TARIFF_CODE"
+DATA_ACCOUNT = "ACCOUNT"
+DATA_ACCOUNT_COORDINATOR = "ACCOUNT_COORDINATOR"
+DATA_KNOWN_TARIFF = "KNOWN_TARIFF"
+DATA_GAS_RATES_COORDINATOR_KEY = "DATA_GAS_RATES_COORDINATOR_{}_{}"
+DATA_GAS_RATES_KEY = "GAS_RATES_{}_{}"
+DATA_INTELLIGENT_DEVICES = "INTELLIGENT_DEVICES"
+DATA_INTELLIGENT_DEVICE_COORDINATOR = "INTELLIGENT_DEVICE_COORDINATOR"
+DATA_INTELLIGENT_DISPATCHES = "INTELLIGENT_DISPATCHES"
+DATA_INTELLIGENT_DISPATCHES_COORDINATOR = "INTELLIGENT_DISPATCHES_COORDINATOR_{}"
+DATA_INTELLIGENT_SETTINGS = "INTELLIGENT_SETTINGS_{}"
+DATA_INTELLIGENT_SETTINGS_COORDINATOR = "INTELLIGENT_SETTINGS_COORDINATOR_{}"
+DATA_ELECTRICITY_STANDING_CHARGE_KEY = "ELECTRICITY_STANDING_CHARGES_{}_{}"
+DATA_GAS_STANDING_CHARGE_KEY = "GAS_STANDING_CHARGES_{}_{}"
+DATA_CURRENT_CONSUMPTION_KEY = "CURRENT_CONSUMPTION_{}"
+DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY = "DATA_PREVIOUS_CONSUMPTION_AND_COST_COORDINATOR_{}_{}"
+DATA_DISCOVERY_MANAGER = "DATA_DISCOVERY_MANAGER"
+DATA_SUNDAY_SAVER = "SUNDAY_SAVER_{}"
+DATA_SUNDAY_SAVER_COORDINATOR = "SUNDAY_SAVER_COORDINATOR_{}"
+DATA_FLEXTRAS = "FLEXTRAS_{}"
+DATA_FLEXTRAS_COORDINATOR = "FLEXTRAS_COORDINATOR_{}"
+DATA_EVENT_FREE_ELECTRICITY = "EVENT_FREE_ELECTRICITY_{}"
+DATA_EVENT_FREE_ELECTRICITY_COORDINATOR = "EVENT_FREE_ELECTRICITY_COORDINATOR_{}"
+
+# Authoritative "did this match go to extra time?" relay (reads ESPN, latches the
+# outcome). Consulted only while an eligible match is in its extra-time window; if it
+# is unreachable the free window simply stays at the standard 2 hours.
+EXTRA_TIME_RELAY_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=status"
+RELAY_FIXTURES_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=fixtures"
+
+# Power Perks free electricity sessions. EDF announce these by SMS only, so the text is
+# relayed to this endpoint (see tools/power_perks_relay) which parses it and publishes
+# the sessions. If it is unreachable the last known sessions are kept.
+POWER_PERKS_FEED_URL = "https://apirelay.sitetest.org.uk/power_perks.php?action=sessions"
+
+# Steve's Power Perks Predictor. Read only while its tab is open - there is no coordinator
+# and no polling, so an install that never opens the tab never contacts the site at all.
+POWER_PERKS_PREDICTOR_SITE = "https://powerperkspredictor.app"
+POWER_PERKS_PREDICTOR_OUTLOOK_URL = f"{POWER_PERKS_PREDICTOR_SITE}/outlook.json"
+POWER_PERKS_PREDICTOR_TOMORROW_URL = f"{POWER_PERKS_PREDICTOR_SITE}/tomorrow.json"
+POWER_PERKS_PREDICTOR_SCORES_URL = f"{POWER_PERKS_PREDICTOR_SITE}/scores.json"
+# Opening and closing the tab, or flicking between tabs, must not refetch each time.
+PREDICTOR_CACHE_MINUTES = 15
+DATA_PREDICTOR = "PREDICTOR_CACHE"
+DATA_FLEXTRAS_HOURS = "FLEXTRAS_HOURS_{}"
+DATA_FLEXTRAS_HOURS_COORDINATOR = "FLEXTRAS_HOURS_COORDINATOR_{}"
+# Bookings can be changed up to the Thursday before, so this is polled more often than the
+# hour-ish most things use, without being so eager it hammers EDF.
+REFRESH_RATE_IN_MINUTES_FLEXTRAS_HOURS = 30
+
+DATA_BILLING = "BILLING_{}"
+DATA_BILLING_COORDINATOR = "BILLING_COORDINATOR_{}"
+
+DATA_POWER_PERKS = "POWER_PERKS_{}"
+DATA_POWER_PERKS_COORDINATOR = "POWER_PERKS_COORDINATOR_{}"
+DATA_POWER_PERKS_MANUAL_SESSIONS = "POWER_PERKS_MANUAL_SESSIONS_{}"
+DATA_FREE_ELECTRICITY_SESSIONS = "FREE_ELECTRICITY_SESSIONS_{}"
+DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR = "FREE_ELECTRICITY_SESSIONS_COORDINATOR_{}"
+DATA_FREE_ELECTRICITY_SESSIONS_HISTORY = "FREE_ELECTRICITY_SESSIONS_HISTORY_{}"
+
+
+STORAGE_ELECTRICITY_TARIFF_OVERRIDE_NAME = "edf_energy.{}-{}-tariff-override.json"
+STORAGE_TARIFF_CACHE_NAME = "edf_energy.tariff-{}.json"
+STORAGE_METER_DEBUG_OVERRIDE_NAME = "edf_energy.{}-{}-override.json"
+STORAGE_ACCOUNT_DEBUG_OVERRIDE_NAME = "edf_energy.{}-override.json"
+
+INTELLIGENT_SOURCE_SMART_CHARGE_OPTIONS = ["smart-charge", "smart"]
+INTELLIGENT_SOURCE_BUMP_CHARGE_OPTIONS = ["bump-charge", "boost"]
+REGEX_HOURS = "^[0-9]+(\\.[0-9]+)*$"
+REGEX_TIME = "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+REGEX_ENTITY_NAME = "^[a-z0-9_]+$"
+# According to https://www.guylipman.com/octopus/api_guide.html#s1b, this part should indicate the types of tariff
+# However it looks like there are some tariffs that don't fit this mold
+REGEX_TARIFF_PARTS = "^((?P<energy>[A-Z])-(?P<rate>[0-9A-Z]+)-)?(?P<product_code>[A-Z0-9_-]+)-(?P<region>[A-Z])$"
+REGEX_OFFSET_PARTS = "^(-)?([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$"
+REGEX_DATE = "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+REGEX_PRICE = "^(-)?[0-9]+(\\.[0-9]+)*$"
+
+REGEX_WEIGHTING_NUMBERS = "([0-9]+\\.?[0-9]*(,[0-9]+\\.?[0-9]*+)*)"
+REGEX_WEIGHTING_START = "(\\*(,[0-9]+\\.?[0-9]*+)+)"
+REGEX_WEIGHTING_MIDDLE = "([0-9]+\\.?[0-9]*(,[0-9]+\\.?[0-9]*+)*(,\\*)(,[0-9]+\\.?[0-9]*+)+)"
+REGEX_WEIGHTING_END = "([0-9]+\\.?[0-9]*(,[0-9]+\\.?[0-9]*+)*(,\\*))"
+REGEX_WEIGHTING = f"^({REGEX_WEIGHTING_NUMBERS}|{REGEX_WEIGHTING_START}|{REGEX_WEIGHTING_MIDDLE}|{REGEX_WEIGHTING_END})$"
+
+DEFAULT_CALORIFIC_VALUE = 40.0
+
+# Some tariffs have a fixed off-peak window but the API only publishes the rates a day at a
+# time, so a window that spans midnight (e.g. Go Electric's 23:00 -> 06:00) gets truncated at
+# the edge of the available data until the next day's rates land. We use these known windows
+# as a fallback for the end time in that case - the API is still used whenever the data is
+# actually there. Keyed by a substring that appears in the tariff code; the value is the local
+# (hour, minute) the off-peak window starts and finishes.
+KNOWN_OFF_PEAK_WINDOWS = {
+  "GOELEC": { "start": (23, 0), "end": (6, 0) },
+}
+
+EVENT_ELECTRICITY_PREVIOUS_DAY_RATES = "edf_energy_electricity_previous_day_rates"
+EVENT_ELECTRICITY_CURRENT_DAY_RATES = "edf_energy_electricity_current_day_rates"
+EVENT_ELECTRICITY_NEXT_DAY_RATES = "edf_energy_electricity_next_day_rates"
+EVENT_ELECTRICITY_PREVIOUS_CONSUMPTION_RATES = "edf_energy_electricity_previous_consumption_rates"
+EVENT_ELECTRICITY_PREVIOUS_CONSUMPTION_TARIFF_COMPARISON_RATES = "edf_energy_elec_previous_consumption_tariff_comparison_rates"
+
+EVENT_GAS_PREVIOUS_DAY_RATES = "edf_energy_gas_previous_day_rates"
+EVENT_GAS_CURRENT_DAY_RATES = "edf_energy_gas_current_day_rates"
+EVENT_GAS_NEXT_DAY_RATES = "edf_energy_gas_next_day_rates"
+EVENT_GAS_PREVIOUS_CONSUMPTION_RATES = "edf_energy_gas_previous_consumption_rates"
+EVENT_GAS_PREVIOUS_CONSUMPTION_TARIFF_COMPARISON_RATES = "edf_energy_gas_previous_consumption_tariff_comparison_rates"
+
+
+EVENT_TARGET_TIMEFRAME_UPDATE_DATA_SOURCE = "target_timeframe_update_data_source"
+EVENT_TARGET_TIMEFRAME_UPDATE_DATA_SOURCE_ID = "edf_energy_{}_{}"
+
+EVENT_NEW_FREE_ELECTRICITY_SESSION = "edf_energy_new_free_electricity_session"
+EVENT_ALL_FREE_ELECTRICITY_SESSIONS = "edf_energy_all_free_electricity_sessions"
+
+SERVICE_SET_FOOTBALL_FREE_ELECTRICITY = "set_football_free_electricity"
+SERVICE_JOIN_SUNDAY_SAVER = "join_sunday_saver"
+SERVICE_CLAIM_FLEXTRAS_BONUS_HOURS = "claim_flextras_bonus_hours"
+SERVICE_REGISTER_POWER_PERKS = "register_power_perks"
+SERVICE_JOIN_FLEXTRAS = "join_flextras"
+SERVICE_BOOK_FLEXTRAS_HOURS = "book_flextras_hours"
+SERVICE_CANCEL_FLEXTRAS_HOURS = "cancel_flextras_hours"
+SERVICE_REGISTER_POWER_PERKS_SESSION = "register_power_perks_session"
+SERVICE_PURGE_FREE_ELECTRICITY_EVENT_HISTORY = "purge_free_electricity_event_history"
+
+REPAIR_UNIQUE_RATES_CHANGED_KEY = "electricity_unique_rates_updated_{}"
+REPAIR_INVALID_API_KEY = "invalid_api_key_{}"
+REPAIR_ACCOUNT_NOT_FOUND = "account_not_found_{}"
+REPAIR_UNKNOWN_INTELLIGENT_PROVIDER = "unknown_intelligent_provider_{}"
+REPAIR_NO_ACTIVE_TARIFF = "no_active_tariff_{}_{}"
+REPAIR_INTELLIGENT_DEVICE_NOT_FOUND = "intelligent_device_not_found_{}"
+REPAIR_INTELLIGENT_DEVICE_CHANGED = "intelligent_device_changed_{}"
+REPAIR_INTELLIGENT_DEVICE_ADDED = "intelligent_device_added_{}"
+REPAIR_INTELLIGENT_DEVICE_REMOVED = "intelligent_device_removed_{}"
+REPAIR_TARIFF_RATES_EMPTY = "tariff_rates_empty_{}_{}"
+REPAIR_TARGET_RATE_NOT_SUPPORTED = "target_rate_not_supported"
+REPAIR_AUTH_TOKEN_EXPIRING_SOON = "auth_token_expiring_soon_{}"
+REPAIR_API_KEY_NEEDED = "api_key_needed_{}"
+# Raised once this integration is running and the folder it replaced is still on disk.
+# Nothing is broken at that point - the old folder holds no config entries any more, so
+# it loads nothing - it is simply tidying up.
+REPAIR_OLD_FOLDER_PRESENT = "old_folder_present"
+
+# Where this integration used to live. HACS works out where to put an integration from the
+# domain in its manifest, so 21.0.0 installs into a new directory and leaves the old one
+# behind. 20.1.0 stands itself down when it sees this one installed alongside, so the two
+# never both load - but anybody who skipped it has an old folder with no such guard, and
+# both loading means every entity collides with its twin and comes back with a "_2" suffix.
+# That is the broken automations the rename exists to avoid, so when the leftover folder is
+# older than the release that knows to stand down, nothing here loads either until it is
+# removed. See _blocking_predecessor.
+DATA_MIGRATION = "MIGRATION_FROM_OLD_DOMAIN"
+PREDECESSOR_DOMAIN = "edf_energy"
+
+# External statistics are keyed by `{source}:{id}` and the recorder cannot rename them: its
+# own update_statistic_id filters on `source == "recorder"`, so a rename of anything with a
+# source of its own matches no rows and reports success. The history is years of Energy
+# dashboard cost data, so the ids stay exactly as they were written and keep the old prefix
+# for good. Nothing a user sees carries it, and new installs get the same ids as everybody
+# else rather than a second variant to support.
+STATISTICS_SOURCE = PREDECESSOR_DOMAIN
+REPAIR_FREE_ELECTRICITY_EVENT_HISTORY = "free_electricity_event_history_{}"
+
+# Roughly a week of the pre-18.9.8 once-a-minute writes. Below this there's little to reclaim and
+# the repair would be more noise than help.
+FREE_ELECTRICITY_EVENT_HISTORY_ROW_THRESHOLD = 10000
+
+DATA_AUTH_TOKEN_EXPIRY = "AUTH_TOKEN_EXPIRY_{}"
+DATA_FOOTBALL_ENROLLMENT = "FOOTBALL_ENROLLMENT_{}"
+CONFIG_MAIN_REFRESH_EXPIRES_IN = "refresh_expires_in"
+
+# During BST, two records are returned before the rest of the data is available
+MINIMUM_CONSUMPTION_DATA_LENGTH = 3
+# Enough slots to hold a whole day plus the start of the one after, including the fifty slot
+# day the clocks go back.
+CONSUMPTION_PAGE_SIZE = 56
+# How far back we are willing to go looking for days missing from the statistics, and how old
+# a day has to be before it is treated as missing rather than merely late. EDF publish a day
+# or two in arrears, so anything younger than this says nothing.
+GAP_RETENTION_DAYS = 90
+GAP_MINIMUM_AGE = timedelta(hours=72)
+# How long a day is worth re-asking EDF for. Past this it is still reported, so it does not
+# disappear quietly, but we stop spending calls on a day EDF are plainly never going to fill.
+GAP_MAXIMUM_AGE = timedelta(days=30)
+
+COORDINATOR_REFRESH_IN_SECONDS = 60
+DISCOVERY_REFRESH_IN_HOURS = 2
+
+INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLES = "ELECTRIC_VEHICLES"
+INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLE_CHARGERS = "ELECTRIC_VEHICLE_CHARGERS"

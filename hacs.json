@@ -1,5 +1,5 @@
 {
-  "name": "EDF Energy",
+  "name": "EDF Energy (UK)",
   "country": ["GB"],
   "render_readme": true,
   "homeassistant": "2025.11.0",

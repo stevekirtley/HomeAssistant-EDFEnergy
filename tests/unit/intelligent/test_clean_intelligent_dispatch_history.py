@@ -1,10 +1,10 @@
 import json
 from datetime import datetime, timedelta
 
-from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
-from custom_components.edf_energy.const import CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS
-from custom_components.edf_energy.intelligent import clean_intelligent_dispatch_history, summarise_dispatches_for_history
-from custom_components.edf_energy.storage.intelligent_dispatches_history import IntelligentDispatchesHistory, IntelligentDispatchesHistoryItem
+from custom_components.edfenergy_uk.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
+from custom_components.edfenergy_uk.const import CONFIG_DEFAULT_INTELLIGENT_DISPATCH_HISTORY_RETENTION_IN_DAYS
+from custom_components.edfenergy_uk.intelligent import clean_intelligent_dispatch_history, summarise_dispatches_for_history
+from custom_components.edfenergy_uk.storage.intelligent_dispatches_history import IntelligentDispatchesHistory, IntelligentDispatchesHistoryItem
 
 
 def build_dispatch(start: datetime, source: str = "smart-charge"):

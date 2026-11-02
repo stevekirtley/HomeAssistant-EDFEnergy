@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta
-from custom_components.edf_energy.storage.intelligent_dispatches_history import IntelligentDispatchesHistory, IntelligentDispatchesHistoryItem
+from custom_components.edfenergy_uk.storage.intelligent_dispatches_history import IntelligentDispatchesHistory, IntelligentDispatchesHistoryItem
 import pytest
 import mock
 
-from custom_components.edf_energy.const import INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLE_CHARGERS, REFRESH_RATE_IN_MINUTES_INTELLIGENT
-from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
-from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
-from custom_components.edf_energy.api_client.intelligent_device import IntelligentDevice
-from custom_components.edf_energy.intelligent import mock_intelligent_devices, mock_intelligent_dispatches
-from custom_components.edf_energy.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult, async_refresh_intelligent_dispatches
+from custom_components.edfenergy_uk.const import INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLE_CHARGERS, REFRESH_RATE_IN_MINUTES_INTELLIGENT
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edfenergy_uk.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
+from custom_components.edfenergy_uk.api_client.intelligent_device import IntelligentDevice
+from custom_components.edfenergy_uk.intelligent import mock_intelligent_devices, mock_intelligent_dispatches
+from custom_components.edfenergy_uk.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult, async_refresh_intelligent_dispatches
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
 last_retrieved = datetime.strptime("2023-07-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")

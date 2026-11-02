@@ -7,16 +7,16 @@ told to charge for power that was not coming.
 """
 from datetime import datetime, timedelta
 
-from custom_components.edf_energy.api_client.free_electricity_sessions import FreeElectricitySession
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk.api_client.free_electricity_sessions import FreeElectricitySession
+from custom_components.edfenergy_uk.const import (
   DATA_FLEXTRAS,
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
   DATA_POWER_PERKS,
   DOMAIN,
 )
-from custom_components.edf_energy.coordinators.flextras import FlextrasCoordinatorResult
-from custom_components.edf_energy.coordinators.power_perks import PowerPerksCoordinatorResult
-from custom_components.edf_energy.coordinators.free_electricity_sessions import (
+from custom_components.edfenergy_uk.coordinators.flextras import FlextrasCoordinatorResult
+from custom_components.edfenergy_uk.coordinators.power_perks import PowerPerksCoordinatorResult
+from custom_components.edfenergy_uk.coordinators.free_electricity_sessions import (
   refresh_free_electricity_sessions,
 )
 

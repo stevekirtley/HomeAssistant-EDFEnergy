@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from custom_components.edf_energy import _agreements_for_panel, websocket_account_summary
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk import _agreements_for_panel, websocket_account_summary
+from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,

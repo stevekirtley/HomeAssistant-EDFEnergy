@@ -8,8 +8,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from custom_components.edf_energy.coordinators import sunday_saver as ss
-from custom_components.edf_energy.coordinators.sunday_saver import (
+from custom_components.edfenergy_uk.coordinators import sunday_saver as ss
+from custom_components.edfenergy_uk.coordinators.sunday_saver import (
   SundaySaverCoordinatorResult,
   async_refresh_sunday_saver,
 )

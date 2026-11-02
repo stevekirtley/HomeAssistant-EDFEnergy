@@ -3,8 +3,8 @@ import pytest
 from tests.unit import create_rate_data
 
 from unit import (create_consumption_data)
-from custom_components.edf_energy.gas import calculate_gas_consumption_and_cost
-from custom_components.edf_energy.api_client import EDFEnergyApiClient
+from custom_components.edfenergy_uk.gas import calculate_gas_consumption_and_cost
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient
 
 @pytest.mark.asyncio
 async def test_when_gas_consumption_is_none_then_no_calculation_is_returned():

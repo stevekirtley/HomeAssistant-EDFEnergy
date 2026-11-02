@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-TRANSLATIONS = Path("custom_components/edf_energy/translations/en.json")
+TRANSLATIONS = Path("custom_components/edfenergy_uk/translations/en.json")
 
 
 def _issues():

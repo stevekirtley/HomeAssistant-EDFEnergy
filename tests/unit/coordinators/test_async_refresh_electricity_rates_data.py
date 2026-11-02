@@ -4,13 +4,13 @@ import mock
 
 from unit import (create_rate_data)
 from tests.unit.coordinators import assert_raised_target_timeframe_update_event
-from custom_components.edf_energy.api_client import EDFEnergyApiClient, RequestException
-from custom_components.edf_energy.coordinators.electricity_rates import ElectricityRatesCoordinatorResult, async_refresh_electricity_rates_data
-from custom_components.edf_energy.const import EVENT_ELECTRICITY_CURRENT_DAY_RATES, EVENT_ELECTRICITY_NEXT_DAY_RATES, EVENT_ELECTRICITY_PREVIOUS_DAY_RATES, REFRESH_RATE_IN_MINUTES_RATES
-from custom_components.edf_energy.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
-from custom_components.edf_energy.api_client.intelligent_device import IntelligentDevice
-from custom_components.edf_energy.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
-from custom_components.edf_energy.storage.intelligent_dispatches_history import IntelligentDispatchesHistory
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient, RequestException
+from custom_components.edfenergy_uk.coordinators.electricity_rates import ElectricityRatesCoordinatorResult, async_refresh_electricity_rates_data
+from custom_components.edfenergy_uk.const import EVENT_ELECTRICITY_CURRENT_DAY_RATES, EVENT_ELECTRICITY_NEXT_DAY_RATES, EVENT_ELECTRICITY_PREVIOUS_DAY_RATES, REFRESH_RATE_IN_MINUTES_RATES
+from custom_components.edfenergy_uk.api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
+from custom_components.edfenergy_uk.api_client.intelligent_device import IntelligentDevice
+from custom_components.edfenergy_uk.coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult
+from custom_components.edfenergy_uk.storage.intelligent_dispatches_history import IntelligentDispatchesHistory
 from zoneinfo import ZoneInfo
 
 current = datetime.strptime("2023-07-14T10:30:01+01:00", "%Y-%m-%dT%H:%M:%S%z")
@@ -2093,7 +2093,7 @@ async def test_when_rates_change_correctly_then_unique_rates_changed_event_fired
   ([1, 2, 3, 4, 5, 6], [1, 2, 3]),
 ])
 async def test_when_freephase_dynamic_tariff_and_rates_change_then_unique_rates_changed_not_fired(current_unique_rates: list, previous_unique_rates: list):
-  freephase_tariff_code = "E-1R-EDF_FREEPHASE_DYNAMIC_12M_HH-A"
+  freephase_tariff_code = "E-1R-EDF_FREEPHASE_DYNAMIC_12M_V2_HH-A"
   expected_period_from = (current - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
   expected_period_to = (current + timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
   expected_rates = create_rate_data(expected_period_from, expected_period_to, current_unique_rates, freephase_tariff_code)
@@ -2119,7 +2119,7 @@ async def test_when_freephase_dynamic_tariff_and_rates_change_then_unique_rates_
     unique_rates_changed_called = True
     return None
 
-  account_info = get_account_info(tariff_code=freephase_tariff_code, product_code="EDF_FREEPHASE_DYNAMIC_12M_HH")
+  account_info = get_account_info(tariff_code=freephase_tariff_code, product_code="EDF_FREEPHASE_DYNAMIC_12M_V2_HH")
   existing_rates = ElectricityRatesCoordinatorResult(period_from, 1, create_rate_data(period_from, period_to, previous_unique_rates, freephase_tariff_code))
 
   with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):

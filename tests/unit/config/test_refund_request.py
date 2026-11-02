@@ -6,8 +6,8 @@ account EDF have already said no to is refused before anything is sent.
 """
 import pytest
 
-from custom_components.edf_energy import websocket_request_refund
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk import websocket_request_refund
+from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,

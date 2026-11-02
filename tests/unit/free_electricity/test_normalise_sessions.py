@@ -1,15 +1,15 @@
 from datetime import datetime, timezone, timedelta
 import pytest
 
-from custom_components.edf_energy.api_client.free_electricity_sessions import FreeElectricitySession
-from custom_components.edf_energy.coordinators.free_electricity_sessions import (
+from custom_components.edfenergy_uk.api_client.free_electricity_sessions import FreeElectricitySession
+from custom_components.edfenergy_uk.coordinators.free_electricity_sessions import (
   _normalise_sunday_saver,
   _normalise_football,
   _merge_sessions,
   _todays_sessions,
   _sessions_equal,
 )
-from custom_components.edf_energy.storage.free_electricity_sessions_history import (
+from custom_components.edfenergy_uk.storage.free_electricity_sessions_history import (
   merge_free_electricity_sessions,
 )
 
@@ -137,8 +137,16 @@ class TestMergeFreeElectricitySessionsHistory:
     assert len(result) == 1
     assert result[0].end == extended.end
 
+  def test_sessions_within_retention_are_kept_so_old_months_can_still_be_read(self):
+    """A promotion leaves no mark on the statistics, so these windows are the only record
+    that one happened. A month from last year cannot be told what was free without them."""
+    last_year = _session("2025-04-01T19:00:00+00:00", "2025-04-01T21:00:00+00:00", "last_year")
+    recent = _session("2026-06-15T19:00:00+00:00", "2026-06-15T21:00:00+00:00", "new")
+    result = merge_free_electricity_sessions([last_year, recent], [], self._now)
+    assert [x.code for x in result] == ["last_year", "new"]
+
   def test_sessions_older_than_retention_are_purged(self):
-    stale = _session("2026-04-01T19:00:00+00:00", "2026-04-01T21:00:00+00:00", "old")
+    stale = _session("2013-04-01T19:00:00+00:00", "2013-04-01T21:00:00+00:00", "old")
     recent = _session("2026-06-15T19:00:00+00:00", "2026-06-15T21:00:00+00:00", "new")
     result = merge_free_electricity_sessions([stale, recent], [], self._now)
     assert [x.code for x in result] == ["new"]
@@ -193,3 +201,26 @@ class TestSessionsEqual:
     s1 = _session("2024-01-07T10:00:00+00:00", "2024-01-07T12:00:00+00:00", "a")
     s2 = _session("2024-01-07T11:00:00+00:00", "2024-01-07T12:00:00+00:00", "a")
     assert _sessions_equal([s1], [s2]) is False
+
+
+class TestSessionHistoryIsBounded:
+  _now = datetime.fromisoformat("2026-06-15T15:00:00+00:00")
+
+  def test_the_history_is_capped_however_many_arrive(self):
+    """Time alone bounded the off peak history and it still grew, because planned dispatches
+    churn. A bookable scheme writes a code per slot, so a count limit backs up the date one."""
+    from custom_components.edfenergy_uk.storage.free_electricity_sessions_history import (
+      _RETENTION_COUNT,
+    )
+    many = [
+      _session(
+        (self._now - timedelta(days=1) + timedelta(minutes=i)).isoformat(),
+        (self._now - timedelta(days=1) + timedelta(minutes=i + 30)).isoformat(),
+        f"slot_{i}",
+      )
+      for i in range(_RETENTION_COUNT + 50)
+    ]
+    result = merge_free_electricity_sessions(many, [], self._now)
+    assert len(result) == _RETENTION_COUNT
+    # The newest survive, because those are the ones a bill is still being checked against.
+    assert result[-1].code == f"slot_{_RETENTION_COUNT + 49}"

@@ -1,5 +1,15 @@
 # Home Assistant EDF Energy
 
+> ## Updating to 21.0.0? There is one step to finish by hand
+>
+> Version 21 moves the integration into a new folder and nothing moves across on its own.
+> What you do depends on the version you are coming from, so follow the guide - it has
+> screenshots of every prompt:
+>
+> **[Updating To Version 21](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/migrations/version_21/)**
+>
+> On **20.1.0**, update to **20.1.1 first** and restart. Going straight to version 21 stops the
+> integration loading and every entity goes unavailable until the move is finished by hand.
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/stevekirtley)
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=github)](https://github.com/sponsors/stevekirtley)
@@ -50,34 +60,29 @@ Everything else — electricity and gas sensors, rates, standing charges, consum
 
 ## How to install
 
-### HACS (recommended)
+### HACS
 
-Add this repository as a custom HACS repository:
-
-1. In HACS, go to **Integrations → ⋮ → Custom repositories**
+1. In HACS, go to **Integrations > ... > Custom repositories**
 2. Add `https://github.com/stevekirtley/HomeAssistant-EDFEnergy` with category **Integration**
-3. Search for **EDF Energy** and click **Download**
+3. Search for **EDF Energy (UK)** and click **Download**
 4. Restart Home Assistant
 
 ### Manual
 
-1. Copy the `custom_components/edf_energy` folder into your Home Assistant `custom_components` directory.
-2. Restart Home Assistant.
+Copy the `custom_components/edfenergy_uk` folder into your Home Assistant `custom_components`
+directory and restart.
 
-## How to setup
+## How to set up
 
-Go to **Settings → Devices & Services → Add Integration → EDF Energy**.
+Go to **Settings > Devices & Services > Add Integration > EDF Energy (UK)**. You will need your
+EDF Energy email address and password, and your account number (format `A-AAAA1111`), which is in
+the EDF Energy app under **Account** or at the top of any bill.
 
-You will need:
+Your password is used once to generate an API key and is never stored. Everything else - the
+Energy dashboard, cost trackers, tariff comparison, the account tab and the rest - is covered in
+the documentation:
 
-- Your EDF Energy **email address** and **password** (the same credentials you use to log in to the EDF Energy app or website)
-- Your EDF Energy **account number** (format `A-AAAA1111`) — found in the EDF Energy app under **Account**, or at the top of any bill
-
-The integration authenticates with the EDF Energy Kraken API using your email and password. On first setup, an API key is generated and stored securely in Home Assistant — your password is used only once and is never stored.
-
-## FAQ
-
-See the [EDF Energy integration docs](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/).
+**[Documentation](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/)**
 
 ## Sponsorship 
 
@@ -92,4 +97,4 @@ We'll each get £50 credited to our account.
 ---
 
 [![GitHub Stars](https://img.shields.io/github/stars/stevekirtley/HomeAssistant-EDFEnergy?style=flat&label=GitHub%20stars)](https://github.com/stevekirtley/HomeAssistant-EDFEnergy)
-[![HA Analytics](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=active%20installs&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.edf_energy.total)](https://analytics.home-assistant.io)
+[![HA Analytics](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=active%20installs&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.edfenergy_uk.total)](https://analytics.home-assistant.io)

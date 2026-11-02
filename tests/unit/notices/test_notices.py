@@ -1,8 +1,8 @@
 import pytest
 
-from custom_components.edf_energy.notices import _is_newer, build_release_notice
-from custom_components.edf_energy.const import INTEGRATION_VERSION
-from custom_components.edf_energy.coordinators.power_perks import parse_feed_notice
+from custom_components.edfenergy_uk.notices import _is_newer, build_release_notice
+from custom_components.edfenergy_uk.const import INTEGRATION_VERSION
+from custom_components.edfenergy_uk.coordinators.power_perks import parse_feed_notice
 
 
 # ── Comparing versions ────────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ class StubHass:
     self.states = StubStates({"update.edf_energy_update": StubState(attributes)})
 
 def _release(monkeypatch, attributes, found="update.edf_energy_update"):
-  monkeypatch.setattr("custom_components.edf_energy.notices.find_hacs_update_entity", lambda hass: found)
+  monkeypatch.setattr("custom_components.edfenergy_uk.notices.find_hacs_update_entity", lambda hass: found)
   return build_release_notice(StubHass(attributes))
 
 def test_no_hacs_means_no_release_banner(monkeypatch):
@@ -135,7 +135,7 @@ def test_skipping_an_older_version_does_not_hide_a_newer_one(monkeypatch):
 # The lookup matters as much as the comparison: the wrong entity means either silence or a
 # banner about somebody else's integration. The shapes here are taken from a real install.
 
-from custom_components.edf_energy.notices import find_hacs_update_entity
+from custom_components.edfenergy_uk.notices import find_hacs_update_entity
 
 
 class StubRegistryEntry:
@@ -166,11 +166,11 @@ def _hass_with(entries, states, devices=None):
   return hass, StubEntityRegistry(entries), StubDeviceRegistry(devices or {})
 
 def _patch(monkeypatch, entities, devices):
-  monkeypatch.setattr("custom_components.edf_energy.notices.er.async_get", lambda hass: entities)
-  monkeypatch.setattr("custom_components.edf_energy.notices.dr.async_get", lambda hass: devices)
+  monkeypatch.setattr("custom_components.edfenergy_uk.notices.er.async_get", lambda hass: entities)
+  monkeypatch.setattr("custom_components.edfenergy_uk.notices.dr.async_get", lambda hass: devices)
 
 # The real entity picture from a live install.
-BRANDS = "https://brands.home-assistant.io/_/edf_energy/icon.png"
+BRANDS = "https://brands.home-assistant.io/_/edfenergy_uk/icon.png"
 
 def test_the_hacs_entity_is_found_by_its_brands_picture(monkeypatch):
   hass, ents, devs = _hass_with(

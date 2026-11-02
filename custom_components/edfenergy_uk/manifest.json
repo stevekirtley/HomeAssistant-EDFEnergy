@@ -1,0 +1,21 @@
+{
+  "domain": "edfenergy_uk",
+  "name": "EDF Energy (UK)",
+  "codeowners": [
+    "@stevekirtley"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "http",
+    "repairs",
+    "recorder"
+  ],
+  "documentation": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues",
+  "requirements": [
+    "pydantic"
+  ],
+  "version": "21.0.0"
+}

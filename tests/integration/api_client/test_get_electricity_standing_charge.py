@@ -16,7 +16,7 @@ the VAT treatment the client is responsible for applying.
 import pytest
 
 from integration import find_product, get_test_context, pricing_period
-from custom_components.edf_energy.api_client import EDFEnergyApiClient
+from custom_components.edfenergy_uk.api_client import EDFEnergyApiClient
 
 period_from, period_to = pricing_period()
 

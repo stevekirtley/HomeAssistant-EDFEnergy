@@ -5,7 +5,7 @@ rename at EDF's end shows up here rather than as a blank card in the panel.
 """
 import pytest
 
-from custom_components.edf_energy.api_client.billing import (
+from custom_components.edfenergy_uk.api_client.billing import (
   build_idempotency_key,
   parse_bill_attachment,
   parse_billing_summary,

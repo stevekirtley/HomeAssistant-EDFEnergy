@@ -1,0 +1,226 @@
+"""Filling in the days of statistics missed while the integration wasn't running.
+
+Raised as issue #42. The previous-consumption coordinators ask EDF for the last 52 half
+hours and keep the newest whole day out of that (see get_latest_day), which is the right
+thing while the integration is up: a day arrives, a day is written. It also means a day
+that went by with Home Assistant off, or with the integration failed, is never asked for
+again. The energy dashboard keeps that gap for good - nothing in the normal path ever
+looks further back than yesterday.
+
+EDF hold half-hourly readings for far longer than that, and the integration already knows
+how to import a date range, because the refresh_previous_consumption_data service does
+exactly that. So this works out how far behind a meter's statistics have fallen and hands
+the existing importer the first day that is missing.
+
+Deliberately conservative:
+
+  * A meter with no statistics at all is left alone. That is a new install, or a meter
+    whose statistics the user has purged on purpose, and silently importing a fortnight of
+    history in either case would be presumptuous.
+  * At most BACKFILL_MAX_DAYS are filled in one go, so a long absence doesn't turn into
+    hundreds of API calls on a single startup. The next startup picks up where this left
+    off, and a user who wants it all at once still has the service.
+  * Yesterday is left to the normal path. EDF publish readings a day or two in arrears, so
+    the most recent day is often incomplete, and importing a half day of statistics would
+    leave the dashboard worse off than leaving the gap.
+"""
+import logging
+from datetime import datetime, timedelta, timezone
+
+from homeassistant.components.recorder import get_instance
+from homeassistant.components.recorder.statistics import get_last_statistics
+from homeassistant.core import HomeAssistant
+from homeassistant.util.dt import as_local, as_utc
+
+from ..const import GAP_MAXIMUM_AGE, GAP_MINIMUM_AGE, GAP_RETENTION_DAYS, STATISTICS_SOURCE
+from .gaps import (
+  assess_statistic_gap,
+  async_find_gaps,
+  days_to_report,
+  is_old_enough_to_chase,
+  is_worth_chasing_again,
+  supply_window,
+)
+from ..storage.consumption_gaps import async_save_consumption_gaps
+
+_LOGGER = logging.getLogger(__name__)
+
+# How many missing days one startup will fill in.
+BACKFILL_MAX_DAYS = 14
+
+# A gap has to be at least this many days wide before it is worth filling. One day behind
+# is the normal state of affairs, not a gap: EDF's readings lag the meter.
+BACKFILL_MINIMUM_GAP_DAYS = 2
+
+
+async def async_get_last_statistic_start(hass: HomeAssistant, statistic_id: str) -> datetime | None:
+  """When the most recent statistic we wrote for this id starts, or None if there are none."""
+  full_id = statistic_id if ":" in statistic_id else f"{STATISTICS_SOURCE}:{statistic_id}"
+  stats = await get_instance(hass).async_add_executor_job(
+    get_last_statistics,
+    hass,
+    1,
+    full_id,
+    True,
+    {"sum"}
+  )
+
+  rows = stats.get(full_id) or []
+  if not rows:
+    return None
+
+  start = rows[0].get("start")
+  if start is None:
+    return None
+
+  # The recorder hands these back as unix timestamps, not datetimes.
+  if isinstance(start, (int, float)):
+    return datetime.fromtimestamp(start, tz=timezone.utc)
+  return as_utc(start)
+
+
+async def async_get_first_missing_day(
+  hass: HomeAssistant,
+  statistic_id: str,
+  current: datetime,
+  max_days: int = BACKFILL_MAX_DAYS,
+) -> str | None:
+  """The first day with no statistics, as YYYY-MM-DD, or None if there is nothing to do.
+
+  `current` is now, passed in so this can be tested without freezing the clock.
+  """
+  last_start = await async_get_last_statistic_start(hass, statistic_id)
+  if last_start is None:
+    _LOGGER.debug(f"No existing statistics for {statistic_id}, so nothing to backfill")
+    return None
+
+  # Work in local days: that is what a day of statistics means to the person reading the
+  # dashboard, and it is the boundary get_latest_day uses as well.
+  last_day = as_local(last_start).date()
+  # Yesterday is the newest day the normal path would have written.
+  newest_complete_day = (as_local(current) - timedelta(days=1)).date()
+
+  gap = (newest_complete_day - last_day).days
+  if gap < BACKFILL_MINIMUM_GAP_DAYS:
+    return None
+
+  first_missing = last_day + timedelta(days=1)
+  # Only reach back as far as we are willing to fill in one go, counting from the end of
+  # the gap, so that the days nearest the present are the ones that get filled first.
+  earliest_allowed = newest_complete_day - timedelta(days=max_days - 1)
+  if first_missing < earliest_allowed:
+    _LOGGER.warning(
+      f"Statistics for {statistic_id} are {gap} days behind. Filling in the most recent "
+      f"{max_days} days; restart again to go further back, or call the "
+      f"refresh_previous_consumption_data service with an earlier date."
+    )
+    first_missing = earliest_allowed
+
+  _LOGGER.info(
+    f"Statistics for {statistic_id} stop at {last_day} but EDF should have readings up to "
+    f"{newest_complete_day}. Importing from {first_missing}."
+  )
+  return first_missing.strftime("%Y-%m-%d")
+
+
+async def async_get_earliest_missing_day(
+  hass: HomeAssistant,
+  statistic_id: str,
+  current: datetime,
+  account_info = None,
+  mpan: str | None = None,
+  serial_number: str | None = None,
+  is_export: bool = False,
+  retention_in_days: int = GAP_RETENTION_DAYS,
+  max_days: int = BACKFILL_MAX_DAYS,
+  maximum_age: timedelta | None = GAP_MAXIMUM_AGE,
+) -> str | None:
+  """The day to start a refresh from, taking holes in the middle into account as well.
+
+  async_get_first_missing_day only ever sees a gap at the end, because it reads the most
+  recent statistic and counts forward from there. A day missed in the middle - the clocks
+  changing, or EDF publishing a day late and the normal path moving on past it - is invisible
+  to it and stays missing for good. This takes whichever is earlier.
+
+  maximum_age is how old a hole can be and still be worth asking EDF for again. None asks
+  however old it is, which is what the Usage tab's button does when somebody wants another
+  go at a day we had given up on.
+  """
+  trailing = await async_get_first_missing_day(hass, statistic_id, current, max_days)
+
+  interior = None
+  if mpan is not None and serial_number is not None:
+    supply_start, supply_end = supply_window(_agreements_for(account_info, mpan))
+    full_id = statistic_id if ":" in statistic_id else f"{STATISTICS_SOURCE}:{statistic_id}"
+    gaps = await async_find_gaps(hass, full_id.lower(), current, retention_in_days,
+                                 supply_start, supply_end)
+    # Old enough that EDF publishing late does not explain it, young enough to be worth
+    # asking for again. The refresh starts at the hole itself - clamping it to the trailing
+    # backfill's window would start it after the hole, which fills nothing at all and leaves
+    # the day reported as missing for good.
+    chaseable = [gap for gap in gaps
+                 if is_old_enough_to_chase(gap.day, current, GAP_MINIMUM_AGE)
+                 and (maximum_age is None
+                      or is_worth_chasing_again(gap.day, current, maximum_age))]
+    if len(chaseable) > 0:
+      interior = chaseable[0].day.strftime("%Y-%m-%d")
+
+  candidates = [day for day in (trailing, interior) if day is not None]
+  if len(candidates) < 1:
+    return None
+
+  start = min(candidates)
+  _LOGGER.debug(f"Refreshing {statistic_id} from {start} (end {trailing}, middle {interior})")
+  return start
+
+
+def _agreements_for(account_info, mpan: str):
+  """The agreements on the meter point, so a gap outside the supply is not treated as one."""
+  if account_info is None:
+    return []
+
+  for point in account_info.get("electricity_meter_points") or []:
+    if point.get("mpan") == mpan:
+      return point.get("agreements") or []
+
+  return []
+
+
+async def async_record_outstanding_gaps(
+  hass: HomeAssistant,
+  statistic_id: str,
+  current: datetime,
+  account_info,
+  mpan: str,
+  serial_number: str,
+  is_export: bool,
+  retention_in_days: int = GAP_RETENTION_DAYS,
+) -> list:
+  """Write down the days still missing once a refresh has been through.
+
+  A refresh imports whatever EDF answered with, so anything still short afterwards is a day
+  EDF could not supply - nothing the integration can do anything about, and so the only kind
+  of gap worth putting in front of the user.
+  """
+  supply_start, supply_end = supply_window(_agreements_for(account_info, mpan))
+  full_id = statistic_id if ":" in statistic_id else f"{STATISTICS_SOURCE}:{statistic_id}"
+
+  gaps = await async_find_gaps(hass, full_id.lower(), current, retention_in_days,
+                               supply_start, supply_end)
+  outstanding = days_to_report([
+    assess_statistic_gap(gap) for gap in gaps
+    if is_old_enough_to_chase(gap.day, current, GAP_MINIMUM_AGE)
+  ])
+
+  days = [assessment.to_dict() for assessment in outstanding]
+  await async_save_consumption_gaps(hass, mpan, serial_number, is_export, days, current)
+
+  if len(days) > 0:
+    _LOGGER.warning(
+      f"EDF have not supplied {len(days)} day(s) of "
+      f"{'export' if is_export else 'import'} 30 minute usage data for "
+      f"{mpan}/{serial_number}: "
+      f"{', '.join(day['date'] for day in days)}"
+    )
+
+  return days

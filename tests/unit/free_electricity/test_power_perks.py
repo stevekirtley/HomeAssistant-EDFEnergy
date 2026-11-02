@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from custom_components.edf_energy.api_client.free_electricity_sessions import FreeElectricitySession
-from custom_components.edf_energy.const import (
+from custom_components.edfenergy_uk.api_client.free_electricity_sessions import FreeElectricitySession
+from custom_components.edfenergy_uk.const import (
   DATA_FREE_ELECTRICITY_SESSIONS_HISTORY,
   DATA_POWER_PERKS,
   DATA_POWER_PERKS_MANUAL_SESSIONS,
@@ -15,11 +15,11 @@ from custom_components.edf_energy.const import (
   EVENT_NEW_FREE_ELECTRICITY_SESSION,
   REFRESH_RATE_IN_MINUTES_POWER_PERKS,
 )
-from custom_components.edf_energy.coordinators.free_electricity_sessions import (
+from custom_components.edfenergy_uk.coordinators.free_electricity_sessions import (
   _normalise_power_perks,
   refresh_free_electricity_sessions,
 )
-from custom_components.edf_energy.coordinators.power_perks import (
+from custom_components.edfenergy_uk.coordinators.power_perks import (
   PowerPerksCoordinatorResult,
   async_refresh_power_perks,
   make_power_perks_session,

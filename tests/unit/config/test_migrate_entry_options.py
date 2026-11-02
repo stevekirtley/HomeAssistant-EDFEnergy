@@ -8,9 +8,9 @@ already turned off.
 """
 import pytest
 
-import custom_components.edf_energy as integration
-from custom_components.edf_energy import async_migrate_entry
-from custom_components.edf_energy.const import (
+import custom_components.edfenergy_uk as integration
+from custom_components.edfenergy_uk import async_migrate_entry
+from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,

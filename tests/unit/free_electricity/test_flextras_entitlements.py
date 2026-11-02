@@ -8,8 +8,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from custom_components.edf_energy.api_client.flextras_hours import parse_entitlements
-from custom_components.edf_energy.flextras.hours_sensor import next_expiry
+from custom_components.edfenergy_uk.api_client.flextras_hours import parse_entitlements
+from custom_components.edfenergy_uk.flextras.hours_sensor import next_expiry
 
 # Captured from the hours screen on 5 October 2026.
 REAL = {"screen": "REWARD_HOURS", "components": [
@@ -137,7 +137,7 @@ def test_a_bucket_without_an_expiry_is_skipped():
 # structure therefore travels with diagnostics, which makes the redaction load-bearing.
 
 def test_the_screen_summary_carries_the_entitlement_shape():
-  from custom_components.edf_energy.api_client.flextras_hours import redact_hours_screen
+  from custom_components.edfenergy_uk.api_client.flextras_hours import redact_hours_screen
 
   summary = redact_hours_screen(REAL)
   hours = next(c for c in summary["components"] if c["type"] == "HOURS_TO_USE_LIST")
@@ -150,7 +150,7 @@ def test_the_screen_summary_carries_the_entitlement_shape():
 
 def test_the_entitlement_id_never_leaves_the_instance():
   """It is base64 of AccNo#<account>#PropId#<property>, so it is an identifier."""
-  from custom_components.edf_energy.api_client.flextras_hours import redact_hours_screen
+  from custom_components.edfenergy_uk.api_client.flextras_hours import redact_hours_screen
 
   summary = redact_hours_screen(REAL)
 
@@ -160,7 +160,7 @@ def test_the_entitlement_id_never_leaves_the_instance():
 
 def test_the_counters_travel_but_the_customer_s_own_hours_do_not():
   """The numbers help fix a parser; when someone is at home does not."""
-  from custom_components.edf_energy.api_client.flextras_hours import redact_hours_screen
+  from custom_components.edfenergy_uk.api_client.flextras_hours import redact_hours_screen
 
   screen = {"screen": "REWARD_HOURS", "components": [{"type": "BOOKED_HOURS_LIST", "props": {
     "bonusHours": 4, "totalRemainingHours": 2, "message": "x",
@@ -177,7 +177,7 @@ def test_the_counters_travel_but_the_customer_s_own_hours_do_not():
 
 
 def test_an_unreadable_screen_summarises_to_none():
-  from custom_components.edf_energy.api_client.flextras_hours import redact_hours_screen
+  from custom_components.edfenergy_uk.api_client.flextras_hours import redact_hours_screen
 
   assert redact_hours_screen(None) is None
   assert redact_hours_screen("html") is None

@@ -1,3 +1,47 @@
+## [21.0.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/21.0.0) (2026-11-02)
+
+
+### Breaking Changes
+
+* The integration now lives in `custom_components/edfenergy_uk`. HACS installs the new folder and leaves the old one behind, so there is one step to finish by hand.
+* The integration is now called EDF Energy (UK). While both folders are installed the Add integration list shows an entry for each, and the name is what tells them apart.
+
+
+### Features
+
+* On 20.1.1 the notice in Settings > Repairs has a Fix button that hands your setup over for you, so the move is one press.
+* Doing it by hand still works the same way: Settings > Devices & services > Add integration, choose EDF Energy (UK), and it finds your existing setup and offers to take it over.
+* Taking it over keeps your account, your API key, every entity id, your history and your Energy dashboard statistics, so automations, scripts, dashboards and template sensors carry on untouched.
+* Energy dashboard statistics keep the ids they were written with, so cost history carries over untouched.
+* The notice about the old folder has a Delete button that removes it for you, once it has checked that is what the folder actually holds.
+* The Usage graph draws import and export side by side rather than stacking export on top of import. The cost view gains a Net figure, what you paid less what you earned.
+* On a multi rate tariff the import bar splits into off peak, standard and peak in both the kWh and the cost view, with the breakdown under the totals. A single rate day draws as one bar, and a free band such as a FreePhase free window is labelled Free.
+* Where a free promotion has run, the Usage tab estimates what was used during the free windows and what should credit back, since those hours are billed at the normal rate and credited later.
+* Action names move to `edfenergy_uk.*`. The old `edf_energy.*` names still work, including the entity actions the shipped blueprints call, and are deprecated rather than removed. They carry their own description, so deleting the old folder does not leave Home Assistant hunting for a services.yaml that is no longer there.
+
+
+### Bug Fixes
+
+* Power Perks free windows are only added to the free electricity feed for accounts that are actually signed up to Power Perks. An account on Weekend Saver instead was being given windows it would never get. Sessions you added by hand are unaffected.
+* The Power Perks Predictor tab says "overnight" for a free window that runs past midnight, matching the site it reads. It was showing one as if it fell entirely on tomorrow.
+* Notices raised by the old folder are cleared once the hand-over is done, instead of being left on screen describing a move that has already happened.
+* Consumption for the day the clocks change is no longer thrown away. A day was only accepted if it held exactly forty eight half hours, so the twenty five hour day every October and the twenty three hour day every March were skipped and never asked for again. The refresh now asks for local days rather than twenty four hour blocks from midnight UTC as well, which had left the first hour of the day the clocks go back missing even once the day was fetched.
+* Days missing from the middle of the consumption history are filled in. The existing backfill reads the most recent statistic and fills forward from there, so it only ever found a gap at the end - a day missed earlier stayed missing for good, which is what happened to the day the clocks changed.
+* Where EDF themselves have no data for a day, the Usage tab now says so, naming the meter, whether it is import or export, and the days and hours involved, so it can be taken up with EDF. Nothing is reported until a day is more than 72 hours old, since EDF publish in arrears.
+* The Usage tab has a **Request Missing Data from EDF APIs** button where data is missing. The integration stops asking for a day of its own accord after 30 days, so once EDF say a day has been sorted there is now a way to make it look again without waiting for a restart.
+* The missing data button reports what came back and redraws the graph, instead of filling the days in silently.
+* The advice to contact EDF waits until the button has been tried.
+* Free session history is kept beyond 60 days, so the free promotion estimate still works on an older month. Dates and times only, and capped.
+* The referrals card adds up. Only the first hundred referrals were read, so on a bigger account the paid and pending split came to less than the total shown beside it.
+* A smart charging plan changed after the charge had started no longer leaves both shapes in the off peak window list. The window that ran is clipped back to where its replacement takes over instead of overlapping it.
+
+
+### Notes
+
+* Nothing breaks while you wait. Until you take the setup over, the old folder carries on running your account exactly as before, and the new one sits there doing nothing.
+* Once the hand-over is done, delete `custom_components/edf_energy` and restart. A notice in Repairs will remind you.
+* On 20.1.0 specifically, update to 20.1.1 first. That release removed a check which would otherwise stop the old folder loading as soon as the new one appeared.
+
 ## [20.1.1](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.1.1) (2026-10-22)
 
 
@@ -32,7 +76,7 @@
 
 ### Notes
 
-* The integration moves to a new folder in 21.0.0. This release stands aside if both are installed, so entities and automations carry over untouched.
+* The integration moves to a new folder in 21.0.0. **Update to 20.1.1 before taking version 21** - on this release the integration stops loading as soon as the new folder appears, and every entity goes unavailable until the move is finished by hand. 20.1.1 fixes that and gives you a one-click prompt instead. If you have already updated and are stuck, do not delete the old folder yet; follow [Path B](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/migrations/version_21/#path-b-updating-from-2010).
 
 ## [20.0.0](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/tag/20.0.0) (2026-10-16)
 

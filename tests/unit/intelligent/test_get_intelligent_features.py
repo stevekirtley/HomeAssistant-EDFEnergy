@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.edf_energy.intelligent import get_intelligent_features
+from custom_components.edfenergy_uk.intelligent import get_intelligent_features
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("provider,expected_bump_charge_supported,expected_charge_limit_supported,expected_planned_dispatches_supported,expected_ready_time_supported,expected_smart_charge_supported,expected_default_features,expected_current_state_supported",[

@@ -4,7 +4,7 @@ async_get_device was deprecated in favour of async_get_device_by_identifier, whi
 not exist on the oldest Home Assistant this integration supports, so the helper has to
 work either way.
 """
-from custom_components.edf_energy import _async_device_by_identifier
+from custom_components.edfenergy_uk import _async_device_by_identifier
 
 IDENTIFIER = ("edf_energy", "electricity_123_456")
 ENTRY_ID = "01ABCDEF"

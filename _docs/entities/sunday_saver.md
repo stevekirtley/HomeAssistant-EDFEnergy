@@ -48,4 +48,4 @@ The end time of the upcoming (or current) Sunday Saver free electricity window, 
 
 ## Enrolment
 
-Enrolment status is tracked via the `is_enrolled` attribute on the start sensor. The integration can manage enrolment automatically — see [Sunday Saver setup](../setup/account.md#sunday-saver) and the [`join_sunday_saver`](../services.md#edf_energyjoin_sunday_saver) service.
+Enrolment status is tracked via the `is_enrolled` attribute on the start sensor. The integration can manage enrolment automatically — see [Sunday Saver setup](../setup/account.md#sunday-saver) and the [`join_sunday_saver`](../services.md#edfenergy_ukjoin_sunday_saver) service.

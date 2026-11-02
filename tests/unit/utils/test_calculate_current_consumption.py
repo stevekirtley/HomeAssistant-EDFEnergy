@@ -2,8 +2,8 @@ from datetime import (datetime, timedelta)
 import pytest
 
 
-from custom_components.edf_energy.coordinators.current_consumption import CurrentConsumptionCoordinatorResult
-from custom_components.edf_energy.utils.consumption import calculate_current_consumption
+from custom_components.edfenergy_uk.coordinators.current_consumption import CurrentConsumptionCoordinatorResult
+from custom_components.edfenergy_uk.utils.consumption import calculate_current_consumption
 
 consumption = [
   {
