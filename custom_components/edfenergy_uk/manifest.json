@@ -11,6 +11,7 @@
     "recorder"
   ],
   "documentation": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy",
+  "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues",
   "requirements": [
