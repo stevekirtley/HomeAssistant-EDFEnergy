@@ -84,21 +84,44 @@ the documentation:
 
 **[Documentation](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/)**
 
-## Power Perks session feed
+## Power Perks session feed & urgent notifications
+
+Some functionality relies on data from my server rather than EDF's. Both of the things below
+come from one feed at `apirelay.sitetest.org.uk`, and one switch controls both of them:
+**Settings > Devices & Services > EDF Energy (UK) > the three dots beside your account >
+Reconfigure**, then clear **Use the Power Perks session feed**.
+
+The integration checks that feed every 15 minutes and sends nothing but its own version
+number: no account number, no meter details, no personal data of any kind. As with any web
+request, the server sees the IP address it came from. Turning the switch off stops the checks
+completely - no request leaves your machine.
+
+### 1. Power Perks session feed
 
 EDF announce Power Perks free electricity sessions by text message only - there is no API for
-them - so the times are relayed through a small feed I host at `apirelay.sitetest.org.uk`. This
-is my server, not EDF's. The integration checks it every 15 minutes and sends nothing but its
-own version number: no account number, no meter details, no personal data of any kind. As with
-any web request, the server sees the IP address it came from.
+them - so the times are relayed through the feed and appear in your free electricity sensors
+and calendar automatically.
 
-It is on by default, and you can turn it off at any time: **Settings > Devices & Services >
-EDF Energy (UK) > the three dots beside your account > Reconfigure**, then clear **Use the
-Power Perks session feed**. Turning it off stops the checks completely. You can still record
-sessions yourself with the **Register Power Perks session** action, and nothing else in the
-integration depends on the feed.
+With the feed off you can still record sessions yourself with the **Register Power Perks
+session** action, and nothing else in the integration depends on it.
 
 More detail in the [free electricity documentation](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/free_electricity/).
+
+### 2. Urgent notifications
+
+The same feed can carry a short notice from me - used only for something that needs to reach
+people quickly, such as a release that breaks an upgrade path or a fault worth knowing about
+before you hit it. It arrives attached to the session data rather than as a separate check, so
+it costs no extra requests.
+
+Because it travels on the same feed, the switch above turns these off as well. Worth knowing
+if you turn it off: you will not see these notices.
+
+### Previously
+
+My server has also been used to supply World Cup fixture times, to extend EDF's football free
+windows when a match went to extra time. That is no longer polled - the code is archived and
+the integration makes no fixture requests.
 
 ## Sponsorship 
 
