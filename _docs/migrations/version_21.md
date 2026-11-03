@@ -11,6 +11,19 @@ Nothing is lost at any point. Your account, your API key, every entity id, your 
 your Energy dashboard statistics all come across, so automations, scripts, dashboards and
 template sensors carry on untouched.
 
+!!! warning "If HACS refuses the update with a missing manifest"
+
+    If the update fails with `No manifest.json file found 'custom_components/edf_energy/manifest.json'`,
+    **restart Home Assistant and try again.**
+
+    HACS works out where an integration's folder lives the first time it looks, then reuses
+    that answer for the rest of the session - so it goes hunting for the old folder inside the
+    new release and gives up. That answer is never written to disk, it is worked out afresh
+    every time Home Assistant starts, so a restart is all it takes. The update then goes
+    through as normal and installs into the new folder.
+
+    This affects every existing installation, so if you have not updated yet, restart first.
+
 ## First, check which version you are on
 
 In HACS, open **EDF Energy**. The version you have installed is shown at the top of the page.
