@@ -1,6 +1,13 @@
 # Account
 
-Setup is done entirely via the [integration UI](https://my.home-assistant.io/redirect/config_flow_start/?domain=edf_energy).
+Setup is done entirely via the [integration UI](https://my.home-assistant.io/redirect/config_flow_start/?domain=edfenergy_uk).
+
+!!! tip "Changing these settings later"
+
+    Everything on this page is set during setup, and afterwards lives behind **Reconfigure**, not
+    **Configure**. Go to **Settings > Devices & services > EDF Energy (UK)**, press the **three
+    dots** beside your account entry and choose **Reconfigure**. The **Configure** button only
+    holds a couple of panel options.
 
 ## Credentials
 

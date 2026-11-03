@@ -4,7 +4,7 @@ There will probably be times when you'll want to know if you're on the right tar
 
 The tariff comparison allows you to elect a new tariff which will generate some additional sensors which will show the cost of your elected meter against that tariff.
 
-After you've configured your [account](./account.md), you'll be able to configure tariff comparison sensors. These are configured by adding subsequent instances of the integration going through the [normal flow](https://my.home-assistant.io/redirect/config_flow_start/?domain=edf_energy), and selecting `Tariff Comparison` in the provided menu.
+After you've configured your [account](./account.md), you'll be able to configure tariff comparison sensors. These are configured by adding subsequent instances of the integration going through the [normal flow](https://my.home-assistant.io/redirect/config_flow_start/?domain=edfenergy_uk), and selecting `Tariff Comparison` in the provided menu.
 
 !!! note
 
