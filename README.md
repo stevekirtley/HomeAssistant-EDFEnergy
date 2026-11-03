@@ -84,6 +84,22 @@ the documentation:
 
 **[Documentation](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/)**
 
+## Power Perks session feed
+
+EDF announce Power Perks free electricity sessions by text message only - there is no API for
+them - so the times are relayed through a small feed I host at `apirelay.sitetest.org.uk`. This
+is my server, not EDF's. The integration checks it every 15 minutes and sends nothing but its
+own version number: no account number, no meter details, no personal data of any kind. As with
+any web request, the server sees the IP address it came from.
+
+It is on by default, and you can turn it off at any time: **Settings > Devices & Services >
+EDF Energy (UK) > the three dots beside your account > Reconfigure**, then clear **Use the
+Power Perks session feed**. Turning it off stops the checks completely. You can still record
+sessions yourself with the **Register Power Perks session** action, and nothing else in the
+integration depends on the feed.
+
+More detail in the [free electricity documentation](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/entities/free_electricity/).
+
 ## Sponsorship 
 
 If you find this useful and are planning on switching to EDF Energy, you're welcome to use my [referral link](https://edfenergy.com/quote/refer-a-friend/massive-sun-7007).
