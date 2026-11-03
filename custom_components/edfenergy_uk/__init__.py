@@ -1107,7 +1107,15 @@ async def async_setup_entry(hass, entry):
     for child_entry in child_entries:
       child_entry_config = dict(child_entry.data)
 
-      if child_entry_config[CONFIG_KIND] != CONFIG_KIND_ACCOUNT and child_entry_config[CONFIG_ACCOUNT_ID] == account_id:
+      # Read with a fallback rather than by key. An entry carried over from the old domain
+      # keeps its data verbatim and is created at the current config version, so an old
+      # entry that never had a kind recorded does not get one from the migration. Such an
+      # entry repairs itself when it is set up, but that is no help here: this runs first
+      # and used to take the whole account down with a KeyError, leaving it on "Failed to
+      # set up" with none of its devices created.
+      child_kind = child_entry_config.get(CONFIG_KIND) or _infer_config_kind(child_entry_config)
+
+      if child_kind != CONFIG_KIND_ACCOUNT and child_entry_config.get(CONFIG_ACCOUNT_ID) == account_id:
         await hass.config_entries.async_reload(child_entry.entry_id)
 
     if CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS in config and config[CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS] == True:
@@ -1858,7 +1866,7 @@ async def options_update_listener(hass, entry):
 
   await hass.config_entries.async_reload(entry.entry_id)
 
-  if entry.data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
+  if (entry.data.get(CONFIG_KIND) or _infer_config_kind(dict(entry.data))) == CONFIG_KIND_ACCOUNT:
     account_id = entry.data[CONFIG_ACCOUNT_ID]
 
     # If the main account has been reloaded, then reload all other entries to make sure they're referencing
@@ -1867,7 +1875,15 @@ async def options_update_listener(hass, entry):
     for child_entry in child_entries:
       child_entry_config = dict(child_entry.data)
 
-      if child_entry_config[CONFIG_KIND] != CONFIG_KIND_ACCOUNT and child_entry_config[CONFIG_ACCOUNT_ID] == account_id:
+      # Read with a fallback rather than by key. An entry carried over from the old domain
+      # keeps its data verbatim and is created at the current config version, so an old
+      # entry that never had a kind recorded does not get one from the migration. Such an
+      # entry repairs itself when it is set up, but that is no help here: this runs first
+      # and used to take the whole account down with a KeyError, leaving it on "Failed to
+      # set up" with none of its devices created.
+      child_kind = child_entry_config.get(CONFIG_KIND) or _infer_config_kind(child_entry_config)
+
+      if child_kind != CONFIG_KIND_ACCOUNT and child_entry_config.get(CONFIG_ACCOUNT_ID) == account_id:
         await hass.config_entries.async_reload(child_entry.entry_id)
 
 async def async_unload_entry(hass, entry):
