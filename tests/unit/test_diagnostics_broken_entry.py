@@ -87,7 +87,7 @@ def test_every_entrys_keys_are_reported_because_that_is_what_identifies_the_faul
   assert [item["entry_id"] for item in reported] == ["account", "broken"]
   assert reported[0]["keys"] == ["account_id", "kind"]
   assert reported[1]["keys"] == []
-  # Whether there is a unique id to rebuild the entry from is the other half of the answer.
+  # Whether the unique id is a cost tracker suggestion's is the other half of the answer.
   assert reported[0]["has_unique_id"] is False
   assert reported[1]["unique_id_is_discovered_cost_tracker"] is True
 

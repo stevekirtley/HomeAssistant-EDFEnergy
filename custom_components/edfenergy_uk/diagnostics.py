@@ -179,8 +179,9 @@ def _async_broken_entry_diagnostics(hass, entry, config):
   KeyError, so the one person who needed to send something had nothing to send.
 
   What comes back instead is the shape of every entry rather than its contents - which keys
-  each one carries, what version it is at, whether it has a unique id to be rebuilt from.
-  That is what identifies an entry that has lost fields it should have, and it is the thing
+  each one carries, where it came from, and whether its unique id is a cost tracker
+  suggestion's. That is what identifies an entry with fields missing - an ignored suggestion
+  carried over as an import shows up as an import with no keys at all - and it is the thing
   no log will ever show. Names, titles and unique ids are all left out: titles and cost
   tracker unique ids both spell out the account id, and these files get attached to public
   issues.

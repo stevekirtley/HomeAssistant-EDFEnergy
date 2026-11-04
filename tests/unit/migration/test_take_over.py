@@ -204,13 +204,14 @@ class StubFlowManager:
 
 
 class StubOldEntry:
-  def __init__(self, entry_id, title, data, options=None, unique_id=None):
+  def __init__(self, entry_id, title, data, options=None, unique_id=None, source="user"):
     self.entry_id = entry_id
     self.title = title
     self.data = data
     self.options = options or {}
     self.unique_id = unique_id
     self.minor_version = 1
+    self.source = source
 
 
 class StubConfigEntries:
@@ -475,3 +476,101 @@ async def test_the_hand_over_copies_rather_than_sharing_the_old_data(empty_regis
   assert len(payloads) == 2
   assert payloads[0] is not payloads[1]
   assert payloads[0] is not shared
+
+
+# ── Ignored suggestions (issue #53) ───────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_an_ignored_suggestion_comes_across_ignored_not_as_a_real_entry(empty_registries):
+  """The cause of issue #53.
+
+  Home Assistant stores a suggestion the user turned down as an entry with no data. The
+  hand-over used to recreate every old entry as an import, so each one became a real entry
+  with nothing in it, failing to set up on every start and taking the account down with it.
+  """
+  log = []
+  old_entries = [
+    StubOldEntry("account", "A-XXXXXX", {"kind": "account", "account_id": "A-XXXXXX"},
+                 unique_id="A-XXXXXX"),
+    StubOldEntry("dismissed", "Solar Forecast Next Hour Cost Tracker (A-XXXXXX)", {},
+                 unique_id="edf_energy_ct_A-XXXXXX_sensor.solar_forecast", source="ignore"),
+  ]
+  hass = StubHass(old_entries, log)
+
+  await async_take_over_old_entries(hass)
+  await asyncio.sleep(0)
+
+  flows = [(entry[2], entry[3]) for entry in log if entry[0] == "flow"]
+  assert ("import", flows[0][1]) == flows[0] and flows[0][1]["unique_id"] == "A-XXXXXX"
+  assert flows[1] == ("ignore", {
+    "unique_id": "edf_energy_ct_A-XXXXXX_sensor.solar_forecast",
+    "title": "Solar Forecast Next Hour Cost Tracker (A-XXXXXX)",
+  })
+
+@pytest.mark.asyncio
+async def test_an_ignored_suggestion_with_no_unique_id_is_not_turned_into_an_entry(empty_registries):
+  """It cannot be ignored again without one, and importing it is the bug - so it goes."""
+  log = []
+  hass = StubHass([StubOldEntry("dismissed", "Something", {}, source="ignore")], log)
+
+  await async_take_over_old_entries(hass)
+  await asyncio.sleep(0)
+
+  assert [entry for entry in log if entry[0] == "flow"] == []
+  assert ("remove", "dismissed") in log
+
+
+# ── Installs that already came through the hand-over ──────────────────────────
+
+class StubEntry:
+  def __init__(self, source, data, unique_id):
+    self.source = source
+    self.data = data
+    self.unique_id = unique_id
+
+def test_an_empty_import_with_a_unique_id_is_a_carried_over_ignored_suggestion():
+  from custom_components.edfenergy_uk.migration import is_carried_over_ignored_suggestion
+
+  assert is_carried_over_ignored_suggestion(StubEntry("import", {}, "edf_energy_ct_A-XXXXXX_sensor.x"))
+
+def test_a_real_imported_entry_is_not_mistaken_for_one():
+  """Every entry the hand-over recreated is an import, and the real ones carry their data."""
+  from custom_components.edfenergy_uk.migration import is_carried_over_ignored_suggestion
+
+  assert not is_carried_over_ignored_suggestion(StubEntry("import", {"kind": "account"}, "A-XXXXXX"))
+
+def test_an_entry_the_user_set_up_is_never_mistaken_for_one():
+  from custom_components.edfenergy_uk.migration import is_carried_over_ignored_suggestion
+
+  assert not is_carried_over_ignored_suggestion(StubEntry("user", {}, "A-XXXXXX"))
+  assert not is_carried_over_ignored_suggestion(StubEntry("ignore", {}, "edf_energy_ct_A-XXXXXX_sensor.x"))
+
+def test_one_with_no_unique_id_is_left_alone_because_it_cannot_be_ignored_again():
+  from custom_components.edfenergy_uk.migration import is_carried_over_ignored_suggestion
+
+  assert not is_carried_over_ignored_suggestion(StubEntry("import", {}, None))
+
+@pytest.mark.asyncio
+async def test_setting_one_up_puts_it_back_to_ignored_and_goes_no_further():
+  """It is converted on its own setup, and must not touch anything an account would."""
+  from custom_components.edfenergy_uk import async_setup_entry
+
+  class Entry(StubEntry):
+    entry_id = "carried-over"
+    title = "Solar Forecast Next Hour Cost Tracker (A-XXXXXX)"
+
+  class Hass:
+    def __init__(self):
+      self.data = {}
+      self.scheduled = []
+    def async_create_task(self, coro):
+      self.scheduled.append(coro.cr_code.co_name)
+      coro.close()
+
+  hass = Hass()
+
+  result = await async_setup_entry(hass, Entry("import", {}, "edf_energy_ct_A-XXXXXX_sensor.solar_forecast"))
+
+  assert result is False
+  assert hass.scheduled == ["async_restore_ignored_suggestion"]
+  assert hass.data == {}

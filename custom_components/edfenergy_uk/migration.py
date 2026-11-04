@@ -32,7 +32,7 @@ What genuinely is tied to the domain, and so has to be moved here:
 """
 import logging
 
-from homeassistant.config_entries import SOURCE_IMPORT
+from homeassistant.config_entries import SOURCE_IGNORE, SOURCE_IMPORT
 from homeassistant.helpers import (
   device_registry as dr,
   entity_registry as er,
@@ -215,6 +215,7 @@ async def async_take_over_old_entries(hass) -> int:
       "title": entry.title,
       "unique_id": entry.unique_id,
       "minor_version": getattr(entry, "minor_version", 1),
+      "source": entry.source,
     }
     for entry in old_entries
   ]
@@ -227,12 +228,49 @@ async def async_take_over_old_entries(hass) -> int:
   clear_old_notices(hass)
 
   for payload in carried:
+    if payload["source"] == SOURCE_IGNORE:
+      # A suggestion the user turned down. Home Assistant stores those as entries with no data
+      # at all, and recreating one as an import made it a real entry with nothing in it, which
+      # failed to set up on every start and took the account down walking past it (issue #53).
+      # So it comes across the way it went in: ignored.
+      if payload["unique_id"]:
+        hass.async_create_task(async_ignore_suggestion(hass, payload["unique_id"], payload["title"]))
+      continue
+
     hass.async_create_task(
       hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_IMPORT}, data=payload
       )
     )
   return len(carried)
+
+async def async_ignore_suggestion(hass, unique_id: str, title: str):
+  """Record a suggestion as ignored, exactly as the Ignore button in the UI does."""
+  await hass.config_entries.flow.async_init(
+    DOMAIN, context={"source": SOURCE_IGNORE}, data={"unique_id": unique_id, "title": title}
+  )
+
+def is_carried_over_ignored_suggestion(entry) -> bool:
+  """An ignored suggestion the 20.1.1 hand-over turned into a real entry.
+
+  The hand-over recreated every old entry as an import with its data copied across, and an
+  ignored suggestion has no data. Nothing else is ever imported, and nothing imported that
+  was a real entry arrives empty, so an import with no data is one of these. Without a unique
+  id it cannot be ignored again, so it is left to fail as it always has.
+  """
+  return (getattr(entry, "source", None) == SOURCE_IMPORT
+          and not getattr(entry, "data", None)
+          and bool(getattr(entry, "unique_id", None)))
+
+async def async_restore_ignored_suggestion(hass, entry_id: str, unique_id: str, title: str):
+  """Put a carried-over ignored suggestion back to being ignored.
+
+  The entry was never set up, so it has no devices or entities to lose. Removing it and
+  ignoring it again means the suggestion stays turned down rather than being offered afresh.
+  """
+  await hass.config_entries.async_remove(entry_id)
+  await async_ignore_suggestion(hass, unique_id, title)
+  _LOGGER.info("Put '%s' back to being an ignored suggestion", title)
 
 
 def async_apply_captured(hass) -> None:

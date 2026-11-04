@@ -311,106 +311,11 @@ def test_an_account_entry_is_recognised_by_its_credentials_alone():
   assert _infer_config_kind({CONFIG_MAIN_API_KEY: "an-api-key"}) == CONFIG_KIND_ACCOUNT
 
 
-def test_a_discovered_cost_tracker_is_rebuilt_from_its_unique_id():
-  """Issue #53: the data was gone, but the unique id still spelled it all out.
-
-  Auto discovered cost trackers get "<domain>_ct_<account id>_<entity id>", so an entry that
-  lost both fields can be put back together rather than deleted and set up again.
-  """
-  from custom_components.edfenergy_uk.config.kind import recover_cost_tracker_from_unique_id
-
-  recovered = recover_cost_tracker_from_unique_id("edf_energy_ct_A-XXXXXX_sensor.tracked_energy")
-
-  assert recovered == {
-    CONFIG_ACCOUNT_ID: "A-XXXXXX",
-    CONFIG_COST_TRACKER_TARGET_ENTITY_ID: "sensor.tracked_energy",
-  }
 
 
-def test_the_old_domains_unique_ids_are_rebuilt_too():
-  """Entries carried over from the old domain keep the unique id it gave them."""
-  from custom_components.edfenergy_uk.config.kind import recover_cost_tracker_from_unique_id
-
-  recovered = recover_cost_tracker_from_unique_id("octopus_energy_ct_A-XXXXXX_sensor.x")
-
-  assert recovered[CONFIG_ACCOUNT_ID] == "A-XXXXXX"
-  assert recovered[CONFIG_COST_TRACKER_TARGET_ENTITY_ID] == "sensor.x"
 
 
-def test_a_unique_id_that_does_not_split_cleanly_is_left_alone():
-  """Rebuilding from a half understood string would be worse than not rebuilding."""
-  from custom_components.edfenergy_uk.config.kind import recover_cost_tracker_from_unique_id
 
-  assert recover_cost_tracker_from_unique_id(None) is None
-  assert recover_cost_tracker_from_unique_id("edf_energy_account_A-XXXXXX") is None
-  assert recover_cost_tracker_from_unique_id("edf_energy_ct_A-XXXXXX") is None
-  assert recover_cost_tracker_from_unique_id("edf_energy_ct__sensor.x") is None
-  assert recover_cost_tracker_from_unique_id("edf_energy_ct_A-XXXXXX_not_an_entity") is None
-
-
-def test_a_broken_cost_tracker_is_repaired_from_its_unique_id():
-  """The whole point: the entry works again after this, rather than failing politely."""
-  from custom_components.edfenergy_uk.config.kind import async_repair_config_entry
-
-  entry = _FakeEntry({}, title="Tracked Energy Cost Tracker (A-XXXXXX)",
-                     unique_id="edf_energy_ct_A-XXXXXX_sensor.tracked_energy")
-  hass = _FakeHass([entry])
-
-  repaired = async_repair_config_entry(hass, entry)
-
-  assert repaired["kind"] == CONFIG_KIND_COST_TRACKER
-  assert repaired[CONFIG_ACCOUNT_ID] == "A-XXXXXX"
-  assert repaired[CONFIG_COST_TRACKER_TARGET_ENTITY_ID] == "sensor.tracked_energy"
-  # Written back, so it is mended rather than worked around on every read.
-  assert entry.data == repaired
-  assert len(hass.config_entries.updates) == 1
-
-
-def test_a_child_entry_borrows_the_account_id_when_there_is_only_one_account():
-  """A cost tracker with no unique id to rebuild from can still be reconnected."""
-  from custom_components.edfenergy_uk.config.kind import async_repair_config_entry
-
-  account = _FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX", "kind": CONFIG_KIND_ACCOUNT}, entry_id="account")
-  orphan = _FakeEntry({CONFIG_COST_TRACKER_TARGET_ENTITY_ID: "sensor.x"}, entry_id="orphan")
-  hass = _FakeHass([account, orphan])
-
-  repaired = async_repair_config_entry(hass, orphan)
-
-  assert repaired["kind"] == CONFIG_KIND_COST_TRACKER
-  assert repaired[CONFIG_ACCOUNT_ID] == "A-XXXXXX"
-
-
-def test_a_child_entry_is_left_alone_when_two_accounts_could_claim_it():
-  """Guessing here would attach a cost tracker to the wrong account's rates."""
-  from custom_components.edfenergy_uk.config.kind import async_repair_config_entry
-
-  first = _FakeEntry({CONFIG_ACCOUNT_ID: "A-11111111", "kind": CONFIG_KIND_ACCOUNT}, entry_id="first")
-  second = _FakeEntry({CONFIG_ACCOUNT_ID: "A-22222222", "kind": CONFIG_KIND_ACCOUNT}, entry_id="second")
-  orphan = _FakeEntry({CONFIG_COST_TRACKER_TARGET_ENTITY_ID: "sensor.x"}, entry_id="orphan")
-  hass = _FakeHass([first, second, orphan])
-
-  repaired = async_repair_config_entry(hass, orphan)
-
-  # The kind is known from the entry itself, so that much is still put right; the account
-  # it belongs to is not, and is left blank rather than picked.
-  assert repaired["kind"] == CONFIG_KIND_COST_TRACKER
-  assert CONFIG_ACCOUNT_ID not in repaired
-  assert CONFIG_ACCOUNT_ID not in orphan.data
-
-
-def test_an_account_entry_never_borrows_another_accounts_id():
-  """That would quietly merge two accounts into one, which is worse than failing."""
-  from custom_components.edfenergy_uk.config.kind import async_repair_config_entry
-  from custom_components.edfenergy_uk.const import CONFIG_MAIN_API_KEY
-
-  healthy = _FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX", "kind": CONFIG_KIND_ACCOUNT}, entry_id="healthy")
-  broken = _FakeEntry({CONFIG_MAIN_API_KEY: "an-api-key"}, entry_id="broken")
-  hass = _FakeHass([healthy, broken])
-
-  repaired = async_repair_config_entry(hass, broken)
-
-  assert repaired["kind"] == CONFIG_KIND_ACCOUNT
-  assert CONFIG_ACCOUNT_ID not in repaired
 
 
 def test_an_entry_nothing_can_rebuild_is_not_written_to():
@@ -425,14 +330,14 @@ def test_an_entry_nothing_can_rebuild_is_not_written_to():
   assert hass.config_entries.updates == []
 
 
-def test_a_healthy_entry_is_never_written_to_by_the_repair():
+def test_a_healthy_entry_is_never_written_to():
   """This runs on every entry on every setup, so it must be silent on the normal case."""
-  from custom_components.edfenergy_uk.config.kind import async_repair_config_entry
+  from custom_components.edfenergy_uk.config.kind import async_record_inferred_kind
 
   entry = _FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX", "kind": CONFIG_KIND_ACCOUNT})
   hass = _FakeHass([entry])
 
-  assert async_repair_config_entry(hass, entry) == entry.data
+  assert async_record_inferred_kind(hass, entry) == entry.data
   assert hass.config_entries.updates == []
 
 

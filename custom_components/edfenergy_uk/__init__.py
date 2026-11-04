@@ -38,7 +38,7 @@ from .coordinators.flextras import async_setup_flextras_coordinator, get_propert
 from .coordinators.event_free_electricity import async_setup_event_free_electricity_coordinator
 from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
 from .coordinators.power_perks import async_setup_power_perks_coordinator, register_manual_session, relay_enabled
-from .migration import async_apply_captured
+from .migration import async_apply_captured, async_restore_ignored_suggestion, is_carried_over_ignored_suggestion
 from .coordinators.flextras_hours import (
   drop_past_hours,
   async_book_flextras_hours,
@@ -51,7 +51,7 @@ from .config.tariff_comparison import async_migrate_tariff_comparison_config
 
 from .config.main import async_migrate_main_config
 from .config.cost_tracker import async_migrate_cost_tracker_config
-from .config.kind import async_ensure_config_kind, async_repair_config_entry, get_config_kind, infer_config_kind, missing_required_fields
+from .config.kind import async_ensure_config_kind, async_record_inferred_kind, get_config_kind, infer_config_kind, missing_required_fields
 from .utils import get_active_tariff, get_tariff_parts
 from .utils.debug_overrides import async_get_account_debug_override, async_get_meter_debug_override
 from .utils.entity_services import describe_alias
@@ -981,6 +981,15 @@ def _raise_old_folder_repair(hass, version: str) -> None:
 
 
 async def async_setup_entry(hass, entry):
+  if is_carried_over_ignored_suggestion(entry):
+    # Not an entry anyone set up: a suggestion they ignored, which the 20.1.1 hand-over turned
+    # into an empty real one (issue #53). Put it back to being ignored and stop here. Returning
+    # False leaves it unset up rather than failed, and it is gone a moment later anyway.
+    hass.async_create_task(
+      async_restore_ignored_suggestion(hass, entry.entry_id, entry.unique_id, entry.title)
+    )
+    return False
+
   """This is called from the config flow."""
   # Reaching here means the hand-over is done and the entries belong to this domain, so
   # the only thing left to say about the old folder is that it can go.
@@ -1076,21 +1085,19 @@ async def async_setup_entry(hass, entry):
       except ValueError:
         _LOGGER.debug("EDF Energy frontend panel already registered, skipping")
 
-  # Put back anything the entry has lost before anything reads it. Entries turn up having
-  # lost the kind that says what they are and the account id that says what they belong to,
-  # and reading either straight out ended setup with a KeyError before it had done anything
-  # at all. The migration cannot help: it only runs below the current config version, so an
-  # entry that reached the current version without them stayed broken through every restart.
-  config = async_repair_config_entry(hass, entry)
+  # Record the kind if it was never recorded and the entry shows what it is. Reading it
+  # straight out ended setup with a KeyError, and the migration cannot help: it only runs below
+  # the current config version, so an entry that reached the current version without one
+  # stayed broken through every restart.
+  config = async_record_inferred_kind(hass, entry)
 
   kind = config.get(CONFIG_KIND)
 
   missing = missing_required_fields(kind, config)
   if missing:
-    # Nothing recoverable is missing by this point, so carrying on would only mean failing
-    # further in on whichever field happened to be read first - which is how this arrived,
-    # as a KeyError that named a key and nothing else. Name the fields on the entry itself,
-    # where the person who has to fix it will see them.
+    # Carrying on would only mean failing further in on whichever field happened to be read
+    # first - which is how this arrived, as a KeyError that named a key and nothing else.
+    # Name the fields on the entry itself, where the person who has to fix it will see them.
     raise ConfigEntryError(
       f"'{entry.title}' is missing {', '.join(missing)}, and they could not be recovered. "
       "Delete this entry and add it again."
