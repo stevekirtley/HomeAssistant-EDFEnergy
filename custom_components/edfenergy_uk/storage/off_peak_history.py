@@ -52,6 +52,14 @@ def merge_off_peak_windows(existing: list, new_windows: list, current: datetime,
 
   Where a window that ran is followed by one that overlaps it, the earlier one is clipped back
   to where the later one begins. The part before the change happened; the part after did not.
+
+  Only inside the span the rates cover, though. That is the only place the rates say anything
+  about what replaced what, so it is the only place a clip is a correction rather than a guess.
+  Clipping used to run over the whole sixty days on every refresh and save the result, and
+  history written before #49 was fixed is full of re-planned windows overlapping each other.
+  The clip dropped every one of those that shared a start and cut the survivor off at the next
+  window along, so weeks of smart charging windows were rewritten into shorter ones that never
+  happened, and the store was overwritten with them.
   """
   min_time = (current - timedelta(days=60)).replace(hour=0, minute=0, second=0, microsecond=0)
   know_span = span_start is not None and span_end is not None
@@ -88,20 +96,27 @@ def merge_off_peak_windows(existing: list, new_windows: list, current: datetime,
     key=lambda w: w.start
   )
 
-  return clip_overlapping_windows(windows)
+  return clip_overlapping_windows(windows, in_span)
 
-def clip_overlapping_windows(windows: list) -> list:
+def clip_overlapping_windows(windows: list, may_clip=lambda window: True) -> list:
   """Pull back any window that runs into the start of the one after it.
 
   Overlaps come from a dispatch being reshaped while it was running: the record of what had
   been planned reaches past the point where the replacement takes over. A window left with
   nothing of itself after clipping is dropped.
+
+  A window is only clipped against the next when may_clip holds for both of them. Anything
+  else is left exactly as it is, overlap and all, because dropping or shortening a record is
+  not something that can be undone once the store has been written.
   """
   clipped = []
 
   for index, window in enumerate(windows):
     end = window.end
-    if index + 1 < len(windows) and end > windows[index + 1].start:
+    if (index + 1 < len(windows)
+        and end > windows[index + 1].start
+        and may_clip(window)
+        and may_clip(windows[index + 1])):
       end = windows[index + 1].start
 
     if end > window.start:

@@ -200,3 +200,63 @@ def test_when_windows_arrive_out_of_order_then_they_are_sorted():
 
   # Assert
   assert shape(history) == [(0, 5, False), (9, 10, True), (13, 15, True)]
+
+# ── Stored history outside the rates' span is never rewritten ─────────────────
+
+def test_when_old_history_overlaps_itself_then_a_refresh_leaves_it_alone():
+  """21.0.0 rewrote weeks of smart charging history this way.
+
+  History written before #49 was fixed holds every shape a re-planned dispatch went through,
+  so one morning's charge is stored as several windows starting together and finishing at
+  different times. Clipping ran over all of it on each refresh: every window but one that
+  shared the start was dropped, and the survivor was cut off where the next window began. A
+  charge from 05:00 to 14:00 came out as 05:00 to 07:00 and the store was saved that way.
+  """
+  # Arrange - three weeks ago, one charge recorded in four shapes, then a later window
+  replans = [window(5, end, day_offset=-21) for end in (10, 11, 13, 14)]
+  later = window(7, 8, day_offset=-21)
+  history = sorted([*replans, later], key=lambda w: (w.start, w.end))
+
+  # Act - today's ordinary refresh
+  merged = merge_off_peak_windows(history, [window(0, 5, False)], NOW, DAY_START, DAY_END)
+
+  # Assert - every record from three weeks ago is exactly as it was
+  old = [w for w in merged if w.start < DAY_START]
+  assert shape(old) == shape(history)
+
+def test_when_refreshes_keep_coming_then_old_history_still_does_not_move():
+  """The damage was written back on every refresh, so one pass being clean is not enough."""
+  # Arrange
+  history = [window(5, 10, day_offset=-9), window(5, 14, day_offset=-9), window(7, 8, day_offset=-9)]
+  original = shape(history)
+
+  # Act - a day's worth of refreshes, each with the plan for today changing
+  for end in (14, 15, 16, 15, 14):
+    history = merge_off_peak_windows(history, [window(0, 5, False), window(13, end)], NOW,
+                                     DAY_START, DAY_END)
+
+  # Assert
+  assert shape([w for w in history if w.start < DAY_START]) == original
+
+def test_when_no_span_is_given_then_nothing_is_clipped_either():
+  """Without the span the rates say nothing about what replaced what."""
+  # Arrange
+  history = [window(9, 14), window(12, 16)]
+
+  # Act
+  merged = merge_off_peak_windows(history, [], NOW)
+
+  # Assert
+  assert shape(merged) == [(9, 14, True), (12, 16, True)]
+
+def test_when_old_overlaps_sit_beside_a_reshape_today_then_only_today_is_clipped():
+  """The #49 correction still has to happen for today while yesterday is left alone."""
+  # Arrange
+  history = [window(5, 10, day_offset=-1), window(5, 14, day_offset=-1)]
+  history = merge_off_peak_windows(history, [window(9, 14)], NOW, DAY_START, DAY_END)
+
+  # Act - today's running window is replaced part way through
+  history = merge_off_peak_windows(history, [window(12, 16)], NOW, DAY_START, DAY_END)
+
+  # Assert
+  assert shape(history) == [(-19, -14, True), (-19, -10, True), (9, 12, True), (12, 16, True)]
