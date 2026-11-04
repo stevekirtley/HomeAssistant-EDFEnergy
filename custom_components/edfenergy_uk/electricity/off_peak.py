@@ -8,7 +8,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import generate_entity_id
 
-from homeassistant.util.dt import (now)
+from homeassistant.util.dt import (now, start_of_local_day)
 from homeassistant.helpers.update_coordinator import (
   CoordinatorEntity
 )
@@ -21,9 +21,11 @@ from ..utils import get_off_peak_times, get_off_peak_windows_from_rates, is_off_
 from ..storage.off_peak_history import (
   OffPeakWindowRecord,
   merge_off_peak_windows,
-  async_load_cached_off_peak_history,
+  rebuild_from_started_dispatches,
+  async_load_off_peak_history_store,
   async_save_cached_off_peak_history,
 )
+from ..storage.intelligent_dispatches import async_load_cached_intelligent_dispatches
 
 from .base import EDFEnergyElectricitySensor
 from ..utils.attributes import dict_to_typed_dict
@@ -40,7 +42,8 @@ OFF_PEAK_ATTRIBUTE_RETENTION_DAYS = 21
 class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor, BinarySensorEntity, RestoreEntity):
   """Sensor for determining if the current rate is off peak."""
 
-  def __init__(self, hass: HomeAssistant, coordinator, meter, point):
+  def __init__(self, hass: HomeAssistant, coordinator, meter, point, account_id: str | None = None,
+               intelligent_device_ids: list | None = None):
     """Init sensor."""
 
     CoordinatorEntity.__init__(self, coordinator)
@@ -56,6 +59,10 @@ class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor,
     }
     self._off_peak_history: list[OffPeakWindowRecord] = []
     self._last_updated = None
+    # Only what is needed to repair the history once, at startup. See _async_repair_from_dispatches.
+    self._account_id = account_id
+    self._intelligent_device_ids = list(intelligent_device_ids or [])
+    self._dispatch_repair_done = False
 
     self.entity_id = generate_entity_id("binary_sensor.{}", self.unique_id, hass=hass)
 
@@ -145,8 +152,48 @@ class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor,
 
   async def _async_save_history(self):
     await async_save_cached_off_peak_history(
-      self._hass, self._mpan, self._serial_number, self._off_peak_history
+      self._hass, self._mpan, self._serial_number, self._off_peak_history,
+      dispatch_repair_done=self._dispatch_repair_done,
     )
+
+  async def _async_repair_from_dispatches(self):
+    """Put back what 21.0.0's clip took out of the stored history, once.
+
+    That release rewrote the stored smart charging windows on every refresh and saved them,
+    dropping and shortening any that overlapped. The windows themselves are gone from this
+    store, but the started dispatches are kept separately for the same sixty days and were never
+    touched, so the part of each lost window that actually ran can be added back. Nothing is
+    taken away by this, and anything a dispatch did not run stays gone.
+
+    Export meters have no smart charging windows to lose. Without a charger there is nothing to
+    rebuild from, and nothing could have been lost either, so it simply looks again next time
+    rather than recording that it is done - the devices may not have loaded yet.
+    """
+    if self._is_export or not self._intelligent_device_ids:
+      return
+
+    started = []
+    loaded_any = False
+    for device_id in self._intelligent_device_ids:
+      dispatches = await async_load_cached_intelligent_dispatches(self._hass, self._account_id, device_id)
+      if dispatches is not None:
+        loaded_any = True
+        started.extend(dispatches.started or [])
+
+    if not loaded_any:
+      return
+
+    self._off_peak_history, added = rebuild_from_started_dispatches(
+      self._off_peak_history, started, start_of_local_day()
+    )
+    self._dispatch_repair_done = True
+    await self._async_save_history()
+
+    if added > 0:
+      _LOGGER.info(
+        "Put back %d smart charging window(s) for %s/%s from the dispatches that ran",
+        added, self._mpan, self._serial_number,
+      )
 
   async def async_added_to_hass(self):
     """Call when entity about to be added to hass."""
@@ -160,9 +207,11 @@ class EDFEnergyElectricityOffPeak(CoordinatorEntity, EDFEnergyElectricitySensor,
     if (self._state is None):
       self._state = False
 
-    self._off_peak_history = await async_load_cached_off_peak_history(
+    self._off_peak_history, self._dispatch_repair_done = await async_load_off_peak_history_store(
       self._hass, self._mpan, self._serial_number
     )
+    if not self._dispatch_repair_done:
+      await self._async_repair_from_dispatches()
     # Apply the same retention window as the coordinator update path, otherwise restoring the full
     # 60-day cached history would briefly blow past HA's attribute size limit on every restart.
     self._attributes["off_peak_windows"] = self._off_peak_windows_for_attribute(now())

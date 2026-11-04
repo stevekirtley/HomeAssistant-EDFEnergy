@@ -65,6 +65,15 @@ async def async_setup_main_sensors(hass, entry, async_add_entities):
   now = utcnow()
   entities = []
 
+  # Handed to the off peak sensors so they can rebuild the smart charging windows 21.0.0 took
+  # out of their history, from the dispatches each of these devices ran.
+  intelligent_result = hass.data[DOMAIN][account_id].get(DATA_INTELLIGENT_DEVICES)
+  intelligent_device_ids = [
+    device.id
+    for device in ((intelligent_result.devices or []) if intelligent_result is not None else [])
+    if device.device_type in (INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLES, INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLE_CHARGERS)
+  ]
+
   if len(account_info["electricity_meter_points"]) > 0:
 
     for point in account_info["electricity_meter_points"]:
@@ -76,7 +85,8 @@ async def async_setup_main_sensors(hass, entry, async_add_entities):
           serial_number = meter["serial_number"]
           electricity_rate_coordinator = hass.data[DOMAIN][account_id][DATA_ELECTRICITY_RATES_COORDINATOR_KEY.format(mpan, serial_number)]
 
-          entities.append(EDFEnergyElectricityOffPeak(hass, electricity_rate_coordinator, meter, point))
+          entities.append(EDFEnergyElectricityOffPeak(hass, electricity_rate_coordinator, meter, point,
+                                                      account_id, intelligent_device_ids))
 
   entities.extend(get_intelligent_entities(hass, account_id, config))
 

@@ -124,18 +124,98 @@ def clip_overlapping_windows(windows: list, may_clip=lambda window: True) -> lis
 
   return clipped
 
-async def async_load_cached_off_peak_history(hass, mpan: str, serial_number: str) -> list:
-  store = storage.Store(hass, "1", f"edf_energy.off_peak_history_{mpan}_{serial_number}")
+def _union(intervals: list) -> list:
+  merged = []
+  for start, end in sorted(intervals):
+    if merged and start <= merged[-1][1]:
+      merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+    else:
+      merged.append((start, end))
+  return merged
+
+def _subtract(intervals: list, taken: list) -> list:
+  """What is left of each interval once everything in taken is cut out of it."""
+  remaining = []
+  for start, end in intervals:
+    pieces = [(start, end)]
+    for taken_start, taken_end in taken:
+      pieces = [
+        piece
+        for piece_start, piece_end in pieces
+        for piece in (
+          [(piece_start, piece_end)] if taken_end <= piece_start or taken_start >= piece_end
+          else [(piece_start, taken_start), (taken_end, piece_end)]
+        )
+        if piece[1] > piece[0]
+      ]
+    remaining.extend(pieces)
+  return remaining
+
+def rebuild_from_started_dispatches(history: list, started: list, before: datetime) -> tuple[list, int]:
+  """Put back smart charging windows the 21.0.0 clip took out, from the dispatches that ran.
+
+  The clip rewrote stored history and saved it, so the windows it dropped are gone from this
+  store. The started dispatches are a separate record of what actually charged, kept for the
+  same sixty days and never touched by the clip, so the part of a lost window that really ran
+  can be worked out again: whatever a started dispatch covers that no stored window already
+  does.
+
+  This only ever adds. Nothing already in the history is changed or taken out, and nothing is
+  added that a dispatch did not run - a window EDF planned and then revoked is not put back,
+  because it never happened. Only time before `before` is considered, so today and anything
+  the rates still cover is left to them, and only time from the first stored window on, so a
+  sensor that started recording recently does not suddenly gain weeks it never saw.
+
+  Returns the history with the added windows, and how many were added.
+  """
+  if not history or not started:
+    return history, 0
+
+  earliest = min(window.start for window in history)
+  ran = _union([
+    (max(dispatch.start, earliest), min(dispatch.end, before))
+    for dispatch in started
+    if dispatch.start is not None and dispatch.end is not None
+       and dispatch.end > earliest and dispatch.start < before
+  ])
+  covered = _union([(window.start, window.end) for window in history])
+
+  added = [
+    OffPeakWindowRecord(start, end, True)
+    for start, end in _subtract(ran, covered)
+  ]
+  if not added:
+    return history, 0
+
+  return sorted([*history, *added], key=lambda window: window.start), len(added)
+
+def _off_peak_history_store(hass, mpan: str, serial_number: str):
+  return storage.Store(hass, "1", f"edf_energy.off_peak_history_{mpan}_{serial_number}")
+
+async def async_load_off_peak_history_store(hass, mpan: str, serial_number: str) -> tuple[list, bool]:
+  """The stored windows, and whether the dispatch repair has already been run on them."""
   try:
-    data = await store.async_load()
+    data = await _off_peak_history_store(hass, mpan, serial_number).async_load()
     if data is not None:
       _LOGGER.debug(f"Loaded off-peak history for {mpan}/{serial_number}")
-      return [OffPeakWindowRecord.from_dict(item) for item in data.get("windows", [])]
+      return (
+        [OffPeakWindowRecord.from_dict(item) for item in data.get("windows", [])],
+        data.get("dispatch_repair") == 1,
+      )
   except Exception:
     pass
-  return []
+  return [], False
 
-async def async_save_cached_off_peak_history(hass, mpan: str, serial_number: str, windows: list):
-  store = storage.Store(hass, "1", f"edf_energy.off_peak_history_{mpan}_{serial_number}")
-  await store.async_save({"windows": [w.to_dict() for w in windows]})
+async def async_load_cached_off_peak_history(hass, mpan: str, serial_number: str) -> list:
+  windows, _ = await async_load_off_peak_history_store(hass, mpan, serial_number)
+  return windows
+
+async def async_save_cached_off_peak_history(hass, mpan: str, serial_number: str, windows: list,
+                                             dispatch_repair_done: bool = False):
+  data = {"windows": [w.to_dict() for w in windows]}
+  # Kept on every save once it is set. Dropping it would only make the repair run again, which
+  # adds nothing the second time, but there is no reason to have it look every restart.
+  if dispatch_repair_done:
+    data["dispatch_repair"] = 1
+  await _off_peak_history_store(hass, mpan, serial_number).async_save(data)
   _LOGGER.debug(f"Saved off-peak history for {mpan}/{serial_number} ({len(windows)} windows)")
