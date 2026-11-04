@@ -1288,7 +1288,7 @@
 <p>You can still record today's consumption in the Energy dashboard, but you need an <strong>independent live source</strong> in Home Assistant to do it. The two practical routes are a Hildebrand Bright / Glow feed (recommended, since it reads the same smart meter) or a CT clamp / inverter sensor.</p>
 </div>
 <h3 id="recommended-hildebrand-bright-glow-live-data">Recommended: Hildebrand Bright (Glow) live data<a class="headerlink" href="#recommended-hildebrand-bright-glow-live-data" title="Permanent link">#</a></h3>
-<p>If you have a Hildebrand <a href="https://glowmarkt.com/">Bright app</a> account (also branded "Glow"), the free <a href="https://github.com/HandyHat/ha-hildebrand-glow">Hildebrand Glow (DCC)</a> HACS integration pulls near-real-time readings straight from your smart meter over the DCC network — no extra hardware needed. This is the closest equivalent to Octopus's live feed and works with the same meter EDF bills you from.</p>
+<p>If you have a Hildebrand <a href="https://glowmarkt.com/">Bright app</a> account (also branded "Glow"), the free <a href="https://github.com/HandyHat/ha-hildebrandglow-dcc">Hildebrand Glow (DCC)</a> HACS integration pulls near-real-time readings straight from your smart meter over the DCC network — no extra hardware needed. This is the closest equivalent to Octopus's live feed and works with the same meter EDF bills you from.</p>
 <p>Once that integration is set up you'll get a <code>glow_smart_meter_&lt;DEVICE_ID&gt;_...</code> device with these useful entities:</p>
 <table>
 <thead>
@@ -1440,7 +1440,7 @@ charge, so they get no <code>_includingsc</code> statistic.</p>
       
     </span>
     <nav>
-      BottlecapDave, Geoffrey Coan, stevekirtley, stevekirtley, stevekirtley
+      BottlecapDave, Geoffrey Coan, Mark Adamson, stevekirtley, stevekirtley, stevekirtley
     </nav>
   </span>
 
