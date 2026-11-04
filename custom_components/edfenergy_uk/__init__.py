@@ -51,7 +51,7 @@ from .config.tariff_comparison import async_migrate_tariff_comparison_config
 
 from .config.main import async_migrate_main_config
 from .config.cost_tracker import async_migrate_cost_tracker_config
-from .config.kind import get_config_kind, infer_config_kind
+from .config.kind import async_ensure_config_kind, get_config_kind, infer_config_kind
 from .utils import get_active_tariff, get_tariff_parts
 from .utils.debug_overrides import async_get_account_debug_override, async_get_meter_debug_override
 from .utils.entity_services import describe_alias
@@ -875,10 +875,25 @@ async def async_migrate_entry(hass, config_entry):
       new_data.update(config_entry.options)
       folded_options_into_data = True
 
-    if CONFIG_MAIN_API_KEY in new_data or CONFIG_MAIN_OLD_API_KEY in new_data or (CONFIG_KIND in new_data and new_data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT):
+    if CONFIG_KIND not in new_data:
+      # Fill the kind in before anything dispatches on it. Without this an entry with no
+      # kind matched none of the branches below, so it was handed the current version
+      # without being migrated at all - and it never gained the kind it was missing, which
+      # is what left it tripping up everything that walked past it afterwards.
+      new_data[CONFIG_KIND] = infer_config_kind(new_data)
+      _LOGGER.warning(
+        "Config entry '%s' had no kind recorded; migrating it as '%s'",
+        config_entry.title, new_data[CONFIG_KIND],
+      )
+
+    kind = new_data[CONFIG_KIND]
+
+    if CONFIG_MAIN_API_KEY in new_data or CONFIG_MAIN_OLD_API_KEY in new_data or kind == CONFIG_KIND_ACCOUNT:
       new_data = await async_migrate_main_config(config_entry.version, new_data)
-      title = new_data[CONFIG_ACCOUNT_ID]
-    elif CONFIG_KIND in new_data and new_data[CONFIG_KIND] == CONFIG_KIND_COST_TRACKER:
+      # An account entry always carries its id, but this is not the place to fall over if
+      # one somehow does not - the title is cosmetic and the entry is mid-migration.
+      title = new_data.get(CONFIG_ACCOUNT_ID) or title
+    elif kind == CONFIG_KIND_COST_TRACKER:
       new_data = await async_migrate_cost_tracker_config(config_entry.version, new_data, hass.config_entries.async_entries)
 
       if config_entry.version < 9:
@@ -888,7 +903,7 @@ async def async_migrate_entry(hass, config_entry):
           source_device_id=new_data[CONFIG_COST_TRACKER_TARGET_ENTITY_ID],
         )
 
-    elif CONFIG_KIND in new_data and new_data[CONFIG_KIND] == CONFIG_KIND_TARIFF_COMPARISON:
+    elif kind == CONFIG_KIND_TARIFF_COMPARISON:
       new_data = await async_migrate_tariff_comparison_config(config_entry.version, new_data, hass.config_entries.async_entries)
     
     # Options are only cleared when they were just copied into data, which is what the move
@@ -1096,13 +1111,12 @@ async def async_setup_entry(hass, entry):
     for child_entry in child_entries:
       child_entry_config = dict(child_entry.data)
 
-      # Read with a fallback rather than by key. An entry carried over from the old domain
-      # keeps its data verbatim and is created at the current config version, so an old
-      # entry that never had a kind recorded does not get one from the migration. Such an
-      # entry repairs itself when it is set up, but that is no help here: this runs first
-      # and used to take the whole account down with a KeyError, leaving it on "Failed to
-      # set up" with none of its devices created.
-      child_kind = child_entry_config.get(CONFIG_KIND) or _infer_config_kind(child_entry_config)
+      # Never read the kind by key here. An entry that reached the current config version
+      # without one does not get it from the migration, and reading it by key used to take
+      # the whole account down with a KeyError, leaving it on "Failed to set up" with none
+      # of its devices created. Record the kind on the entry while we are here, so the
+      # entry stops being a trap for everything else that walks the list.
+      child_kind = async_ensure_config_kind(hass, child_entry)
 
       if child_kind != CONFIG_KIND_ACCOUNT and child_entry_config.get(CONFIG_ACCOUNT_ID) == account_id:
         await hass.config_entries.async_reload(child_entry.entry_id)
@@ -1855,7 +1869,7 @@ async def options_update_listener(hass, entry):
 
   await hass.config_entries.async_reload(entry.entry_id)
 
-  if (entry.data.get(CONFIG_KIND) or _infer_config_kind(dict(entry.data))) == CONFIG_KIND_ACCOUNT:
+  if get_config_kind(dict(entry.data)) == CONFIG_KIND_ACCOUNT:
     account_id = entry.data[CONFIG_ACCOUNT_ID]
 
     # If the main account has been reloaded, then reload all other entries to make sure they're referencing
@@ -1864,13 +1878,12 @@ async def options_update_listener(hass, entry):
     for child_entry in child_entries:
       child_entry_config = dict(child_entry.data)
 
-      # Read with a fallback rather than by key. An entry carried over from the old domain
-      # keeps its data verbatim and is created at the current config version, so an old
-      # entry that never had a kind recorded does not get one from the migration. Such an
-      # entry repairs itself when it is set up, but that is no help here: this runs first
-      # and used to take the whole account down with a KeyError, leaving it on "Failed to
-      # set up" with none of its devices created.
-      child_kind = child_entry_config.get(CONFIG_KIND) or _infer_config_kind(child_entry_config)
+      # Never read the kind by key here. An entry that reached the current config version
+      # without one does not get it from the migration, and reading it by key used to take
+      # the whole account down with a KeyError, leaving it on "Failed to set up" with none
+      # of its devices created. Record the kind on the entry while we are here, so the
+      # entry stops being a trap for everything else that walks the list.
+      child_kind = async_ensure_config_kind(hass, child_entry)
 
       if child_kind != CONFIG_KIND_ACCOUNT and child_entry_config.get(CONFIG_ACCOUNT_ID) == account_id:
         await hass.config_entries.async_reload(child_entry.entry_id)
@@ -1879,17 +1892,19 @@ async def async_unload_entry(hass, entry):
     """Unload a config entry."""
 
     unload_ok = False
-    if entry.data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
+    kind = get_config_kind(dict(entry.data))
+
+    if kind == CONFIG_KIND_ACCOUNT:
       unload_ok = await hass.config_entries.async_unload_platforms(entry, ACCOUNT_PLATFORMS)
       if unload_ok:
         account_id = entry.data[CONFIG_ACCOUNT_ID]
         await _async_close_client(hass, account_id)
         hass.data[DOMAIN].pop(account_id)
 
-    elif entry.data[CONFIG_KIND] == CONFIG_KIND_TARIFF_COMPARISON:
+    elif kind == CONFIG_KIND_TARIFF_COMPARISON:
       unload_ok = await hass.config_entries.async_unload_platforms(entry, TARIFF_COMPARISON_PLATFORMS)
     
-    elif entry.data[CONFIG_KIND] == CONFIG_KIND_COST_TRACKER:
+    elif kind == CONFIG_KIND_COST_TRACKER:
       unload_ok = await hass.config_entries.async_unload_platforms(entry, COST_TRACKER_PLATFORMS)
 
     return unload_ok
@@ -1902,7 +1917,9 @@ def setup(hass, config):
 
     account_id = None
     for entry in hass.config_entries.async_entries(DOMAIN, include_ignore=False):
-      if CONFIG_KIND in entry.data and entry.data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
+      # Skipping an entry without a kind meant no account was found at all, and the
+      # service raised rather than doing the thing it was asked to do.
+      if get_config_kind(dict(entry.data)) == CONFIG_KIND_ACCOUNT and CONFIG_ACCOUNT_ID in entry.data:
         account_id = entry.data[CONFIG_ACCOUNT_ID]
 
     if account_id is None:

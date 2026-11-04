@@ -162,3 +162,132 @@ async def test_the_discovery_sweep_survives_an_entry_without_a_kind():
   # The kindless entry is recognised as the cost tracker it is, so the entity it already
   # tracks is not offered again, and the sweep carries on to find the new one.
   assert [data[CONFIG_COST_TRACKER_TARGET_ENTITY_ID] for data in created] == ["sensor.brand_new"]
+
+
+class _FakeEntry:
+  """Enough of a config entry for the repair and migration paths."""
+
+  def __init__(self, data, version=9, options=None, title="A-XXXXXX"):
+    self.data = dict(data)
+    self.version = version
+    self.options = dict(options or {})
+    self.title = title
+    self.entry_id = "entry-1"
+
+
+class _FakeConfigEntries:
+  def __init__(self, entries=None):
+    self.entries = entries or []
+    self.updates = []
+
+  def async_entries(self, domain, include_ignore=False):
+    return self.entries
+
+  def async_update_entry(self, entry, **changes):
+    if "data" in changes:
+      entry.data = dict(changes["data"])
+    if "options" in changes:
+      entry.options = dict(changes["options"])
+    if "title" in changes:
+      entry.title = changes["title"]
+    if "version" in changes:
+      entry.version = changes["version"]
+    self.updates.append((entry, changes))
+
+
+class _FakeHass:
+  def __init__(self, entries=None, data=None):
+    self.config_entries = _FakeConfigEntries(entries)
+    self.data = data if data is not None else {}
+
+
+def test_an_entry_without_a_kind_has_one_recorded_on_it():
+  """Reading around a missing kind is not enough on its own.
+
+  A disabled entry is never set up, so it never repairs itself, and it keeps turning up in
+  async_entries with nothing to say what it is. Writing the kind on the first look is what
+  stops it being a trap for every caller after that.
+  """
+  from custom_components.edfenergy_uk.config.kind import async_ensure_config_kind
+
+  entry = _FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX", CONFIG_COST_TRACKER_TARGET_ENTITY_ID: "sensor.x"})
+  hass = _FakeHass([entry])
+
+  kind = async_ensure_config_kind(hass, entry)
+
+  assert kind == CONFIG_KIND_COST_TRACKER
+  assert entry.data["kind"] == CONFIG_KIND_COST_TRACKER
+  assert len(hass.config_entries.updates) == 1
+
+
+def test_an_entry_that_already_knows_its_kind_is_left_alone():
+  """Which is every entry but the broken ones, so it must not write on every look."""
+  from custom_components.edfenergy_uk.config.kind import async_ensure_config_kind
+
+  entry = _FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX", "kind": CONFIG_KIND_ACCOUNT})
+  hass = _FakeHass([entry])
+
+  assert async_ensure_config_kind(hass, entry) == CONFIG_KIND_ACCOUNT
+  assert hass.config_entries.updates == []
+
+
+@pytest.mark.asyncio
+async def test_the_migration_fills_the_kind_in_before_dispatching_on_it():
+  """This is where the whole problem came from.
+
+  The migration dispatched on the kind to decide what to migrate, so an entry without one
+  matched none of its branches - and was then handed the current config version regardless.
+  It came out the other side still missing the kind, and with nothing left that would ever
+  run the migration on it again.
+  """
+  from custom_components.edfenergy_uk import async_migrate_entry
+  from custom_components.edfenergy_uk.const import CONFIG_VERSION
+
+  entry = _FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX"}, version=8)
+  hass = _FakeHass([entry])
+
+  assert await async_migrate_entry(hass, entry) is True
+
+  assert entry.data["kind"] == CONFIG_KIND_ACCOUNT
+  assert entry.version == CONFIG_VERSION
+
+
+@pytest.mark.asyncio
+async def test_the_migration_does_not_relabel_an_entry_that_knows_what_it_is():
+  """Target rates are not supported by this fork but the entries still exist, and nothing
+  about them can be inferred - so a recorded kind has to win over any guess."""
+  from custom_components.edfenergy_uk import async_migrate_entry
+  from custom_components.edfenergy_uk.const import CONFIG_KIND_TARGET_RATE
+
+  entry = _FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX", "kind": CONFIG_KIND_TARGET_RATE}, version=8)
+  hass = _FakeHass([entry])
+
+  assert await async_migrate_entry(hass, entry) is True
+
+  assert entry.data["kind"] == CONFIG_KIND_TARGET_RATE
+
+
+def test_an_account_whose_entry_is_not_set_up_reads_as_missing_rather_than_raising():
+  """Adding or reconfiguring a cost tracker while the account entry is broken used to raise
+  a KeyError out of the config flow, so the person whose account was already broken got
+  "Unknown error occurred" instead of being told which account was missing."""
+  from custom_components.edfenergy_uk.config_flow import get_account_info
+
+  assert get_account_info(_FakeHass(data={}), "A-XXXXXX") is None
+  assert get_account_info(_FakeHass(data={"edfenergy_uk": {}}), "A-XXXXXX") is None
+  assert get_account_info(_FakeHass(data={"edfenergy_uk": {"A-XXXXXX": {}}}), "A-XXXXXX") is None
+  assert get_account_info(_FakeHass(data={}), None) is None
+
+
+def test_an_account_entry_without_a_kind_is_still_counted_as_an_account():
+  """It was skipped, so the account it holds went missing from the duplicate check and from
+  the account pickers - the same account could be added a second time."""
+  from custom_components.edfenergy_uk.config_flow import get_account_ids
+
+  hass = _FakeHass([
+    _FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX"}),
+    _FakeEntry({CONFIG_ACCOUNT_ID: "A-OTHER", "kind": CONFIG_KIND_ACCOUNT}),
+    _FakeEntry({CONFIG_ACCOUNT_ID: "A-OTHER", CONFIG_COST_TRACKER_TARGET_ENTITY_ID: "sensor.x"}),
+  ])
+
+  assert get_account_ids(hass) == ["A-XXXXXX", "A-OTHER"]

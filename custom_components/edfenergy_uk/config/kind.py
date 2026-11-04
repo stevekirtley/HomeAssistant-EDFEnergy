@@ -1,5 +1,7 @@
 """Working out what an entry is when it has no kind recorded."""
 
+import logging
+
 from ..const import (
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
   CONFIG_KIND,
@@ -8,6 +10,8 @@ from ..const import (
   CONFIG_KIND_TARIFF_COMPARISON,
   CONFIG_TARIFF_COMPARISON_PRODUCT_CODE,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 def infer_config_kind(config: dict) -> str:
   """Work out what an entry is when it has no kind recorded.
@@ -34,3 +38,26 @@ def get_config_kind(config: dict) -> str:
   has to cope with that rather than reading the key straight out.
   """
   return config.get(CONFIG_KIND) or infer_config_kind(config)
+
+def async_ensure_config_kind(hass, entry) -> str:
+  """The kind of an entry, written back onto it when it was missing.
+
+  An entry that reaches the current config version without a kind repairs itself when it is
+  set up. A disabled entry is never set up, so it never gets that far: it keeps turning up
+  in async_entries with nothing to say what it is, and every caller that walks past it has
+  to cope. Recording the inferred kind the first time anything looks at it ends that, rather
+  than every reader working around it forever.
+  """
+  config = dict(entry.data)
+  recorded = config.get(CONFIG_KIND)
+  if recorded:
+    return recorded
+
+  kind = infer_config_kind(config)
+  config[CONFIG_KIND] = kind
+  hass.config_entries.async_update_entry(entry, data=config)
+  _LOGGER.warning(
+    "Config entry '%s' had no kind recorded; treating it as '%s' and repairing it",
+    entry.title, kind,
+  )
+  return kind

@@ -131,11 +131,26 @@ def get_weekday_options():
 def get_account_ids(hass):
     account_ids: list[str] = []
     for entry in hass.config_entries.async_entries(DOMAIN, include_ignore=False):
-      if CONFIG_KIND in entry.data and entry.data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
-        account_id = entry.data[CONFIG_ACCOUNT_ID]
-        account_ids.append(account_id)
+      # An entry that never had a kind recorded used to be skipped here, so the account it
+      # holds was missing from the duplicate check and from the account pickers.
+      if get_config_kind(dict(entry.data)) == CONFIG_KIND_ACCOUNT and CONFIG_ACCOUNT_ID in entry.data:
+        account_ids.append(entry.data[CONFIG_ACCOUNT_ID])
 
     return account_ids
+
+def get_account_info(hass, account_id):
+  """The cached account information, or None when that account is not set up.
+
+  A child entry can be added or reconfigured while its account entry is broken, disabled or
+  still loading, and then there is nothing under hass.data to read. Reading it by key raised
+  a KeyError and the flow died with "Unknown error occurred", which told the one person who
+  most needed to know nothing at all. Every caller already handles None by aborting with
+  account_not_found.
+  """
+  if account_id is None:
+    return None
+
+  return (hass.data.get(DOMAIN, {}).get(account_id) or {}).get(DATA_ACCOUNT)
 
 description_placeholders = {
   "edf_energy_dashboard_url": "https://www.edfenergy.com/electric-cars/smart-ev-charger",
@@ -151,7 +166,9 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
 
   @staticmethod
   def async_get_options_flow(config_entry):
-    if config_entry.data.get(CONFIG_KIND) == CONFIG_KIND_ACCOUNT:
+    # A kindless account entry got no options flow at all here, so it had no Configure
+    # button to reach the panel and relay settings with.
+    if get_config_kind(dict(config_entry.data)) == CONFIG_KIND_ACCOUNT:
       return EDFEnergyAccountOptionsFlow(config_entry)
     return None
 
@@ -361,7 +378,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
   
   async def __async_setup_cost_tracker_schema__(self, account_id: str):
 
-    account_info: AccountCoordinatorResult = self.hass.data[DOMAIN][account_id][DATA_ACCOUNT] if account_id is not None and account_id in self.hass.data[DOMAIN] else None
+    account_info: AccountCoordinatorResult = get_account_info(self.hass, account_id)
     if (account_info is None):
       return self.async_abort(reason="account_not_found")
 
@@ -402,7 +419,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     """Setup a target based on the provided user input"""
     account_id = self._account_id
 
-    account_info: AccountCoordinatorResult = self.hass.data[DOMAIN][account_id][DATA_ACCOUNT]
+    account_info: AccountCoordinatorResult = get_account_info(self.hass, account_id)
     if (account_info is None):
       return self.async_abort(reason="account_not_found")
 
@@ -443,7 +460,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     config.update(self._get_reconfigure_entry().data)
 
     account_id = config[CONFIG_ACCOUNT_ID]
-    account_info: AccountCoordinatorResult = self.hass.data[DOMAIN][account_id][DATA_ACCOUNT]
+    account_info: AccountCoordinatorResult = get_account_info(self.hass, account_id)
     if (account_info is None):
       return self.async_abort(reason="account_not_found")
     
@@ -476,7 +493,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
   
   async def __async_setup_tariff_comparison_schema__(self, account_id: str):
 
-    account_info: AccountCoordinatorResult = self.hass.data[DOMAIN][account_id][DATA_ACCOUNT] if account_id is not None and account_id in self.hass.data[DOMAIN] else None
+    account_info: AccountCoordinatorResult = get_account_info(self.hass, account_id)
     if (account_info is None):
       return self.async_abort(reason="account_not_found")
 
@@ -507,7 +524,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     """Setup a target based on the provided user input"""
     account_id = self._account_id
 
-    account_info: AccountCoordinatorResult = self.hass.data[DOMAIN][account_id][DATA_ACCOUNT]
+    account_info: AccountCoordinatorResult = get_account_info(self.hass, account_id)
     if (account_info is None):
       return self.async_abort(reason="account_not_found")
 
@@ -540,7 +557,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     config.update(self._get_reconfigure_entry().data)
 
     account_id = config[CONFIG_ACCOUNT_ID]
-    account_info: AccountCoordinatorResult = self.hass.data[DOMAIN][account_id][DATA_ACCOUNT]
+    account_info: AccountCoordinatorResult = get_account_info(self.hass, account_id)
     if (account_info is None):
       return self.async_abort(reason="account_not_found")
     
