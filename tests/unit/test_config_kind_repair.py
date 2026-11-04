@@ -10,6 +10,7 @@ reload that showed it.
 import pytest
 
 from custom_components.edfenergy_uk import _infer_config_kind
+from custom_components.edfenergy_uk.config.kind import get_config_kind
 from custom_components.edfenergy_uk.const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
@@ -81,3 +82,83 @@ def test_an_entry_missing_its_account_id_is_skipped_rather_than_raising():
 
   assert kind == CONFIG_KIND_COST_TRACKER
   assert config.get(CONFIG_ACCOUNT_ID) is None
+
+
+def test_the_kind_is_inferred_through_the_shared_helper():
+  """The platforms, the config flow and the discovery sweep all go through this."""
+  assert get_config_kind({CONFIG_ACCOUNT_ID: "A-XXXXXX"}) == CONFIG_KIND_ACCOUNT
+  assert get_config_kind({"kind": CONFIG_KIND_COST_TRACKER}) == CONFIG_KIND_COST_TRACKER
+  assert get_config_kind({CONFIG_COST_TRACKER_TARGET_ENTITY_ID: "sensor.x"}) == CONFIG_KIND_COST_TRACKER
+  assert get_config_kind({}) == CONFIG_KIND_ACCOUNT
+
+
+@pytest.mark.asyncio
+async def test_the_discovery_sweep_survives_an_entry_without_a_kind():
+  """Reported on 21.0.1, every two hours: `KeyError: 'kind'` from discovery.py.
+
+  21.0.1 stopped a kindless entry taking setup down, which is what let the discovery timer
+  start running at all - and it walked the same entries, reading the kind by key. The
+  exception landed in a timer task so the account kept working, but the sweep stopped at the
+  bad entry, so no new energy entity was ever offered as a cost tracker.
+
+  A disabled entry is why this does not clear itself: async_entries includes disabled
+  entries, but a disabled entry is never set up, so it never repairs its own kind.
+  """
+  from homeassistant.helpers import entity_registry as er
+  from homeassistant.helpers import discovery_flow
+
+  from custom_components.edfenergy_uk import discovery as discovery_module
+  from custom_components.edfenergy_uk.discovery import DiscoveryManager
+
+  class FakeEntity:
+    def __init__(self, entity_id, unique_id):
+      self.entity_id = entity_id
+      self.unique_id = unique_id
+      self.disabled_by = None
+      self.unit_of_measurement = "kWh"
+      self.name = None
+      self.original_name = "Some Meter"
+
+  tracked = FakeEntity("sensor.already_tracked", "already_tracked")
+  fresh = FakeEntity("sensor.brand_new", "brand_new")
+
+  class FakeEntityRegistry:
+    entities = {"sensor.already_tracked": tracked, "sensor.brand_new": fresh}
+
+  class FakeEntry:
+    def __init__(self, data):
+      self.data = data
+
+  entries = [
+    # The kindless entry, listed first so a KeyError here stops everything after it.
+    FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX", CONFIG_COST_TRACKER_TARGET_ENTITY_ID: "sensor.already_tracked"}),
+    FakeEntry({CONFIG_ACCOUNT_ID: "A-XXXXXX", "kind": CONFIG_KIND_ACCOUNT}),
+  ]
+
+  class FakeConfigEntries:
+    def async_entries(self, domain, include_ignore=False):
+      return entries
+
+  class FakeHass:
+    config_entries = FakeConfigEntries()
+
+  created = []
+
+  original_registry = er.async_get
+  original_create_flow = discovery_flow.async_create_flow
+  er.async_get = lambda hass: FakeEntityRegistry()
+  discovery_module.er.async_get = er.async_get
+  discovery_module.discovery_flow.async_create_flow = (
+    lambda hass, domain, context, data, discovery_key: created.append(data)
+  )
+
+  try:
+    await DiscoveryManager(FakeHass(), "A-XXXXXX")._async_start_discovery()
+  finally:
+    er.async_get = original_registry
+    discovery_module.er.async_get = original_registry
+    discovery_module.discovery_flow.async_create_flow = original_create_flow
+
+  # The kindless entry is recognised as the cost tracker it is, so the entity it already
+  # tracks is not offered again, and the sweep carries on to find the new one.
+  assert [data[CONFIG_COST_TRACKER_TARGET_ENTITY_ID] for data in created] == ["sensor.brand_new"]

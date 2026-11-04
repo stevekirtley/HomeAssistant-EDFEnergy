@@ -14,6 +14,7 @@ from homeassistant.helpers.typing import DiscoveryInfoType
 from .coordinators.account import AccountCoordinatorResult
 from .config.cost_tracker import validate_cost_tracker_config
 from .config.main import async_validate_main_config
+from .config.kind import get_config_kind
 from .migration import async_take_over_old_entries
 from .const import (
   PREDECESSOR_DOMAIN,
@@ -665,7 +666,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
   
   async def async_step_reconfigure(self, user_input):
     """Manage the options for the custom component."""
-    kind = self._get_reconfigure_entry().data[CONFIG_KIND]
+    kind = get_config_kind(dict(self._get_reconfigure_entry().data))
 
     if (kind == CONFIG_KIND_ACCOUNT):
       return await self.async_step_reconfigure_account(user_input)

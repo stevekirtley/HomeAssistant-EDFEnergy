@@ -29,6 +29,8 @@ from .const import (
     DOMAIN,
 )
 
+from .config.kind import get_config_kind
+
 _LOGGER = logging.getLogger(__name__)
 
 class DiscoveryManager:
@@ -79,7 +81,10 @@ class DiscoveryManager:
             for entry in config_entries:
                 config_entry_data = dict(entry.data)
 
-                if config_entry_data[CONFIG_KIND] == CONFIG_KIND_COST_TRACKER and config_entry_data[CONFIG_COST_TRACKER_TARGET_ENTITY_ID] == item[1].entity_id:
+                # Read the kind with a fallback rather than by key. One entry without a kind
+                # recorded used to stop the whole sweep with a KeyError every couple of hours,
+                # so no new energy entity was ever offered as a cost tracker.
+                if get_config_kind(config_entry_data) == CONFIG_KIND_COST_TRACKER and config_entry_data.get(CONFIG_COST_TRACKER_TARGET_ENTITY_ID) == item[1].entity_id:
                     config_exists = True
                     break
 

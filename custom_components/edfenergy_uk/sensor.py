@@ -84,6 +84,7 @@ from .utils.rate_information import get_peak_type, get_unique_rates, has_peak_ra
 from .utils import (Tariff, get_active_tariff)
 from .utils.repairs import safe_repair_key
 from .utils.entity_services import register_entity_service
+from .config.kind import get_config_kind
 from .const import (
   CONFIG_COST_TRACKER_MPAN,
   CONFIG_ACCOUNT_ID,
@@ -511,7 +512,7 @@ async def async_setup_tariff_comparison_sensors(hass: HomeAssistant, entry, conf
   for entry in config_entries:
     config_entry_data = dict(entry.data)
 
-    if config_entry_data[CONFIG_KIND] == CONFIG_KIND_ACCOUNT and config_entry_data[CONFIG_ACCOUNT_ID] == account_id and CONFIG_MAIN_CALORIFIC_VALUE in config_entry_data:
+    if get_config_kind(config_entry_data) == CONFIG_KIND_ACCOUNT and config_entry_data.get(CONFIG_ACCOUNT_ID) == account_id and CONFIG_MAIN_CALORIFIC_VALUE in config_entry_data:
       calorific_value = config_entry_data[CONFIG_MAIN_CALORIFIC_VALUE]
 
   now = utcnow()

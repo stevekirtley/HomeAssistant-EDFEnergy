@@ -51,6 +51,7 @@ from .config.tariff_comparison import async_migrate_tariff_comparison_config
 
 from .config.main import async_migrate_main_config
 from .config.cost_tracker import async_migrate_cost_tracker_config
+from .config.kind import get_config_kind, infer_config_kind
 from .utils import get_active_tariff, get_tariff_parts
 from .utils.debug_overrides import async_get_account_debug_override, async_get_meter_debug_override
 from .utils.entity_services import describe_alias
@@ -75,7 +76,6 @@ from .utils.repairs import safe_repair_key
 
 from .const import (
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
-  CONFIG_TARIFF_COMPARISON_PRODUCT_CODE,
   CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS,
   CONFIG_MAIN_FAVOUR_DIRECT_DEBIT_RATES,
@@ -904,20 +904,9 @@ async def async_migrate_entry(hass, config_entry):
 
   return True
 
-def _infer_config_kind(config: dict) -> str:
-  """Work out what an entry is when it has no kind recorded.
-
-  Every kind carries the account id, so that cannot tell them apart. Each child kind has
-  a field of its own that an account entry never has, so look for those first and fall
-  back to an account, which is what the great majority of entries are.
-  """
-  if CONFIG_COST_TRACKER_TARGET_ENTITY_ID in config:
-    return CONFIG_KIND_COST_TRACKER
-  if CONFIG_TARIFF_COMPARISON_PRODUCT_CODE in config:
-    return CONFIG_KIND_TARIFF_COMPARISON
-  # Target rates are not offered by this fork, so there is nothing to detect them by and
-  # nothing to detect.
-  return CONFIG_KIND_ACCOUNT
+# Shared with the platforms and the config flow, which all have to cope with an entry
+# that never had a kind recorded. Kept on this name because it is what the tests import.
+_infer_config_kind = infer_config_kind
 
 
 async def _async_close_client(hass, account_id: str):
