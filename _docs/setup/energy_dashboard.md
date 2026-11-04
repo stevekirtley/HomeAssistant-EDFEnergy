@@ -10,7 +10,7 @@
 
 ### Recommended: Hildebrand Bright (Glow) live data
 
-If you have a Hildebrand [Bright app](https://glowmarkt.com/) account (also branded "Glow"), the free [Hildebrand Glow (DCC)](https://github.com/HandyHat/ha-hildebrand-glow) HACS integration pulls near-real-time readings straight from your smart meter over the DCC network — no extra hardware needed. This is the closest equivalent to Octopus's live feed and works with the same meter EDF bills you from.
+If you have a Hildebrand [Bright app](https://glowmarkt.com/) account (also branded "Glow"), the free [Hildebrand Glow (DCC)](https://github.com/HandyHat/ha-hildebrandglow-dcc) HACS integration pulls near-real-time readings straight from your smart meter over the DCC network — no extra hardware needed. This is the closest equivalent to Octopus's live feed and works with the same meter EDF bills you from.
 
 Once that integration is set up you'll get a `glow_smart_meter_<DEVICE_ID>_...` device with these useful entities:
 
