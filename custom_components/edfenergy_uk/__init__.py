@@ -10,7 +10,7 @@ from homeassistant.core import SupportsResponse, callback
 from homeassistant.components import websocket_api
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, ServiceValidationError
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.recorder import get_instance
 from homeassistant.util.dt import (utcnow, now, as_local, parse_datetime)
@@ -51,7 +51,7 @@ from .config.tariff_comparison import async_migrate_tariff_comparison_config
 
 from .config.main import async_migrate_main_config
 from .config.cost_tracker import async_migrate_cost_tracker_config
-from .config.kind import async_ensure_config_kind, get_config_kind, infer_config_kind
+from .config.kind import async_ensure_config_kind, async_repair_config_entry, get_config_kind, infer_config_kind, missing_required_fields
 from .utils import get_active_tariff, get_tariff_parts
 from .utils.debug_overrides import async_get_account_debug_override, async_get_meter_debug_override
 from .utils.entity_services import describe_alias
@@ -1076,24 +1076,30 @@ async def async_setup_entry(hass, entry):
       except ValueError:
         _LOGGER.debug("EDF Energy frontend panel already registered, skipping")
 
-  config = dict(entry.data)
+  # Put back anything the entry has lost before anything reads it. Entries turn up having
+  # lost the kind that says what they are and the account id that says what they belong to,
+  # and reading either straight out ended setup with a KeyError before it had done anything
+  # at all. The migration cannot help: it only runs below the current config version, so an
+  # entry that reached the current version without them stayed broken through every restart.
+  config = async_repair_config_entry(hass, entry)
+
+  kind = config.get(CONFIG_KIND)
+
+  missing = missing_required_fields(kind, config)
+  if missing:
+    # Nothing recoverable is missing by this point, so carrying on would only mean failing
+    # further in on whichever field happened to be read first - which is how this arrived,
+    # as a KeyError that named a key and nothing else. Name the fields on the entry itself,
+    # where the person who has to fix it will see them.
+    raise ConfigEntryError(
+      f"'{entry.title}' is missing {', '.join(missing)}, and they could not be recovered. "
+      "Delete this entry and add it again."
+    )
 
   account_id = config[CONFIG_ACCOUNT_ID]
   hass.data[DOMAIN].setdefault(account_id, {})
 
-  if CONFIG_KIND not in config:
-    # An entry with no kind used to take setup down with a KeyError, and nothing could
-    # put it right: the migration that fills the kind in only runs while the entry is
-    # below the current config version, so an entry that reached the current version
-    # without one stayed broken through every restart. Infer it and write it back.
-    config[CONFIG_KIND] = _infer_config_kind(config)
-    _LOGGER.warning(
-      "Config entry for %s had no kind recorded; treating it as '%s' and repairing it",
-      account_id, config[CONFIG_KIND],
-    )
-    hass.config_entries.async_update_entry(entry, data=config)
-
-  if config[CONFIG_KIND] == CONFIG_KIND_ACCOUNT:
+  if kind == CONFIG_KIND_ACCOUNT:
     await async_setup_dependencies(hass, entry, config)
     await hass.config_entries.async_forward_entry_setups(entry, ACCOUNT_PLATFORMS)
 
@@ -1126,7 +1132,7 @@ async def async_setup_entry(hass, entry):
       await discovery_manager.async_setup()
       hass.data[DOMAIN][account_id][DATA_DISCOVERY_MANAGER] = discovery_manager
   
-  elif (config[CONFIG_KIND] == CONFIG_KIND_TARGET_RATE or config[CONFIG_KIND] == CONFIG_KIND_ROLLING_TARGET_RATE):
+  elif (kind == CONFIG_KIND_TARGET_RATE or kind == CONFIG_KIND_ROLLING_TARGET_RATE):
     ir.async_create_issue(
       hass,
       DOMAIN,
@@ -1136,7 +1142,7 @@ async def async_setup_entry(hass, entry):
       translation_key="target_rate_not_supported",
     )
     
-  elif config[CONFIG_KIND] == CONFIG_KIND_COST_TRACKER:
+  elif kind == CONFIG_KIND_COST_TRACKER:
     if DOMAIN not in hass.data or account_id not in hass.data[DOMAIN] or DATA_ACCOUNT not in hass.data[DOMAIN][account_id]:
       raise ConfigEntryNotReady("Account has not been setup")
     
@@ -1156,7 +1162,7 @@ async def async_setup_entry(hass, entry):
 
     await hass.config_entries.async_forward_entry_setups(entry, COST_TRACKER_PLATFORMS)
   
-  elif config[CONFIG_KIND] == CONFIG_KIND_TARIFF_COMPARISON:
+  elif kind == CONFIG_KIND_TARIFF_COMPARISON:
     if DOMAIN not in hass.data or account_id not in hass.data[DOMAIN] or DATA_ACCOUNT not in hass.data[DOMAIN][account_id]:
       raise ConfigEntryNotReady("Account has not been setup")
     

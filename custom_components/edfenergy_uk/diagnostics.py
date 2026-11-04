@@ -171,11 +171,57 @@ def redact_billing_entity(unique_id: str, info: dict) -> dict:
 
   return redacted
 
+def _async_broken_entry_diagnostics(hass, entry, config):
+  """What to hand back when the entry is too broken to report on properly, or None.
+
+  A diagnostics download is wanted most when an entry has failed, and that was exactly when
+  it did not work: reading the account id and the set up account straight out raised a
+  KeyError, so the one person who needed to send something had nothing to send.
+
+  What comes back instead is the shape of every entry rather than its contents - which keys
+  each one carries, what version it is at, whether it has a unique id to be rebuilt from.
+  That is what identifies an entry that has lost fields it should have, and it is the thing
+  no log will ever show. Names, titles and unique ids are all left out: titles and cost
+  tracker unique ids both spell out the account id, and these files get attached to public
+  issues.
+  """
+  account_id = config.get(CONFIG_ACCOUNT_ID)
+  account_data = (hass.data.get(DOMAIN) or {}).get(account_id) or {}
+  if account_id is not None and DATA_ACCOUNT in account_data and DATA_CLIENT in account_data:
+    return None
+
+  return {
+    "entry_not_reportable": {
+      "reason": "no account id recorded on the entry" if account_id is None
+                else "the account this entry belongs to is not set up",
+      "config_entry": async_redact_data(config, REDACTED_CONFIG_KEYS),
+      "entries": [
+        {
+          "entry_id": other.entry_id,
+          "version": other.version,
+          "minor_version": getattr(other, "minor_version", None),
+          "source": other.source,
+          "disabled_by": str(other.disabled_by) if other.disabled_by is not None else None,
+          "state": str(other.state),
+          "keys": sorted(other.data.keys()),
+          "option_keys": sorted(other.options.keys()),
+          "has_unique_id": other.unique_id is not None,
+          "unique_id_is_discovered_cost_tracker": other.unique_id is not None and "_ct_" in other.unique_id,
+        }
+        for other in hass.config_entries.async_entries(DOMAIN, include_ignore=False)
+      ],
+    },
+  }
+
 async def async_get_device_diagnostics(hass, entry, device):
     """Return diagnostics for a device."""
 
     config = dict(entry.data)
-    
+
+    broken = _async_broken_entry_diagnostics(hass, entry, config)
+    if broken is not None:
+      return broken
+
     account_id = config[CONFIG_ACCOUNT_ID]
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT]
     account_info = account_result.account if account_result is not None else None
@@ -220,7 +266,11 @@ async def async_get_config_entry_diagnostics(hass, entry):
     """Return diagnostics for a device."""
 
     config = dict(entry.data)
-    
+
+    broken = _async_broken_entry_diagnostics(hass, entry, config)
+    if broken is not None:
+      return broken
+
     account_id = config[CONFIG_ACCOUNT_ID]
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT]
     account_info = account_result.account if account_result is not None else None

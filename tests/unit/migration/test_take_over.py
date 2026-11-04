@@ -398,3 +398,80 @@ async def test_the_hand_over_clears_them(monkeypatch):
   await asyncio.sleep(0)
 
   assert deleted == [(PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk")]
+
+
+@pytest.mark.asyncio
+async def test_every_field_survives_a_hand_over_of_an_account_and_its_children(empty_registries):
+  """Issue #53, which is why this looks at the data rather than the ordering.
+
+  That install came through this hand-over and ended up with 38 cost tracker entries that
+  had lost both their kind and their account id, which left every one of them failing to set
+  up and took the account down with them. The hand-over fires one flow per old entry, all at
+  once, so if anything here could drop or cross-contaminate a payload this is where it would
+  happen. Nothing does: every payload is asserted to match its own source exactly.
+
+  A pass does not prove the install was fine, it rules this out as the place the fields went.
+  """
+  log = []
+  old_entries = [
+    StubOldEntry("account", "A-XXXXXX",
+                 {"kind": "account", "account_id": "A-XXXXXX", "api_key": "sk_x"},
+                 unique_id="A-XXXXXX"),
+  ]
+  for index in range(38):
+    old_entries.append(
+      StubOldEntry(
+        f"ct-{index}",
+        f"Tracker {index} Cost Tracker (A-XXXXXX)",
+        {
+          "kind": "cost_tracker",
+          "account_id": "A-XXXXXX",
+          "name": f"Tracker {index}",
+          "mpan": "1111111111111",
+          "target_entity_id": f"sensor.tracked_{index}",
+        },
+        unique_id=f"edf_energy_ct_A-XXXXXX_sensor.tracked_{index}",
+      )
+    )
+
+  hass = StubHass(old_entries, log)
+
+  assert await async_take_over_old_entries(hass) == 39
+
+  # The flows are scheduled as tasks, so let them run before reading what they were handed.
+  await asyncio.sleep(0)
+
+  payloads = [entry[3] for entry in log if entry[0] == "flow"]
+  assert len(payloads) == 39
+
+  by_unique_id = {payload["unique_id"]: payload for payload in payloads}
+  assert len(by_unique_id) == 39, "a payload was lost or duplicated"
+
+  for old_entry in old_entries:
+    payload = by_unique_id[old_entry.unique_id]
+    assert payload["data"] == old_entry.data, f"{old_entry.title} did not carry its data across"
+    assert payload["title"] == old_entry.title
+    # The two fields issue #53 was missing, called out so a regression names itself.
+    assert payload["data"]["kind"] == old_entry.data["kind"]
+    assert payload["data"]["account_id"] == "A-XXXXXX"
+
+
+@pytest.mark.asyncio
+async def test_the_hand_over_copies_rather_than_sharing_the_old_data(empty_registries):
+  """A shared dict would let one entry's repair rewrite another's data."""
+  log = []
+  shared = {"kind": "cost_tracker", "account_id": "A-XXXXXX"}
+  old_entries = [
+    StubOldEntry("one", "One", shared, unique_id="edf_energy_ct_A-XXXXXX_sensor.one"),
+    StubOldEntry("two", "Two", shared, unique_id="edf_energy_ct_A-XXXXXX_sensor.two"),
+  ]
+  hass = StubHass(old_entries, log)
+
+  await async_take_over_old_entries(hass)
+  await asyncio.sleep(0)
+
+  payloads = [entry[3]["data"] for entry in log if entry[0] == "flow"]
+
+  assert len(payloads) == 2
+  assert payloads[0] is not payloads[1]
+  assert payloads[0] is not shared
