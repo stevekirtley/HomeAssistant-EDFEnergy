@@ -179,7 +179,7 @@
       },
       "take_over": {
         "title": "Take over your existing EDF Energy setup",
-        "description": "EDF Energy has moved to a new folder and is now called EDF Energy (UK). Your existing setup for {accounts} is still held by the old one.\n\nTaking it over keeps your account, your API key, every entity id and your history, so automations, scripts, dashboards and template sensors carry on untouched. Energy dashboard statistics, including cost history, come across too.\n\nSubmit to move it over. Afterwards you can delete `custom_components/{old_domain}` and restart.",
+        "description": "EDF Energy has moved to a new folder and is now called EDF Energy (UK). Your existing setup for {accounts} is still held by the old one.\n\nTaking it over keeps your account, your API key, every entity id and your history, so automations, scripts, dashboards and template sensors carry on untouched. Energy dashboard statistics, including cost history, come across too.\n\nSubmit to move it over. Afterwards remove the old one: if HACS or the Marketplace installed it, uninstall it there, otherwise delete `custom_components/{old_domain}`. Then restart.",
         "submit": "Take it over"
       }
     },
@@ -200,7 +200,7 @@
       "reconfigure_not_supported": "Reconfiguration is not supported.",
       "account_not_found": "Account information is not found",
       "reconfigure_successful": "Reconfiguration successful",
-      "taken_over": "Your EDF Energy setup has been moved over and is running from the new folder. Every entity id and all your history came with it, so nothing you have built needs changing.\n\nOne step left: delete `custom_components/{old_domain}` and restart Home Assistant."
+      "taken_over": "Your EDF Energy setup has been moved over and is running from the new folder. Every entity id and all your history came with it, so nothing you have built needs changing.\n\nOne step left: remove the old one and restart Home Assistant. If HACS or the Marketplace installed it, uninstall it there, so it stops tracking the old folder. Otherwise delete `custom_components/{old_domain}`."
     }
   },
   "exceptions": {
@@ -352,7 +352,7 @@
         "step": {
           "confirm": {
             "title": "Delete the old folder",
-            "description": "`custom_components/{old_domain}` is still on your system. Your account has already moved, so it is holding nothing and running nothing - it is just a folder Home Assistant goes on listing.\n\nSubmit to delete it. Home Assistant keeps the copy it has already loaded until you restart, so the listing will not go until then.",
+            "description": "`custom_components/{old_domain}` is still on your system. Your account has already moved, so it is holding nothing and running nothing - it is just a folder Home Assistant goes on listing.\n\nSubmit to delete it. Home Assistant keeps the copy it has already loaded until you restart, so the listing will not go until then.\n\nIf HACS or the Marketplace installed it, uninstall it there instead, so it stops tracking the old folder.",
             "submit": "Delete it"
           }
         },
