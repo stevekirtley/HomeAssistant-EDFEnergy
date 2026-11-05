@@ -11,39 +11,15 @@ Nothing is lost at any point. Your account, your API key, every entity id, your 
 your Energy dashboard statistics all come across, so automations, scripts, dashboards and
 template sensors carry on untouched.
 
-!!! danger "Home Assistant 2026.11 or later: the update says it changed its domain"
+!!! danger "On Home Assistant 2026.11 or later, read this first"
 
-    From 2026.11, HACS is built into Home Assistant as the **Marketplace**, and it refuses to
-    update an integration whose folder has changed name:
+    From 2026.11, HACS is part of Home Assistant as the **Marketplace**, and the Marketplace
+    won't update an integration whose folder has changed name. If you're on 20.x or older,
+    the update fails with *"changed its domain from edf_energy to edfenergy_uk"*.
 
-    `stevekirtley/HomeAssistant-EDFEnergy changed its domain from edf_energy to edfenergy_uk, uninstall it and install it again.`
-
-    **Don't delete the integration to get past this.** The Marketplace won't uninstall it
-    while it's still set up, and deleting it under Devices & services removes your account,
-    cost trackers and customisations with it. Do this instead, and everything carries over:
-
-    1. Download **Source code (zip)** for the
-       [latest release](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/latest).
-    2. Copy the `custom_components/edfenergy_uk` folder from it into the `custom_components`
-       folder of your Home Assistant configuration, using the File editor, Samba, SSH or
-       Studio Code Server add-on. Leave `custom_components/edf_energy` where it is.
-    3. Restart Home Assistant.
-    4. Go to **Settings > Devices & services > Add integration**, search for `EDF`, choose
-       **EDF Energy (UK)** and press **Take it over**. If you're on 20.1.1 you can use the
-       notice in **Repairs** instead.
-    5. In the Marketplace, open **EDF Energy** and **Uninstall** it. Now that nothing is set up
-       on the old folder it's allowed, and it only deletes `custom_components/edf_energy`.
-    6. **Without restarting in between**, download it again in the Marketplace, so future
-       updates come through as normal. It now installs as **EDF Energy (UK)**. Then restart
-       Home Assistant.
-
-    Do steps 5 and 6 together. This integration is a custom repository in the Marketplace,
-    and the Marketplace forgets an uninstalled custom repository when Home Assistant
-    restarts. If that happens, nothing stops working, but you won't be offered updates.
-    Add it back under **... > Custom repositories** with
-    `https://github.com/stevekirtley/HomeAssistant-EDFEnergy` and type **Integration**, then
-    download it. Adding a custom repository needs GitHub connected to the Marketplace, which
-    it already is if you came from HACS.
+    **Don't delete the integration to get past it.** Follow
+    [Updating with the Marketplace](#updating-with-the-marketplace-home-assistant-202611-and-later)
+    instead, and everything comes across.
 
 !!! warning "If HACS refuses the update with a missing manifest"
 
@@ -57,6 +33,167 @@ template sensors carry on untouched.
     through as normal and installs into the new folder.
 
     This affects every existing installation, so if you have not updated yet, restart first.
+
+## Updating with the Marketplace (Home Assistant 2026.11 and later)
+
+Home Assistant 2026.11 brought HACS into Home Assistant itself as the **Marketplace**. If
+you were on 20.x or older when you updated Home Assistant, this is the section for you. The
+paths further down this page are for HACS, and their first step is the one the Marketplace
+won't do.
+
+It takes about ten minutes and two restarts. Your account, your API key, every entity id,
+your history, your Energy dashboard statistics, your cost trackers and any suggestions
+you've dismissed all come across.
+
+### What you'll see
+
+The update is offered as normal in **Settings > System > Updates**, but pressing **Update**
+fails:
+
+![The update dialog showing "The update could not be started: stevekirtley/HomeAssistant-EDFEnergy changed its domain from edf_energy to edfenergy_uk, uninstall it and install it again."](../assets/v21-mp-update-refused.jpg)
+
+The message suggests uninstalling, but the Marketplace won't uninstall it while it's still set
+up. Instead it offers to delete your setup for you:
+
+![The "EDF Energy (UK) is in use" dialog, with Cancel, View integration and a red Delete and uninstall button](../assets/v21-mp-in-use.jpg)
+
+!!! danger "Press Cancel here"
+
+    **Delete and uninstall** deletes your account and every cost tracker from Home Assistant,
+    along with their devices, entities and customisations. You'd have to set everything up
+    again, including your EDF password. You don't need it: the steps below get you to the
+    same place with everything intact.
+
+!!! note "If the Marketplace asks you to read a warning first"
+
+    The first time you open the Marketplace it shows **Before you install from the
+    Marketplace**. Tick **I understand the risks and agree** and press **Continue**. Until
+    you do, nothing can be updated, installed or uninstalled.
+
+    ![The Before you install from the Marketplace warning](../assets/v21-mp-warning.jpg)
+
+### Step 1: get the new folder
+
+Open the [latest release](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/latest)
+on GitHub, scroll to **Assets** at the bottom and download **Source code (zip)**.
+
+![The Assets section of the release, with Source code (zip) and Source code (tar.gz)](../assets/v21-mp-release-assets.png)
+
+Unzip it. Inside is a `custom_components` folder, and inside that is `edfenergy_uk`.
+
+### Step 2: copy it into Home Assistant
+
+Copy the `edfenergy_uk` folder into the `custom_components` folder of your Home Assistant
+configuration, using whichever you already have: the **File editor**, **Samba share**,
+**Studio Code Server** or **SSH** add-on. When you're done it should look like this:
+
+```
+config/
+└── custom_components/
+    ├── edf_energy/        <- the old one, leave it where it is
+    └── edfenergy_uk/      <- the one you just copied in
+```
+
+Don't delete `edf_energy`. It's still running your account, and the Marketplace will remove
+it for you in step 5.
+
+### Step 3: restart Home Assistant
+
+**Settings > System**, then the power button in the top right, then **Restart Home
+Assistant**. Everything carries on as before: the old folder is still running your account.
+
+### Step 4: take your setup over
+
+Go to **Settings > Devices & services > Add integration** and search for `EDF`. You'll see
+both names. Choose **EDF Energy (UK)**:
+
+![Set up a new integration, searching for EDF, listing EDF Energy and EDF Energy (UK)](../assets/v21-mp-add-integration.png)
+
+Instead of asking for your login, it offers to take over the setup you already have:
+
+![Take over your existing EDF Energy setup, with a Take it over button](../assets/v21-mp-take-over.png)
+
+Press **Take it over**. There's nothing to fill in.
+
+![Your EDF Energy setup has been moved over and is running from the new folder](../assets/v21-mp-taken-over.png)
+
+Your account is now running from the new folder. Ignore the bit about deleting
+`custom_components/edf_energy` by hand: with the Marketplace, the next step does it, and
+doing it by hand would leave the Marketplace thinking the old one is still installed.
+
+!!! tip "On 20.1.1 there's a shortcut"
+
+    If you were on 20.1.1, a notice appears in **Settings > Repairs** after the restart in
+    step 3. Its **Hand it over** button does the same as this step.
+
+    ![EDF Energy has a new folder - one step left](../assets/v21-mp-repairs-notice.png)
+
+### Step 5: uninstall the old one in the Marketplace
+
+!!! warning "Do steps 5 and 6 together, without restarting in between"
+
+    The Marketplace forgets about an uninstalled custom repository when Home Assistant
+    restarts. If you restart between these two steps, it won't be listed any more, and
+    you'll have to add it back as a custom repository before you can do step 6.
+
+Open the **Marketplace** and go to **Installed**. Press the three dots next to
+**EDF Energy (UK)** and choose **Uninstall**:
+
+![The Installed tab, with the menu for EDF Energy (UK) open and Uninstall at the bottom](../assets/v21-mp-uninstall-menu.jpg)
+
+This time it doesn't say it's in use, because nothing is set up on the old folder any more.
+It just asks you to confirm:
+
+![Uninstall EDF Energy (UK)? This removes the files the Marketplace installed for it.](../assets/v21-mp-uninstall-confirm.jpg)
+
+Press **Uninstall**. This deletes `custom_components/edf_energy` and nothing else. Your
+setup is running from `edfenergy_uk`, which the Marketplace doesn't know about yet.
+
+### Step 6: download it again
+
+Go to **Browse** and search for `EDF Energy`. **EDF Energy (UK)** is at the top, under
+**Restart required**:
+
+![Browse, searching EDF Energy: EDF Energy (UK) under Restart required, then other EDF integrations under New](../assets/v21-mp-browse.jpg)
+
+!!! warning "Pick EDF Energy (UK), not Homeassistant Edf Uk"
+
+    **Homeassistant Edf Uk** in the same list is a different integration by another
+    developer. It isn't a newer version of this one, and it installs into the old
+    `edf_energy` folder.
+
+Press the three dots next to **EDF Energy (UK)** and choose **Install**:
+
+![The menu for EDF Energy (UK) in Browse, with Install](../assets/v21-mp-install-menu.jpg)
+
+![This installs EDF Energy (UK) version 21.0.2 in Home Assistant, with an Install button](../assets/v21-mp-install-confirm.jpg)
+
+Press **Install**. It installs into `edfenergy_uk`, replacing the copy you made in step 2
+with the same version, and from now on the Marketplace is managing it again.
+
+![EDF Energy (UK) with a green tick under Restart required](../assets/v21-mp-restart-required.jpg)
+
+### Step 7: restart Home Assistant
+
+Restart once more. The Marketplace now shows **EDF Energy (UK)** as installed, **Settings >
+System > Updates** has nothing waiting, and the notices about the old folder have gone.
+
+![The Marketplace Installed tab listing EDF Energy (UK)](../assets/v21-mp-installed.jpg)
+
+Future updates arrive in **Settings > System > Updates** like any other.
+
+### If you restarted between steps 5 and 6
+
+Nothing has stopped working, because your account is running from the copy you made in
+step 2. But the Marketplace no longer lists the integration, so it won't offer you updates.
+To get it back, open the **Marketplace**, press the three dots in the top right, choose
+**Custom repositories**, add `https://github.com/stevekirtley/HomeAssistant-EDFEnergy` with
+type **Integration**, and then do step 6.
+
+Adding a custom repository needs a GitHub account connected to the Marketplace. If you came
+from HACS, yours carried over.
+
+---
 
 ## First, check which version you are on
 
