@@ -245,7 +245,7 @@
     },
     "intelligent_manual_service": {
       "title": "Manual Smart Charging dispatch refresh service available for {account_id}",
-      "description": "By default, dispatches are retrieved every {polling_time} minutes. If you know when your car has started charging via other means, you might want to activate manual polling mode which will expose a service for retrieving dispatches on-demand. This is the recommended way to get the information as soon as possible and reduce unnecessary calls to the EDF Energy servers. If you can't do this, then just ignore this repair notice and continue with the automatic polling.\n\nIf you wish to enable this service, then click \"Learn More\" to find out more about the setting and associated service. Once enabled, this repair notice will be removed."
+      "description": "By default, dispatches are retrieved every {polling_time} minutes. If you know when your car has started charging via other means, you might want to activate manual polling mode which will expose a service for retrieving dispatches on-demand. This is the recommended way to get the information as soon as possible and reduce unnecessary calls to the EDF Energy servers. If you can't do this, then just ignore this repair notice and continue with the automatic polling.\n\nTo turn it on, reconfigure your account and enable \"Manually refresh smart charging dispatches\" under Smart Charging settings. \"Learn more\" below explains the setting and the service you'll need to call. Once enabled, this repair notice will be removed."
     },
     "no_active_tariff": {
       "title": "No active tariff - {meter_type} ({mpan_mprn}/{serial_number})",

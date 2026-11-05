@@ -2066,6 +2066,7 @@ async def async_register_intelligent_devices(hass, config: dict, now: datetime, 
           severity=ir.IssueSeverity.WARNING,
           translation_key="intelligent_manual_service",
           translation_placeholders={ "account_id": account_id, "polling_time": REFRESH_RATE_IN_MINUTES_INTELLIGENT },
+          learn_more_url="https://stevekirtley.github.io/HomeAssistant-EDFEnergy/repairs/intelligent_manual_service/",
         )
       else:
         ir.async_delete_issue(hass, DOMAIN, intelligent_repair_key)

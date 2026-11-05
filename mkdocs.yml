@@ -30,6 +30,7 @@ nav:
     - ./repairs/unknown_product.md
     - ./repairs/cost_override_obsolete.md
     - ./repairs/unknown_intelligent_provider.md
+    - ./repairs/intelligent_manual_service.md
     - ./repairs/no_active_tariff.md
     - ./repairs/meter_removed.md
     - ./repairs/tariff_rates_empty.md
