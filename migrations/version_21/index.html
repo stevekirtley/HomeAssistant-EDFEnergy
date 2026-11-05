@@ -1722,13 +1722,16 @@ both names. Choose <strong>EDF Energy (UK)</strong>:</p>
 <p><img alt="Take over your existing EDF Energy setup, with a Take it over button" src="../../assets/v21-mp-take-over.png" /></p>
 <p>Press <strong>Take it over</strong>. There's nothing to fill in.</p>
 <p><img alt="Your EDF Energy setup has been moved over and is running from the new folder" src="../../assets/v21-mp-taken-over.png" /></p>
-<p>Your account is now running from the new folder. Ignore the bit about deleting
-<code>custom_components/edf_energy</code> by hand: with the Marketplace, the next step does it, and
-doing it by hand would leave the Marketplace thinking the old one is still installed.</p>
+<p>Your account is now running from the new folder. The notice tells you to remove the old
+one. With the Marketplace, that's the next step. Don't delete <code>custom_components/edf_energy</code>
+by hand: that would leave the Marketplace thinking the old one is still installed.</p>
 <div class="admonition tip">
 <p class="admonition-title">On 20.1.1 there's a shortcut</p>
 <p>If you were on 20.1.1, a notice appears in <strong>Settings &gt; Repairs</strong> after the restart in
 step 3. Its <strong>Hand it over</strong> button does the same as this step.</p>
+<p>It needs 21.0.4 or later in the folder you copied in step 2. With 21.0.3 it fails with
+<em>"The hand-over did not finish"</em>, and nothing is changed. Use <strong>Add integration</strong> as
+above instead.</p>
 <p><img alt="EDF Energy has a new folder - one step left" src="../../assets/v21-mp-repairs-notice.png" /></p>
 </div>
 <h3 id="step-5-uninstall-the-old-one-in-the-marketplace">Step 5: uninstall the old one in the Marketplace<a class="headerlink" href="#step-5-uninstall-the-old-one-in-the-marketplace" title="Permanent link">#</a></h3>
@@ -1755,8 +1758,8 @@ It just asks you to confirm:</p>
 <p>Press <strong>Uninstall</strong>. This deletes <code>custom_components/edf_energy</code> and nothing else. Your
 setup is running from <code>edfenergy_uk</code>, which the Marketplace doesn't know about yet.</p>
 <h3 id="step-6-download-it-again">Step 6: download it again<a class="headerlink" href="#step-6-download-it-again" title="Permanent link">#</a></h3>
-<p>Go to <strong>Browse</strong> and search for <code>EDF Energy</code>. <strong>EDF Energy (UK)</strong> is at the top, under
-<strong>Restart required</strong>:</p>
+<p>Go to <strong>Browse</strong> and search for <code>EDF Energy</code>. <strong>EDF Energy (UK)</strong> is listed under
+<strong>Available</strong> or <strong>Restart required</strong>:</p>
 <p><img alt="Browse, searching EDF Energy: EDF Energy (UK) under Restart required, then other EDF integrations under New" src="../../assets/v21-mp-browse.jpg" /></p>
 <div class="admonition warning">
 <p class="admonition-title">Pick EDF Energy (UK), not Homeassistant Edf Uk</p>
@@ -1764,8 +1767,18 @@ setup is running from <code>edfenergy_uk</code>, which the Marketplace doesn't k
 developer. It isn't a newer version of this one, and it installs into the old
 <code>edf_energy</code> folder.</p>
 </div>
-<p>Press the three dots next to <strong>EDF Energy (UK)</strong> and choose <strong>Install</strong>:</p>
-<p><img alt="The menu for EDF Energy (UK) in Browse, with Install" src="../../assets/v21-mp-install-menu.jpg" /></p>
+<p>Press the three dots next to <strong>EDF Energy (UK)</strong> and choose <strong>Refresh information</strong>
+first. Then open the three dots again and choose <strong>Install</strong>:</p>
+<p><img alt="The menu for EDF Energy (UK) in Browse, with Refresh information above Install" src="../../assets/v21-mp-refresh-menu.jpg" /></p>
+<div class="admonition warning">
+<p class="admonition-title">Don't skip Refresh information</p>
+<p>The Marketplace still has the old folder name on record. It only checks GitHub again by
+itself once per session, and if you tried the update first, that check has already been
+used up. Without a refresh, Install fails with:</p>
+<p><img alt="The manifest.json of the installed content is for edfenergy_uk, not edf_energy." src="../../assets/v21-mp-wrong-domain.jpg" /></p>
+<p>Nothing is lost if you see this. Press <strong>Cancel</strong>, choose <strong>Refresh information</strong>, then
+<strong>Install</strong> again.</p>
+</div>
 <p><img alt="This installs EDF Energy (UK) version 21.0.2 in Home Assistant, with an Install button" src="../../assets/v21-mp-install-confirm.jpg" /></p>
 <p>Press <strong>Install</strong>. It installs into <code>edfenergy_uk</code>, replacing the copy you made in step 2
 with the same version, and from now on the Marketplace is managing it again.</p>
