@@ -11,6 +11,31 @@ Nothing is lost at any point. Your account, your API key, every entity id, your 
 your Energy dashboard statistics all come across, so automations, scripts, dashboards and
 template sensors carry on untouched.
 
+!!! danger "Home Assistant 2026.11 or later: the update says it changed its domain"
+
+    From 2026.11, HACS is built into Home Assistant as the **Marketplace**, and it refuses to
+    update an integration whose folder has changed name:
+
+    `stevekirtley/HomeAssistant-EDFEnergy changed its domain from edf_energy to edfenergy_uk, uninstall it and install it again.`
+
+    **Don't delete the integration to get past this.** The Marketplace won't uninstall it
+    while it's still set up, and deleting it under Devices & services removes your account,
+    cost trackers and customisations with it. Do this instead, and everything carries over:
+
+    1. Download **Source code (zip)** for the
+       [latest release](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases/latest).
+    2. Copy the `custom_components/edfenergy_uk` folder from it into the `custom_components`
+       folder of your Home Assistant configuration, using the File editor, Samba, SSH or
+       Studio Code Server add-on. Leave `custom_components/edf_energy` where it is.
+    3. Restart Home Assistant.
+    4. Go to **Settings > Devices & services > Add integration**, search for `EDF`, choose
+       **EDF Energy (UK)** and press **Take it over**. If you're on 20.1.1 you can use the
+       notice in **Repairs** instead.
+    5. In the Marketplace, open **EDF Energy** and **Uninstall** it. Now that nothing is set up
+       on the old folder it's allowed, and it only deletes `custom_components/edf_energy`.
+    6. Still in the Marketplace, download **EDF Energy (UK)** so future updates come through
+       as normal, then restart Home Assistant.
+
 !!! warning "If HACS refuses the update with a missing manifest"
 
     If the update fails with `No manifest.json file found 'custom_components/edf_energy/manifest.json'`,

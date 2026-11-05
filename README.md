@@ -81,6 +81,13 @@ each would overwrite the other's history. If both have the same account set up, 
 integration stops writing those statistics and raises a repair saying why. Set each account
 up in one integration only.
 
+### Updating from 20.x on Home Assistant 2026.11 or later
+
+If the Marketplace says the integration "changed its domain from edf_energy to edfenergy_uk",
+don't delete it. Follow
+[these steps](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/migrations/version_21/)
+instead, and your setup comes across intact.
+
 ### Manual
 
 Copy the `custom_components/edfenergy_uk` folder into your Home Assistant `custom_components`
