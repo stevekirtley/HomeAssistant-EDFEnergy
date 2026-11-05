@@ -33,8 +33,17 @@ template sensors carry on untouched.
        notice in **Repairs** instead.
     5. In the Marketplace, open **EDF Energy** and **Uninstall** it. Now that nothing is set up
        on the old folder it's allowed, and it only deletes `custom_components/edf_energy`.
-    6. Still in the Marketplace, download **EDF Energy (UK)** so future updates come through
-       as normal, then restart Home Assistant.
+    6. **Without restarting in between**, download it again in the Marketplace, so future
+       updates come through as normal. It now installs as **EDF Energy (UK)**. Then restart
+       Home Assistant.
+
+    Do steps 5 and 6 together. This integration is a custom repository in the Marketplace,
+    and the Marketplace forgets an uninstalled custom repository when Home Assistant
+    restarts. If that happens, nothing stops working, but you won't be offered updates.
+    Add it back under **... > Custom repositories** with
+    `https://github.com/stevekirtley/HomeAssistant-EDFEnergy` and type **Integration**, then
+    download it. Adding a custom repository needs GitHub connected to the Marketplace, which
+    it already is if you came from HACS.
 
 !!! warning "If HACS refuses the update with a missing manifest"
 
