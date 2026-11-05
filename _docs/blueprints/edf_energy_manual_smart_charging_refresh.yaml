@@ -12,7 +12,7 @@ blueprint:
         entity:
           filter:
             domain: sensor
-            integration: edf_energy
+            integration: edfenergy_uk
 
     intelligent_dispatches_sensor:
       name: Smart Charging dispatches
@@ -21,7 +21,7 @@ blueprint:
         entity:
           filter:
             domain: binary_sensor
-            integration: edf_energy
+            integration: edfenergy_uk
 
     car_plugged_in_sensor:
       name: Car plugged in sensor (external)
