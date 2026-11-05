@@ -1,5 +1,17 @@
 # Home Assistant EDF Energy
 
+> [!IMPORTANT]
+> ## On Home Assistant 2026.11 or later? Read this before you update
+>
+> 2026.11 brought HACS into Home Assistant as the **Marketplace**, and the Marketplace won't
+> update an integration whose folder has changed name. Coming from 20.x or older, the update
+> fails with *"changed its domain from edf_energy to edfenergy_uk"*.
+>
+> **Don't delete the integration or press "Delete and uninstall".** Follow
+> **[Updating with the Marketplace](https://stevekirtley.github.io/HomeAssistant-EDFEnergy/migrations/version_21/#updating-with-the-marketplace-home-assistant-202611-and-later)**
+> instead. It has a screenshot of every step, and your entities, history and automations
+> all come across intact.
+
 > ## Updating to 21.0.0? There is one step to finish by hand
 >
 > Version 21 moves the integration into a new folder and nothing moves across on its own.
