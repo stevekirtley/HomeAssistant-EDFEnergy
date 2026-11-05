@@ -12,7 +12,7 @@ blueprint:
         entity:
           filter:
             domain: sensor
-            integration: edf_energy
+            integration: edfenergy_uk
     
     energy_source:
       name: "Energy source"

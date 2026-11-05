@@ -327,6 +327,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#alongside-another-edf-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Alongside another EDF integration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#manual" class="md-nav__link">
     <span class="md-ellipsis">
       Manual
@@ -1069,6 +1078,27 @@
   
   
     <li class="md-nav__item">
+      <a href="repairs/intelligent_manual_service/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repairs - Manual Smart Charging dispatch refresh
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="repairs/no_active_tariff/" class="md-nav__link">
         
   
@@ -1311,6 +1341,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#alongside-another-edf-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Alongside another EDF integration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#manual" class="md-nav__link">
     <span class="md-ellipsis">
       Manual
@@ -1472,9 +1511,13 @@
 <p><a href="https://github.com/hacs/integration"><img alt="hacs_badge" src="https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge" /></a></p>
 <p>This integration can be installed directly via HACS. To install:</p>
 <ul>
-<li><a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=stevekirtley&amp;repository=HomeAssistant-EDFEnergy&amp;category=integration">Add the repository</a> to your HACS installation</li>
-<li>Click <code>Download</code></li>
+<li>In HACS, search for <strong>EDF Energy (UK)</strong></li>
+<li>Click <code>Download</code>, then restart Home Assistant</li>
 </ul>
+<p>If it doesn't come up in the search, <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=stevekirtley&amp;repository=HomeAssistant-EDFEnergy&amp;category=integration">add the repository</a> to HACS first and then download it.</p>
+<h3 id="alongside-another-edf-integration">Alongside another EDF integration<a class="headerlink" href="#alongside-another-edf-integration" title="Permanent link">#</a></h3>
+<p><a href="https://github.com/Bobby5291/HomeAssistant-EDF-UK">HomeAssistant-EDF-UK</a> is a separate integration that installs as <code>edf_energy</code>, the domain this one used before version 21. The two can be installed side by side, and this integration doesn't touch the other one's folder, entries or notices.</p>
+<p>They can't share an account. Both write the same Energy dashboard statistics, so on a shared account each would overwrite the other's history. If both have the same account set up, this integration stops writing those statistics and raises a repair explaining why. Keep each account in one integration only.</p>
 <h3 id="manual">Manual<a class="headerlink" href="#manual" title="Permanent link">#</a></h3>
 <p>You should take the latest <a href="https://github.com/stevekirtley/HomeAssistant-EDFEnergy/releases">published release</a>. The current state of <code>develop</code> will be in flux and therefore possibly subject to change.</p>
 <p>To install, place the contents of <code>custom_components</code> into the <code>&lt;config directory&gt;/custom_components</code> folder of your Home Assistant installation. Once installed, don't forget to restart your home assistant instance for the integration to be picked up.</p>
@@ -1529,7 +1572,7 @@
       
     </span>
     <nav>
-      BottlecapDave, stevekirtley
+      BottlecapDave, stevekirtley, stevekirtley
     </nav>
   </span>
 
