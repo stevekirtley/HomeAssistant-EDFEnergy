@@ -139,6 +139,14 @@ doing it by hand would leave the Marketplace thinking the old one is still insta
 Open the **Marketplace** and go to **Installed**. Press the three dots next to
 **EDF Energy (UK)** and choose **Uninstall**:
 
+!!! info "Why it already says EDF Energy (UK)"
+
+    The Marketplace lists a repository once, under the name its newest release gives it. So
+    the old 20.x install shows as **EDF Energy (UK)** here, even though Devices & services
+    still calls the old one **EDF Energy**. If the Marketplace hasn't been able to check
+    GitHub yet, it may still show **EDF Energy**. Either way it's the one by stevekirtley,
+    and it's the only EDF entry under **Installed**.
+
 ![The Installed tab, with the menu for EDF Energy (UK) open and Uninstall at the bottom](../assets/v21-mp-uninstall-menu.jpg)
 
 This time it doesn't say it's in use, because nothing is set up on the old folder any more.
