@@ -11,6 +11,8 @@ entries sat on a domain with no code behind it, and the account went dark.
 Nothing can change that from inside the integration. The only thing that refers to a domain
 with no entries is a user adding it from Settings, so that is where the hand-over lives.
 """
+import json
+
 import pytest
 
 from custom_components.edfenergy_uk.config_flow import EDFEnergyConfigFlow
@@ -24,8 +26,13 @@ from custom_components.edfenergy_uk.const import (
 
 
 class StubEntry:
-  def __init__(self, account_id, kind=CONFIG_KIND_ACCOUNT):
-    self.data = {CONFIG_ACCOUNT_ID: account_id, CONFIG_KIND: kind}
+  def __init__(self, account_id, kind=CONFIG_KIND_ACCOUNT, version=9):
+    self.data = {CONFIG_ACCOUNT_ID: account_id}
+    if kind is not None:
+      self.data[CONFIG_KIND] = kind
+    self.version = version
+    self.source = "user"
+    self.disabled_by = None
     self.options = {}
     self.title = f"EDF Energy ({account_id})"
     self.unique_id = account_id
@@ -42,31 +49,82 @@ class StubConfigEntries:
     return list(self._by_domain.get(domain, []))
 
 
+class StubConfig:
+  def __init__(self, config_dir):
+    self.config_dir = str(config_dir)
+
+
 class StubHass:
-  def __init__(self, by_domain):
+  def __init__(self, by_domain, config_dir):
     self.config_entries = StubConfigEntries(by_domain)
+    self.config = StubConfig(config_dir)
     self.data = {}
 
+  async def async_add_executor_job(self, func, *args):
+    return func(*args)
 
-def _flow(by_domain):
+
+def _flow(by_domain, config_dir="/nonexistent-config"):
   flow = EDFEnergyConfigFlow()
-  flow.hass = StubHass(by_domain)
+  flow.hass = StubHass(by_domain, config_dir)
   return flow
+
+
+def _our_old_folder(tmp_path):
+  folder = tmp_path / "custom_components" / PREDECESSOR_DOMAIN
+  folder.mkdir(parents=True)
+  (folder / "manifest.json").write_text(json.dumps({
+    "domain": PREDECESSOR_DOMAIN, "version": "19.2.4", "codeowners": ["@stevekirtley"],
+  }))
+  return tmp_path
 
 
 # ── when there is something to take over ─────────────────────────────────────
 
-def test_old_entries_are_found(tmp_path):
+@pytest.mark.asyncio
+async def test_old_entries_are_found(tmp_path):
   flow = _flow({PREDECESSOR_DOMAIN: [StubEntry("a-1")]})
 
-  assert len(flow._entries_to_take_over()) == 1
+  _, entries = await flow._async_entries_to_take_over()
+
+  assert len(entries) == 1
 
 
-def test_entries_on_this_domain_are_not_mistaken_for_old_ones():
+@pytest.mark.asyncio
+async def test_entries_on_this_domain_are_not_mistaken_for_old_ones():
   # A second account being added to a working install must not look like a migration.
   flow = _flow({DOMAIN: [StubEntry("a-1")]})
 
-  assert flow._entries_to_take_over() == []
+  assert (await flow._async_entries_to_take_over())[1] == []
+
+
+@pytest.mark.asyncio
+async def test_the_other_edf_integrations_entries_are_not_offered(monkeypatch):
+  """Same domain, different integration: its flow is at version 1 and records no kind.
+
+  Taking these over would remove them, with their entities and devices, and import their
+  data, password included, into entries this integration cannot set up.
+  """
+  # Arrange
+  flow = _flow({PREDECESSOR_DOMAIN: [StubEntry("a-1", kind=None, version=1)]})
+  monkeypatch.setattr(
+    EDFEnergyConfigFlow, "async_show_form",
+    lambda self, **kwargs: {"type": "form", **kwargs},
+  )
+
+  # Act
+  result = await flow.async_step_user(None)
+
+  # Assert - an ordinary setup, as if the other integration were not there
+  assert result["step_id"] == "account"
+
+
+@pytest.mark.asyncio
+async def test_an_entry_without_a_kind_is_only_ours_when_the_folder_is(tmp_path):
+  entries = {PREDECESSOR_DOMAIN: [StubEntry("a-1", kind=None)]}
+
+  assert (await _flow(entries)._async_entries_to_take_over())[1] == []
+  assert len((await _flow(entries, _our_old_folder(tmp_path))._async_entries_to_take_over())[1]) == 1
 
 
 @pytest.mark.asyncio
@@ -112,7 +170,7 @@ async def test_submitting_runs_the_hand_over(monkeypatch):
   flow = _flow({PREDECESSOR_DOMAIN: [StubEntry("a-1")]})
   called = []
 
-  async def fake_take_over(hass):
+  async def fake_take_over(hass, folder):
     called.append(hass)
     return 1
 
@@ -171,7 +229,7 @@ async def test_the_hand_over_is_not_run_when_there_is_nothing_to_hand_over(monke
   called = []
   monkeypatch.setattr(
     "custom_components.edfenergy_uk.config_flow.async_take_over_old_entries",
-    lambda hass: called.append(hass),
+    lambda hass, folder: called.append(hass),
   )
   monkeypatch.setattr(
     EDFEnergyConfigFlow, "async_show_form",

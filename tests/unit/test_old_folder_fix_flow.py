@@ -35,13 +35,25 @@ class StubHass:
     return func(*args)
 
 
-def _folder(tmp_path, domain, manifest_domain="__same__", with_manifest=True):
+OURS = {
+  "codeowners": ["@stevekirtley"],
+  "documentation": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy",
+}
+
+# The other EDF integration in the HACS catalog, which installs into the same directory.
+THEIRS = {
+  "codeowners": ["@someone-else"],
+  "documentation": "https://github.com/someone-else/ha-edf-energy",
+}
+
+
+def _folder(tmp_path, domain, manifest_domain="__same__", with_manifest=True, owner=OURS):
   folder = tmp_path / "custom_components" / domain
   folder.mkdir(parents=True)
   (folder / "sensor.py").write_text("# some code")
   if with_manifest:
     written = domain if manifest_domain == "__same__" else manifest_domain
-    (folder / "manifest.json").write_text(json.dumps({"domain": written, "version": "20.1.1"}))
+    (folder / "manifest.json").write_text(json.dumps({"domain": written, "version": "20.1.1", **owner}))
   return folder
 
 
@@ -112,6 +124,22 @@ async def test_a_directory_holding_something_else_is_left_alone(tmp_path, monkey
   # Assert
   assert folder.is_dir(), "it deleted a folder belonging to another integration"
   assert result["type"] == "abort"
+  assert result["reason"] == "not_the_old_folder"
+  assert deleted == []
+
+
+@pytest.mark.asyncio
+async def test_another_integration_on_the_same_domain_is_left_alone(tmp_path, monkeypatch):
+  """The same directory, the same domain, and somebody else's integration in it."""
+  # Arrange
+  folder = _folder(tmp_path, PREDECESSOR_DOMAIN, owner=THEIRS)
+  deleted = _capture_deletes(monkeypatch)
+
+  # Act
+  result = await _flow(tmp_path).async_step_confirm({})
+
+  # Assert
+  assert folder.is_dir(), "it deleted the other EDF integration"
   assert result["reason"] == "not_the_old_folder"
   assert deleted == []
 

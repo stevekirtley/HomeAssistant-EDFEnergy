@@ -21,6 +21,7 @@ from custom_components.edfenergy_uk.migration import (
   clear_old_notices,
   device_identifier_suffix,
 )
+from custom_components.edfenergy_uk.predecessor import FOLDER_NOT_OURS, FOLDER_OURS
 
 
 class StubEntity:
@@ -34,6 +35,7 @@ class StubEntity:
     self.labels = kwargs.get("labels")
     self.hidden_by = kwargs.get("hidden_by")
     self.disabled_by = kwargs.get("disabled_by")
+    self.config_entry_id = kwargs.get("config_entry_id")
 
 
 class StubEntityRegistry:
@@ -55,6 +57,7 @@ class StubDevice:
     self.area_id = kwargs.get("area_id")
     self.name_by_user = kwargs.get("name_by_user")
     self.labels = kwargs.get("labels")
+    self.config_entries = kwargs.get("config_entries", set())
 
 
 class StubDeviceRegistry:
@@ -204,8 +207,10 @@ class StubFlowManager:
 
 
 class StubOldEntry:
-  def __init__(self, entry_id, title, data, options=None, unique_id=None, source="user"):
+  def __init__(self, entry_id, title, data, options=None, unique_id=None, source="user", version=9):
     self.entry_id = entry_id
+    self.version = version
+    self.disabled_by = None
     self.title = title
     self.data = data
     self.options = options or {}
@@ -273,7 +278,7 @@ async def test_nothing_happens_when_there_is_nothing_to_take_over(empty_registri
   log = []
   hass = StubHass([], log)
 
-  assert await async_take_over_old_entries(hass) == 0
+  assert await async_take_over_old_entries(hass, FOLDER_OURS) == 0
   assert log == []
   assert DATA_MIGRATION not in (hass.data.get(DOMAIN) or {})
 
@@ -290,7 +295,7 @@ async def test_the_old_entry_is_removed_before_the_new_one_is_created(empty_regi
   log = []
   hass = StubHass([StubOldEntry("old-1", "A-XXXXXX", {"kind": "account"})], log)
 
-  assert await async_take_over_old_entries(hass) == 1
+  assert await async_take_over_old_entries(hass, FOLDER_OURS) == 1
   await asyncio.sleep(0)
 
   kinds = [row[0] for row in log]
@@ -306,7 +311,7 @@ async def test_every_entry_is_carried_across_with_its_data_and_options(empty_reg
                  unique_id="edf_energy_ct_A-XXXXXX_sensor.x"),
   ], log)
 
-  assert await async_take_over_old_entries(hass) == 2
+  assert await async_take_over_old_entries(hass, FOLDER_OURS) == 2
   await asyncio.sleep(0)
 
   # both removed before either is even queued for recreation
@@ -327,18 +332,20 @@ async def test_the_capture_is_stashed_before_anything_is_removed(monkeypatch):
   monkeypatch.setattr(
     "custom_components.edfenergy_uk.migration.er.async_get",
     lambda hass: StubEntityRegistry([
-      StubEntity(PREDECESSOR_DOMAIN, "uid", "sensor.edf_energy_x", area_id="kitchen")
+      StubEntity(PREDECESSOR_DOMAIN, "uid", "sensor.edf_energy_x", area_id="kitchen",
+                 config_entry_id="old-1")
     ]),
   )
   monkeypatch.setattr(
     "custom_components.edfenergy_uk.migration.dr.async_get",
-    lambda hass: StubDeviceRegistry([StubDevice("d1", {(PREDECESSOR_DOMAIN, "gas_a_b")})]),
+    lambda hass: StubDeviceRegistry([StubDevice("d1", {(PREDECESSOR_DOMAIN, "gas_a_b")},
+                                                config_entries={"old-1"})]),
   )
   _issue_registry(monkeypatch, [])
   log = []
   hass = StubHass([StubOldEntry("old-1", "A-XXXXXX", {"kind": "account"})], log)
 
-  await async_take_over_old_entries(hass)
+  await async_take_over_old_entries(hass, FOLDER_OURS)
 
   captured = hass.data[DOMAIN][DATA_MIGRATION]
   assert captured["entities"]["uid"]["entity_id"] == "sensor.edf_energy_x"
@@ -359,7 +366,7 @@ def test_the_old_domains_notices_are_cleared(monkeypatch):
     (PREDECESSOR_DOMAIN, "new_folder"),
   ])
 
-  assert clear_old_notices(None) == 2
+  assert clear_old_notices(StubHass([], []), FOLDER_OURS) == 2
   assert sorted(deleted) == [
     (PREDECESSOR_DOMAIN, "new_folder"),
     (PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk"),
@@ -374,14 +381,14 @@ def test_nobody_elses_notices_are_touched(monkeypatch):
     ("recorder", "something_else"),
   ])
 
-  assert clear_old_notices(None) == 1
+  assert clear_old_notices(StubHass([], []), FOLDER_OURS) == 1
   assert deleted == [(PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk")]
 
 
 def test_no_notices_is_not_an_error(monkeypatch):
   deleted = _issue_registry(monkeypatch, [])
 
-  assert clear_old_notices(None) == 0
+  assert clear_old_notices(StubHass([], []), FOLDER_OURS) == 0
   assert deleted == []
 
 
@@ -395,7 +402,7 @@ async def test_the_hand_over_clears_them(monkeypatch):
 
   log = []
   hass = StubHass([StubOldEntry("old-1", "A-XXXXXX", {"kind": "account"})], log)
-  assert await async_take_over_old_entries(hass) == 1
+  assert await async_take_over_old_entries(hass, FOLDER_OURS) == 1
   await asyncio.sleep(0)
 
   assert deleted == [(PREDECESSOR_DOMAIN, "superseded_by_edfenergy_uk")]
@@ -437,7 +444,7 @@ async def test_every_field_survives_a_hand_over_of_an_account_and_its_children(e
 
   hass = StubHass(old_entries, log)
 
-  assert await async_take_over_old_entries(hass) == 39
+  assert await async_take_over_old_entries(hass, FOLDER_OURS) == 39
 
   # The flows are scheduled as tasks, so let them run before reading what they were handed.
   await asyncio.sleep(0)
@@ -468,7 +475,7 @@ async def test_the_hand_over_copies_rather_than_sharing_the_old_data(empty_regis
   ]
   hass = StubHass(old_entries, log)
 
-  await async_take_over_old_entries(hass)
+  await async_take_over_old_entries(hass, FOLDER_OURS)
   await asyncio.sleep(0)
 
   payloads = [entry[3]["data"] for entry in log if entry[0] == "flow"]
@@ -497,7 +504,7 @@ async def test_an_ignored_suggestion_comes_across_ignored_not_as_a_real_entry(em
   ]
   hass = StubHass(old_entries, log)
 
-  await async_take_over_old_entries(hass)
+  await async_take_over_old_entries(hass, FOLDER_OURS)
   await asyncio.sleep(0)
 
   flows = [(entry[2], entry[3]) for entry in log if entry[0] == "flow"]
@@ -513,7 +520,7 @@ async def test_an_ignored_suggestion_with_no_unique_id_is_not_turned_into_an_ent
   log = []
   hass = StubHass([StubOldEntry("dismissed", "Something", {}, source="ignore")], log)
 
-  await async_take_over_old_entries(hass)
+  await async_take_over_old_entries(hass, FOLDER_OURS)
   await asyncio.sleep(0)
 
   assert [entry for entry in log if entry[0] == "flow"] == []
@@ -574,3 +581,84 @@ async def test_setting_one_up_puts_it_back_to_ignored_and_goes_no_further():
   assert result is False
   assert hass.scheduled == ["async_restore_ignored_suggestion"]
   assert hass.data == {}
+
+
+# ── the other EDF integration on the same domain ─────────────────────────────
+#
+# Another integration in the HACS catalog uses edf_energy as well. Everything the hand-over
+# does is destructive to whatever it is pointed at, so it must only ever be pointed at ours.
+
+def _theirs(entry_id="theirs"):
+  # Its flow is at version 1 and keeps credentials rather than a kind.
+  return StubOldEntry(entry_id, "EDF", {"email": "x@example.com", "password": "p",
+                                        "account_id": "A-XXXXXX"}, version=1)
+
+
+@pytest.mark.asyncio
+async def test_the_other_integrations_entries_are_neither_removed_nor_imported(empty_registries):
+  log = []
+  hass = StubHass([StubOldEntry("ours", "A-XXXXXX", {"kind": "account"}), _theirs()], log)
+
+  assert await async_take_over_old_entries(hass, FOLDER_NOT_OURS) == 1
+  await asyncio.sleep(0)
+
+  assert ("remove", "theirs") not in log
+  assert ("remove", "ours") in log
+  imported = [row[3] for row in log if row[0] == "flow"]
+  assert [payload["data"] for payload in imported] == [{"kind": "account"}]
+
+
+@pytest.mark.asyncio
+async def test_with_only_the_other_integration_there_nothing_happens(empty_registries):
+  log = []
+  hass = StubHass([_theirs()], log)
+
+  assert await async_take_over_old_entries(hass, FOLDER_NOT_OURS) == 0
+  assert log == []
+
+
+@pytest.mark.asyncio
+async def test_the_other_integrations_entities_and_devices_are_not_captured(monkeypatch):
+  # They share the platform, and some of their unique_ids are the same as ours.
+  monkeypatch.setattr(
+    "custom_components.edfenergy_uk.migration.er.async_get",
+    lambda hass: StubEntityRegistry([
+      StubEntity(PREDECESSOR_DOMAIN, "edf_energy_a", "sensor.mine", config_entry_id="ours"),
+      StubEntity(PREDECESSOR_DOMAIN, "edf_energy_b", "sensor.theirs", config_entry_id="theirs",
+                 name="Their name"),
+    ]),
+  )
+  monkeypatch.setattr(
+    "custom_components.edfenergy_uk.migration.dr.async_get",
+    lambda hass: StubDeviceRegistry([
+      StubDevice("d1", {(PREDECESSOR_DOMAIN, "mine")}, config_entries={"ours"}),
+      StubDevice("d2", {(PREDECESSOR_DOMAIN, "theirs")}, config_entries={"theirs"}),
+    ]),
+  )
+  _issue_registry(monkeypatch, [])
+  hass = StubHass([StubOldEntry("ours", "A-XXXXXX", {"kind": "account"}), _theirs()], [])
+
+  await async_take_over_old_entries(hass, FOLDER_NOT_OURS)
+
+  captured = hass.data[DOMAIN][DATA_MIGRATION]
+  assert list(captured["entities"]) == ["edf_energy_a"]
+  assert list(captured["devices"]) == ["mine"]
+
+
+@pytest.mark.asyncio
+async def test_the_other_integrations_notices_are_left_alone(monkeypatch):
+  # Nothing tells its repairs apart from ours, so while it is there none are cleared.
+  monkeypatch.setattr("custom_components.edfenergy_uk.migration.er.async_get",
+                      lambda hass: StubEntityRegistry([]))
+  monkeypatch.setattr("custom_components.edfenergy_uk.migration.dr.async_get",
+                      lambda hass: StubDeviceRegistry([]))
+  deleted = _issue_registry(monkeypatch, [(PREDECESSOR_DOMAIN, "invalid_api_key_a-xxxxxx")])
+
+  # Its entry still set up
+  hass = StubHass([StubOldEntry("ours", "A-XXXXXX", {"kind": "account"}), _theirs()], [])
+  await async_take_over_old_entries(hass, None)
+  # Its folder installed, with no entry of its own yet
+  hass = StubHass([StubOldEntry("ours", "A-XXXXXX", {"kind": "account"})], [])
+  await async_take_over_old_entries(hass, FOLDER_NOT_OURS)
+
+  assert deleted == []

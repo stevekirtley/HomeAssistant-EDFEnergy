@@ -14,12 +14,28 @@ import json
 
 import pytest
 
-from custom_components.edfenergy_uk import _old_folder_present, async_setup_entry
+from custom_components.edfenergy_uk import async_setup_entry
 from custom_components.edfenergy_uk.const import (
   DOMAIN,
   PREDECESSOR_DOMAIN,
   REPAIR_OLD_FOLDER_PRESENT,
 )
+from custom_components.edfenergy_uk.predecessor import (
+  FOLDER_NOT_OURS,
+  FOLDER_OURS,
+  read_predecessor_folder,
+)
+
+OURS = {
+  "codeowners": ["@stevekirtley"],
+  "documentation": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy",
+}
+
+# The other EDF integration in the HACS catalog, which installs into the same directory.
+THEIRS = {
+  "codeowners": ["@someone-else"],
+  "documentation": "https://github.com/someone-else/ha-edf-energy",
+}
 
 
 class StubConfig:
@@ -40,11 +56,11 @@ class StubHass:
     return func(*args)
 
 
-def _with_old_folder(tmp_path, version="20.1.1", manifest=True):
+def _with_old_folder(tmp_path, version="20.1.1", manifest=True, owner=OURS):
   folder = tmp_path / "custom_components" / PREDECESSOR_DOMAIN
   folder.mkdir(parents=True)
   if manifest is True:
-    (folder / "manifest.json").write_text(json.dumps({"domain": PREDECESSOR_DOMAIN, "version": version}))
+    (folder / "manifest.json").write_text(json.dumps({"domain": PREDECESSOR_DOMAIN, "version": version, **owner}))
   elif manifest == "broken":
     (folder / "manifest.json").write_text("{not json")
   return StubHass(tmp_path)
@@ -65,40 +81,64 @@ def _capture_issues(monkeypatch):
 
 # ── spotting the folder ──────────────────────────────────────────────────────
 
+def _read(hass):
+  return read_predecessor_folder(hass.config.config_dir)
+
+
 def test_no_old_folder_reads_as_absent(tmp_path):
   (tmp_path / "custom_components").mkdir()
 
-  assert _old_folder_present(StubHass(tmp_path)) is None
+  assert _read(StubHass(tmp_path)) == (None, None)
 
 
 def test_a_missing_custom_components_directory_is_not_an_error(tmp_path):
-  assert _old_folder_present(StubHass(tmp_path)) is None
+  assert _read(StubHass(tmp_path)) == (None, None)
 
 
 def test_the_version_is_read_from_the_manifest(tmp_path):
   hass = _with_old_folder(tmp_path, version="19.2.6")
 
-  assert _old_folder_present(hass) == "19.2.6"
+  assert _read(hass) == (FOLDER_OURS, "19.2.6")
 
 
-def test_an_unreadable_manifest_still_counts_as_present(tmp_path):
-  # The folder being there is the thing worth saying; the version is decoration.
-  hass = _with_old_folder(tmp_path, manifest="broken")
+def test_the_other_edf_integration_is_not_ours(tmp_path):
+  """Same directory, same domain, different integration."""
+  hass = _with_old_folder(tmp_path, owner=THEIRS)
 
-  assert _old_folder_present(hass) == "unknown"
+  assert _read(hass) == (FOLDER_NOT_OURS, None)
 
 
-def test_a_folder_with_no_manifest_still_counts_as_present(tmp_path):
-  hass = _with_old_folder(tmp_path, manifest=False)
+@pytest.mark.parametrize("owner", [
+  {"codeowners": ["@stevekirtley"]},
+  {"documentation": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy"},
+  {"issue_tracker": "https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues"},
+])
+def test_either_the_owner_or_the_repository_is_enough(tmp_path, owner):
+  hass = _with_old_folder(tmp_path, owner=owner)
 
-  assert _old_folder_present(hass) == "unknown"
+  assert _read(hass)[0] == FOLDER_OURS
+
+
+def test_a_manifest_that_says_nothing_about_who_it_is_is_not_ours(tmp_path):
+  hass = _with_old_folder(tmp_path, owner={})
+
+  assert _read(hass)[0] == FOLDER_NOT_OURS
+
+
+@pytest.mark.parametrize("manifest", ["broken", False])
+def test_a_folder_that_cannot_show_whose_it_is_is_not_ours(tmp_path, manifest):
+  # Nothing is done to a folder of unknown origin, and that includes telling the user to
+  # delete it.
+  hass = _with_old_folder(tmp_path, manifest=manifest)
+
+  assert _read(hass) == (FOLDER_NOT_OURS, None)
 
 
 def test_a_file_of_that_name_does_not_count(tmp_path):
   (tmp_path / "custom_components").mkdir()
   (tmp_path / "custom_components" / PREDECESSOR_DOMAIN).write_text("not a package")
 
-  assert _old_folder_present(StubHass(tmp_path)) is None
+  assert _read(StubHass(tmp_path)) == (None, None)
 
 
 # ── what setup does about it ─────────────────────────────────────────────────
@@ -147,6 +187,21 @@ async def test_a_notice_says_the_old_folder_can_go(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_no_notice_for_the_other_edf_integrations_folder(tmp_path, monkeypatch):
+  """Telling somebody to delete another integration is the bug this guards against."""
+  hass = _with_old_folder(tmp_path, owner=THEIRS)
+  created, deleted = _capture_issues(monkeypatch)
+
+  try:
+    await async_setup_entry(hass, object())
+  except Exception:
+    pass
+
+  assert [i for _, i, _ in created if i == REPAIR_OLD_FOLDER_PRESENT] == []
+  assert (DOMAIN, REPAIR_OLD_FOLDER_PRESENT) in deleted
+
+
+@pytest.mark.asyncio
 async def test_the_notice_is_cleared_once_the_folder_is_gone(tmp_path, monkeypatch):
   hass = StubHass(tmp_path)
   created, deleted = _capture_issues(monkeypatch)
@@ -177,4 +232,4 @@ async def test_the_manifest_is_read_off_the_event_loop(tmp_path, monkeypatch):
     pass
 
   # Assert
-  assert "_old_folder_present" in hass.executor_jobs
+  assert "read_predecessor_folder" in hass.executor_jobs

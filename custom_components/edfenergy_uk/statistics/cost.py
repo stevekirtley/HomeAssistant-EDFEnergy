@@ -8,6 +8,7 @@ from homeassistant.components.recorder.statistics import (
 )
 
 from ..const import STATISTICS_SOURCE
+from ..predecessor import accounts_shared_with_other_integration
 from ..utils.rate_information import get_peak_name, get_peak_type, get_unique_rates, has_peak_rates
 from . import (build_cost_statistics, async_get_last_sum)
 
@@ -69,6 +70,12 @@ async def async_import_external_statistics_from_cost(
     including_standing_charge_name: str = None
   ):
   if (consumptions is None or len(consumptions) < 1 or rates is None or len(rates) < 1):
+    return
+
+  # Another integration on the old domain writes these same ids, and on a shared account
+  # each would overwrite the other's history. Neither side can rename them, so this one
+  # steps back and a repair says so.
+  if accounts_shared_with_other_integration(hass):
     return
 
   statistic_id = f"{STATISTICS_SOURCE}:{unique_id}".lower()

@@ -1,6 +1,5 @@
 import logging
 import os
-import json
 import hashlib
 import voluptuous as vol
 from datetime import datetime, timedelta, timezone
@@ -39,6 +38,13 @@ from .coordinators.event_free_electricity import async_setup_event_free_electric
 from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinator
 from .coordinators.power_perks import async_setup_power_perks_coordinator, register_manual_session, relay_enabled
 from .migration import async_apply_captured, async_restore_ignored_suggestion, is_carried_over_ignored_suggestion
+from .predecessor import (
+  FOLDER_OURS,
+  accounts_shared_with_other_integration,
+  known_folder,
+  old_domain_is_ours_or_gone,
+  read_predecessor_folder,
+)
 from .coordinators.flextras_hours import (
   drop_past_hours,
   async_book_flextras_hours,
@@ -116,6 +122,8 @@ from .const import (
   CONFIG_MAIN_REFRESH_TOKEN,
   REPAIR_API_KEY_NEEDED,
   REPAIR_OLD_FOLDER_PRESENT,
+  REPAIR_SHARED_WITH_OTHER_INTEGRATION,
+  DATA_PREDECESSOR_FOLDER,
   PREDECESSOR_DOMAIN,
   REPAIR_AUTH_TOKEN_EXPIRING_SOON,
   CONFIG_ACCOUNT_ID,
@@ -932,25 +940,6 @@ async def _async_close_client(hass, account_id: str):
       await client.async_close()
       _LOGGER.debug('Client closed.')
 
-def _old_folder_present(hass) -> str | None:
-  """The version of the folder this integration replaced, if it is still on disk.
-
-  A version that cannot be read comes back as "unknown" rather than None: the folder being
-  there is the thing worth saying, and an unreadable manifest does not change that.
-
-  Reads a file, so it belongs in the executor - Home Assistant spots an open() on the event
-  loop and tells the user to raise a bug against us for it.
-  """
-  folder = os.path.join(hass.config.config_dir, "custom_components", PREDECESSOR_DOMAIN)
-  if not os.path.isdir(folder):
-    return None
-  try:
-    with open(os.path.join(folder, "manifest.json"), encoding="utf-8") as handle:
-      return str(json.load(handle).get("version") or "") or "unknown"
-  except Exception:
-    return "unknown"
-
-
 def _raise_old_folder_repair(hass, version: str) -> None:
   """Say that the folder this one replaced can now be deleted.
 
@@ -980,6 +969,37 @@ def _raise_old_folder_repair(hass, version: str) -> None:
   )
 
 
+def _async_update_shared_account_repair(hass) -> None:
+  """Say so when another integration on the old domain has one of our accounts set up.
+
+  Both write the same `edf_energy:` statistic ids, so while that lasts the Energy dashboard
+  statistics are not written from here at all (statistics/consumption.py and cost.py), and
+  this explains why that history has stopped.
+  """
+  shared = accounts_shared_with_other_integration(hass)
+  if not shared:
+    ir.async_delete_issue(hass, DOMAIN, REPAIR_SHARED_WITH_OTHER_INTEGRATION)
+    return
+
+  ir.async_create_issue(
+    hass,
+    DOMAIN,
+    REPAIR_SHARED_WITH_OTHER_INTEGRATION,
+    is_fixable=False,
+    severity=ir.IssueSeverity.WARNING,
+    translation_key="shared_with_other_integration",
+    translation_placeholders={
+      "old_domain": PREDECESSOR_DOMAIN,
+      "accounts": ", ".join(sorted(account.upper() for account in shared)),
+    },
+  )
+  _LOGGER.warning(
+    "Another integration on %s has %s set up as well. Both write the same Energy dashboard "
+    "statistics, so they are not being written from here until only one of them runs.",
+    PREDECESSOR_DOMAIN, ", ".join(sorted(shared)),
+  )
+
+
 async def async_setup_entry(hass, entry):
   if is_carried_over_ignored_suggestion(entry):
     # Not an entry anyone set up: a suggestion they ignored, which the 20.1.1 hand-over turned
@@ -992,14 +1012,16 @@ async def async_setup_entry(hass, entry):
 
   """This is called from the config flow."""
   # Reaching here means the hand-over is done and the entries belong to this domain, so
-  # the only thing left to say about the old folder is that it can go.
-  leftover = await hass.async_add_executor_job(_old_folder_present, hass)
-  if leftover is not None:
+  # the only thing left to say about the old folder is that it can go - as long as it is
+  # ours. The same directory name is used by another EDF integration, and that one is left
+  # alone. Who it belongs to is kept, so the action aliases and the statistics can tell too.
+  folder, leftover = await hass.async_add_executor_job(read_predecessor_folder, hass.config.config_dir)
+  hass.data.setdefault(DOMAIN, {})[DATA_PREDECESSOR_FOLDER] = folder
+  if folder == FOLDER_OURS:
     _raise_old_folder_repair(hass, leftover)
   else:
     ir.async_delete_issue(hass, DOMAIN, REPAIR_OLD_FOLDER_PRESENT)
-
-  hass.data.setdefault(DOMAIN, {})
+  _async_update_shared_account_repair(hass)
 
   if not hass.data[DOMAIN].get("_frontend_registered"):
     hass.data[DOMAIN]["_frontend_registered"] = True
@@ -1839,6 +1861,11 @@ def _async_register_services(hass):
     }),
   )
 
+  # The old domain may belong to another EDF integration now, and its action names are its
+  # own business, so the aliases only go on while nothing else has a claim on it.
+  if not old_domain_is_ours_or_gone(hass, known_folder(hass)):
+    return
+
   for name, handler, kwargs in aliased:
     if not hass.services.has_service(PREDECESSOR_DOMAIN, name):
       hass.services.async_register(PREDECESSOR_DOMAIN, name, handler, **kwargs)
@@ -1941,6 +1968,12 @@ def setup(hass, config):
     account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT]
     account_info = account_result.account if account_result is not None else None
     
+    if account_id in accounts_shared_with_other_integration(hass):
+      # The ids this would clear are the other integration's too, on this account.
+      _LOGGER.warning("Not purging statistics for %s: another integration on %s writes the same ones",
+                      account_id, PREDECESSOR_DOMAIN)
+      return
+
     external_statistic_ids_to_remove = get_statistic_ids_to_remove(utcnow(), account_info)
 
     if len(external_statistic_ids_to_remove) > 0:

@@ -14,7 +14,8 @@ achievable, and neither is luck:
   is what automations, scripts, dashboards, template sensors and the energy dashboard
   actually reference
 * every storage key is a literal `edf_energy.*`, so off-peak history, dispatch history and
-  session history carry over without being touched
+  session history carry over without being touched. The account cache is the exception: it
+  shares a name with another EDF integration's store and has moved (storage/account.py)
 
 What genuinely is tied to the domain, and so has to be moved here:
 
@@ -40,6 +41,7 @@ from homeassistant.helpers import (
 )
 
 from .const import DATA_MIGRATION, DOMAIN, PREDECESSOR_DOMAIN
+from .predecessor import old_domain_is_ours_or_gone, our_old_entries
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,15 +63,21 @@ def device_identifier_suffix(identifiers, domain: str) -> str | None:
   return None
 
 
-def capture_entities(registry, old_domain: str = PREDECESSOR_DOMAIN) -> dict:
+def capture_entities(registry, old_domain: str = PREDECESSOR_DOMAIN, entry_ids=None) -> dict:
   """What to put back on each entity after the hand-over, keyed by unique_id.
 
   The entity_id is captured as well as the customisations: it should be regenerated
   identically, and keeping it means that can be checked rather than assumed.
+
+  Given entry_ids, only the entities of those config entries are captured. The other EDF
+  integration on the old domain has entities on the same platform, some with the same
+  unique_ids, and its customisations are not ours to copy.
   """
   captured = {}
   for entry in registry.entities.values():
     if entry.platform != old_domain:
+      continue
+    if entry_ids is not None and getattr(entry, "config_entry_id", None) not in entry_ids:
       continue
     captured[entry.unique_id] = {
       "entity_id": entry.entity_id,
@@ -78,12 +86,17 @@ def capture_entities(registry, old_domain: str = PREDECESSOR_DOMAIN) -> dict:
   return captured
 
 
-def capture_devices(registry, old_domain: str = PREDECESSOR_DOMAIN) -> dict:
-  """Each old device's area and user-given name, keyed by its identifier suffix."""
+def capture_devices(registry, old_domain: str = PREDECESSOR_DOMAIN, entry_ids=None) -> dict:
+  """Each old device's area and user-given name, keyed by its identifier suffix.
+
+  Given entry_ids, only devices belonging to one of those config entries are captured.
+  """
   captured = {}
   for device in registry.devices.values():
     suffix = device_identifier_suffix(device.identifiers, old_domain)
     if suffix is None:
+      continue
+    if entry_ids is not None and not set(getattr(device, "config_entries", None) or ()) & entry_ids:
       continue
     captured[suffix] = {
       "area_id": device.area_id,
@@ -154,7 +167,7 @@ def apply_device_customisations(registry, captured: dict) -> int:
   return restored
 
 
-def clear_old_notices(hass) -> int:
+def clear_old_notices(hass, folder: str | None) -> int:
   """Delete the repairs the old domain raised. Returns how many went.
 
   They outlive their own integration. A notice is stored against (domain, issue_id) and
@@ -166,7 +179,14 @@ def clear_old_notices(hass) -> int:
   Only the old domain's own notices are touched. Anything Home Assistant raised itself
   about an old entry, reauth being the usual one, is keyed on the entry and goes when the
   entry does.
+
+  And only while nothing else has a claim on the old domain. The other EDF integration
+  raises its repairs under that domain too, and nothing tells its notices apart from ours,
+  so when it is installed or set up they are all left where they are.
   """
+  if not old_domain_is_ours_or_gone(hass, folder):
+    return 0
+
   registry = ir.async_get(hass)
   stale = [key for key in registry.issues if key[0] == PREDECESSOR_DOMAIN]
   for domain, issue_id in stale:
@@ -176,8 +196,8 @@ def clear_old_notices(hass) -> int:
   return len(stale)
 
 
-async def async_take_over_old_entries(hass) -> int:
-  """Move every config entry from the old domain to this one. Returns how many.
+async def async_take_over_old_entries(hass, folder: str | None) -> int:
+  """Move this integration's config entries from the old domain to this one. Returns how many.
 
   Order matters and is the whole trick. The old entries are removed *before* the new ones
   are created, because removing a config entry is what removes its entity registry rows,
@@ -188,17 +208,22 @@ async def async_take_over_old_entries(hass) -> int:
   External statistics need nothing doing to them. Their ids keep the prefix they were
   written with, because the recorder cannot rename an external statistic, so the Energy
   dashboard's history carries over by not being touched.
+
+  Only entries that can be shown to be ours are moved (see predecessor.py). Anything else on
+  the old domain belongs to another EDF integration and is not touched: not removed, not
+  imported, and its entities, devices and repairs are left alone.
   """
-  old_entries = list(hass.config_entries.async_entries(PREDECESSOR_DOMAIN))
+  old_entries = our_old_entries(hass, folder)
   if not old_entries:
     return 0
 
   entity_registry = er.async_get(hass)
   device_registry = dr.async_get(hass)
+  entry_ids = {entry.entry_id for entry in old_entries}
 
   captured = {
-    "entities": capture_entities(entity_registry),
-    "devices": capture_devices(device_registry),
+    "entities": capture_entities(entity_registry, entry_ids=entry_ids),
+    "devices": capture_devices(device_registry, entry_ids=entry_ids),
   }
   _LOGGER.info(
     "Taking over %d config entry(s) from %s: %d entity(s) and %d device(s) to carry across",
@@ -225,7 +250,7 @@ async def async_take_over_old_entries(hass) -> int:
 
   # The old domain's notices refer to a hand-over that has now happened, so they go with
   # the entries rather than being left on screen contradicting the result.
-  clear_old_notices(hass)
+  clear_old_notices(hass, folder)
 
   for payload in carried:
     if payload["source"] == SOURCE_IGNORE:

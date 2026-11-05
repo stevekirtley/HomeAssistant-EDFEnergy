@@ -20,8 +20,16 @@ There are multiple ways of installing the integration. Once you've installed the
 
 This integration can be installed directly via HACS. To install:
 
-* [Add the repository](https://my.home-assistant.io/redirect/hacs_repository/?owner=stevekirtley&repository=HomeAssistant-EDFEnergy&category=integration) to your HACS installation
-* Click `Download`
+* In HACS, search for **EDF Energy (UK)**
+* Click `Download`, then restart Home Assistant
+
+If it doesn't come up in the search, [add the repository](https://my.home-assistant.io/redirect/hacs_repository/?owner=stevekirtley&repository=HomeAssistant-EDFEnergy&category=integration) to HACS first and then download it.
+
+### Alongside another EDF integration
+
+[HomeAssistant-EDF-UK](https://github.com/Bobby5291/HomeAssistant-EDF-UK) is a separate integration that installs as `edf_energy`, the domain this one used before version 21. The two can be installed side by side, and this integration doesn't touch the other one's folder, entries or notices.
+
+They can't share an account. Both write the same Energy dashboard statistics, so on a shared account each would overwrite the other's history. If both have the same account set up, this integration stops writing those statistics and raises a repair explaining why. Keep each account in one integration only.
 
 ### Manual
 

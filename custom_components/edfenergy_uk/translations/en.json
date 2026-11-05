@@ -362,6 +362,10 @@
           "delete_failed": "`custom_components/{old_domain}` could not be deleted - see the log. You can remove the folder yourself and restart."
         }
       }
+    },
+    "shared_with_other_integration": {
+      "title": "Another EDF integration has the same account set up",
+      "description": "Account {accounts} is also set up in a different EDF integration that uses the `{old_domain}` domain. The two write the same Energy dashboard statistics, so each would overwrite the other's history.\n\nUntil only one of them has this account, this integration has stopped writing those statistics. Everything else carries on working. Remove the account from one of the two integrations and restart to clear this."
     }
   },
   "entity": {

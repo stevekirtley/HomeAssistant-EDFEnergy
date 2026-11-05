@@ -13,11 +13,14 @@ domain it is given, so the same action can be registered twice over the same ent
 is all this does: the second registration shares the first one's entity lookup, schema and
 handler, so there is no separate code path to drift or to re-implement targeting in.
 
-The aliases are deprecated and meant to come out a couple of releases after 21.0.0.
+The aliases are deprecated and meant to come out a couple of releases after 21.0.0. They are
+only registered while nothing else has a claim on the old domain: another EDF integration
+uses it, and its action namespace is its own.
 """
 from homeassistant.helpers import service
 
 from ..const import DOMAIN, PREDECESSOR_DOMAIN
+from ..predecessor import known_folder, old_domain_is_ours_or_gone
 
 
 def describe_alias(hass, name: str) -> None:
@@ -47,6 +50,8 @@ def register_entity_service(platform, name, schema, func, **kwargs) -> None:
   """Register an entity action, and the same action under the old domain."""
   platform.async_register_entity_service(name, schema, func, **kwargs)
 
+  if not old_domain_is_ours_or_gone(platform.hass, known_folder(platform.hass)):
+    return
   if platform.hass.services.has_service(PREDECESSOR_DOMAIN, name):
     return
 

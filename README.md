@@ -62,10 +62,24 @@ Everything else — electricity and gas sensors, rates, standing charges, consum
 
 ### HACS
 
-1. In HACS, go to **Integrations > ... > Custom repositories**
-2. Add `https://github.com/stevekirtley/HomeAssistant-EDFEnergy` with category **Integration**
-3. Search for **EDF Energy (UK)** and click **Download**
-4. Restart Home Assistant
+1. In HACS, search for **EDF Energy (UK)** and click **Download**
+2. Restart Home Assistant
+
+If it doesn't come up in the search, add it as a custom repository first: in HACS go to
+**... > Custom repositories**, add `https://github.com/stevekirtley/HomeAssistant-EDFEnergy` with
+type **Integration**, then search again.
+
+### Running it alongside another EDF integration
+
+[HomeAssistant-EDF-UK](https://github.com/Bobby5291/HomeAssistant-EDF-UK) is a separate EDF
+integration that installs as `edf_energy`, which is the domain this one used before 21.0.0. The
+two can be installed together, and this integration leaves the other one's folder, entries and
+notices alone.
+
+They **can't share an account**, though. Both write the same Energy dashboard statistics, so
+each would overwrite the other's history. If both have the same account set up, this
+integration stops writing those statistics and raises a repair saying why. Set each account
+up in one integration only.
 
 ### Manual
 

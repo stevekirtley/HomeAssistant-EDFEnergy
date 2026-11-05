@@ -241,13 +241,11 @@ REPAIR_OLD_FOLDER_PRESENT = "old_folder_present"
 
 # Where this integration used to live. HACS works out where to put an integration from the
 # domain in its manifest, so 21.0.0 installs into a new directory and leaves the old one
-# behind. 20.1.0 stands itself down when it sees this one installed alongside, so the two
-# never both load - but anybody who skipped it has an old folder with no such guard, and
-# both loading means every entity collides with its twin and comes back with a "_2" suffix.
-# That is the broken automations the rename exists to avoid, so when the leftover folder is
-# older than the release that knows to stand down, nothing here loads either until it is
-# removed. See _blocking_predecessor.
+# behind, and the hand-over moves the entries across. The domain is not ours alone, though:
+# another EDF integration in the HACS catalog uses it too, so nothing is done to a folder or
+# an entry on it until it is shown to be ours. See predecessor.py.
 DATA_MIGRATION = "MIGRATION_FROM_OLD_DOMAIN"
+DATA_PREDECESSOR_FOLDER = "PREDECESSOR_FOLDER"
 PREDECESSOR_DOMAIN = "edf_energy"
 
 # External statistics are keyed by `{source}:{id}` and the recorder cannot rename them: its
@@ -256,7 +254,11 @@ PREDECESSOR_DOMAIN = "edf_energy"
 # dashboard cost data, so the ids stay exactly as they were written and keep the old prefix
 # for good. Nothing a user sees carries it, and new installs get the same ids as everybody
 # else rather than a second variant to support.
+#
+# The other integration on the old domain writes the same ids for the same meters, so on an
+# account they both have set up these are not written at all, and a repair says why.
 STATISTICS_SOURCE = PREDECESSOR_DOMAIN
+REPAIR_SHARED_WITH_OTHER_INTEGRATION = "shared_with_other_integration"
 REPAIR_FREE_ELECTRICITY_EVENT_HISTORY = "free_electricity_event_history_{}"
 
 # Roughly a week of the pre-18.9.8 once-a-minute writes. Below this there's little to reclaim and

@@ -38,6 +38,11 @@ you do, Home Assistant carries on listing the copy it had already loaded.
 If you leave it there nothing stops working, but the folder is doing nothing and Home
 Assistant will keep listing it.
 
+The notice only appears when the folder is the one this integration came from. A separate EDF
+integration, [HomeAssistant-EDF-UK](https://github.com/Bobby5291/HomeAssistant-EDF-UK), also
+installs into `custom_components/edf_energy`. If that's what is in the folder, there's no notice
+and nothing is deleted, and its config entries aren't offered for take-over either.
+
 ## If "EDF Energy (UK)" is not in the Add integration list
 
 Restart Home Assistant and try again. The new folder is only picked up on a restart after

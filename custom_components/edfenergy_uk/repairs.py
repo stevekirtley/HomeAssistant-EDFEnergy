@@ -10,6 +10,7 @@ from homeassistant.helpers import issue_registry as ir, selector
 import homeassistant.helpers.config_validation as cv
 
 from .api_client import EDFEnergyApiClient
+from .predecessor import manifest_is_ours, predecessor_folder_path
 from .const import (
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,
@@ -202,9 +203,10 @@ class OldFolderRepairFlow(RepairsFlow):
 
   The hand-over has already happened by the time this can be raised, so the old folder holds
   no config entries and is running nothing. Removing it is housekeeping, but it is still a
-  delete, so it is confirmed first and checked before it happens: the manifest inside has to
-  say it is the folder this integration replaced. Deleting the wrong directory under
-  custom_components would take somebody else's integration with it.
+  delete, so it is confirmed first and checked again before it happens: the manifest inside
+  has to show it is the folder this integration replaced, not just that it has the same
+  domain. Another EDF integration installs into that same directory, and deleting it would
+  take that integration with it.
 
   Home Assistant keeps the module it already imported, so the folder goes but the listing
   does not until a restart. Restarting is left to the user - taking the house down without
@@ -212,9 +214,7 @@ class OldFolderRepairFlow(RepairsFlow):
   """
 
   def _folder(self) -> str:
-    return os.path.join(
-      self.hass.config.config_dir, "custom_components", PREDECESSOR_DOMAIN
-    )
+    return predecessor_folder_path(self.hass.config.config_dir)
 
   def _delete(self) -> str | None:
     """Delete it, in the executor. Returns a reason if it would not be safe to."""
@@ -225,15 +225,15 @@ class OldFolderRepairFlow(RepairsFlow):
     manifest = os.path.join(folder, "manifest.json")
     try:
       with open(manifest, encoding="utf-8") as handle:
-        domain = json.load(handle).get("domain")
+        contents = json.load(handle)
     except Exception as err:
       _LOGGER.warning("Could not read %s before deleting it: %s", manifest, err)
       return "not_the_old_folder"
 
-    if domain != PREDECESSOR_DOMAIN:
+    if not manifest_is_ours(contents):
       # Something else is living in that directory. Leave it alone.
       _LOGGER.warning(
-        "%s holds the integration %s, not %s - not deleting it", folder, domain,
+        "%s is not the %s this integration replaced - not deleting it", folder,
         PREDECESSOR_DOMAIN,
       )
       return "not_the_old_folder"

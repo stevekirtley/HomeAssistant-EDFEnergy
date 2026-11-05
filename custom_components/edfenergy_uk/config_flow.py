@@ -16,6 +16,7 @@ from .config.cost_tracker import validate_cost_tracker_config
 from .config.main import async_validate_main_config
 from .config.kind import get_config_kind
 from .migration import async_take_over_old_entries
+from .predecessor import our_old_entries, read_predecessor_folder
 from .const import (
   PREDECESSOR_DOMAIN,
   CONFIG_COST_TRACKER_DISCOVERY_ACCOUNT_ID,
@@ -596,19 +597,25 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
       }
     )
 
-  def _entries_to_take_over(self):
-    """Config entries still sitting on the domain this integration used to be.
+  async def _async_entries_to_take_over(self):
+    """Config entries this integration created on the domain it used to be.
 
     Home Assistant only sets a domain up when something already refers to it, and nothing
     refers to this one until an entry exists. So after an update the new folder is on disk
     doing nothing while the old one carries on running the account, and the only thing that
     can start the hand-over is the user adding the integration. That is this flow.
+
+    Only entries that can be shown to be ours count. Another EDF integration uses the same
+    domain, and taking its entries would remove them along with their entities and devices.
     """
-    return list(self.hass.config_entries.async_entries(PREDECESSOR_DOMAIN))
+    folder, _ = await self.hass.async_add_executor_job(
+      read_predecessor_folder, self.hass.config.config_dir
+    )
+    return folder, our_old_entries(self.hass, folder)
 
   async def async_step_take_over(self, user_input=None):
     """Offer to adopt the setup that belongs to the old domain."""
-    entries = self._entries_to_take_over()
+    folder, entries = await self._async_entries_to_take_over()
     if not entries:
       # Nothing left to adopt - another flow got there first, or the entries went away
       # while this form was on screen. Carry on as an ordinary setup.
@@ -629,7 +636,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
         },
       )
 
-    taken = await async_take_over_old_entries(self.hass)
+    taken = await async_take_over_old_entries(self.hass, folder)
     _LOGGER.info("Took over %d config entry(s) from %s", taken, PREDECESSOR_DOMAIN)
 
     # The entries are recreated by import flows of their own, so there is nothing for this
@@ -644,7 +651,7 @@ class EDFEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
 
     # Before anything else: if the old domain still holds the setup, offer to adopt it
     # rather than walking somebody through creating a second one alongside it.
-    if user_input is None and self._entries_to_take_over():
+    if user_input is None and (await self._async_entries_to_take_over())[1]:
       return await self.async_step_take_over(None)
 
     is_account_setup = False
