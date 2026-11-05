@@ -117,14 +117,18 @@ Press **Take it over**. There's nothing to fill in.
 
 ![Your EDF Energy setup has been moved over and is running from the new folder](../assets/v21-mp-taken-over.png)
 
-Your account is now running from the new folder. Ignore the bit about deleting
-`custom_components/edf_energy` by hand: with the Marketplace, the next step does it, and
-doing it by hand would leave the Marketplace thinking the old one is still installed.
+Your account is now running from the new folder. The notice tells you to remove the old
+one. With the Marketplace, that's the next step. Don't delete `custom_components/edf_energy`
+by hand: that would leave the Marketplace thinking the old one is still installed.
 
 !!! tip "On 20.1.1 there's a shortcut"
 
     If you were on 20.1.1, a notice appears in **Settings > Repairs** after the restart in
     step 3. Its **Hand it over** button does the same as this step.
+
+    It needs 21.0.4 or later in the folder you copied in step 2. With 21.0.3 it fails with
+    *"The hand-over did not finish"*, and nothing is changed. Use **Add integration** as
+    above instead.
 
     ![EDF Energy has a new folder - one step left](../assets/v21-mp-repairs-notice.png)
 
@@ -159,8 +163,8 @@ setup is running from `edfenergy_uk`, which the Marketplace doesn't know about y
 
 ### Step 6: download it again
 
-Go to **Browse** and search for `EDF Energy`. **EDF Energy (UK)** is at the top, under
-**Restart required**:
+Go to **Browse** and search for `EDF Energy`. **EDF Energy (UK)** is listed under
+**Available** or **Restart required**:
 
 ![Browse, searching EDF Energy: EDF Energy (UK) under Restart required, then other EDF integrations under New](../assets/v21-mp-browse.jpg)
 
@@ -170,9 +174,21 @@ Go to **Browse** and search for `EDF Energy`. **EDF Energy (UK)** is at the top,
     developer. It isn't a newer version of this one, and it installs into the old
     `edf_energy` folder.
 
-Press the three dots next to **EDF Energy (UK)** and choose **Install**:
+Press the three dots next to **EDF Energy (UK)** and choose **Refresh information**
+first. Then open the three dots again and choose **Install**:
 
-![The menu for EDF Energy (UK) in Browse, with Install](../assets/v21-mp-install-menu.jpg)
+![The menu for EDF Energy (UK) in Browse, with Refresh information above Install](../assets/v21-mp-refresh-menu.jpg)
+
+!!! warning "Don't skip Refresh information"
+
+    The Marketplace still has the old folder name on record. It only checks GitHub again by
+    itself once per session, and if you tried the update first, that check has already been
+    used up. Without a refresh, Install fails with:
+
+    ![The manifest.json of the installed content is for edfenergy_uk, not edf_energy.](../assets/v21-mp-wrong-domain.jpg)
+
+    Nothing is lost if you see this. Press **Cancel**, choose **Refresh information**, then
+    **Install** again.
 
 ![This installs EDF Energy (UK) version 21.0.2 in Home Assistant, with an Install button](../assets/v21-mp-install-confirm.jpg)
 

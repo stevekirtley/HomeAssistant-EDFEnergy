@@ -1,7 +1,6 @@
 # Home Assistant EDF Energy
 
-> [!IMPORTANT]
-> ## On Home Assistant 2026.11 or later? Read this before you update
+> ## IMPORTANT: on Home Assistant 2026.11 or later? Read this before you update
 >
 > 2026.11 brought HACS into Home Assistant as the **Marketplace**, and the Marketplace won't
 > update an integration whose folder has changed name. Coming from 20.x or older, the update
