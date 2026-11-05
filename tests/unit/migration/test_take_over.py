@@ -662,3 +662,110 @@ async def test_the_other_integrations_notices_are_left_alone(monkeypatch):
   await async_take_over_old_entries(hass, FOLDER_NOT_OURS)
 
   assert deleted == []
+
+
+# ── 20.1.1's "Hand it over" repair ───────────────────────────────────────────
+#
+# That repair lives in the old folder and calls in here with hass alone. 21.0.3 made the
+# folder a required argument and broke it, so the call 20.1.1 makes is pinned here.
+
+class StubConfig:
+  def __init__(self, config_dir):
+    self.config_dir = str(config_dir)
+
+
+class StubHassOnDisk(StubHass):
+  def __init__(self, entries, log, config_dir):
+    super().__init__(entries, log)
+    self.config = StubConfig(config_dir)
+
+  async def async_add_executor_job(self, func, *args):
+    return func(*args)
+
+
+def _old_folder(config_dir, codeowner="@stevekirtley"):
+  import json
+  folder = config_dir / "custom_components" / PREDECESSOR_DOMAIN
+  folder.mkdir(parents=True)
+  (folder / "manifest.json").write_text(json.dumps({"domain": PREDECESSOR_DOMAIN, "codeowners": [codeowner]}))
+
+
+@pytest.mark.asyncio
+async def test_the_call_20_1_1_makes_still_works(empty_registries, tmp_path):
+  _old_folder(tmp_path)
+  log = []
+  hass = StubHassOnDisk([StubOldEntry("old-1", "A-XXXXXX", {"kind": "account"})], log, tmp_path)
+
+  assert await async_take_over_old_entries(hass) == 1
+  assert ("remove", "old-1") in log
+
+
+@pytest.mark.asyncio
+async def test_left_out_the_folder_is_read_from_disk(empty_registries, tmp_path):
+  # An entry with no kind is only ours when our own folder is there, so it shows the read.
+  _old_folder(tmp_path)
+  hass = StubHassOnDisk([StubOldEntry("old-1", "A-XXXXXX", {})], [], tmp_path)
+
+  assert await async_take_over_old_entries(hass) == 1
+
+
+@pytest.mark.asyncio
+async def test_left_out_a_folder_that_is_not_ours_is_still_not_trusted(empty_registries, tmp_path):
+  _old_folder(tmp_path, codeowner="@someone-else")
+  hass = StubHassOnDisk([StubOldEntry("old-1", "A-XXXXXX", {})], [], tmp_path)
+
+  assert await async_take_over_old_entries(hass) == 0
+
+
+# ── the device registry from 2026.11 ─────────────────────────────────────────
+
+class StubDeviceView:
+  """2026.11's registry.devices: iterating yields devices, using it as a mapping is deprecated."""
+
+  def __init__(self, devices):
+    self._devices = devices
+
+  def __iter__(self):
+    return iter(self._devices)
+
+  def values(self):
+    raise AssertionError("mapping access to registry.devices is deprecated")
+
+
+class StubDeviceOneEntry(StubDevice):
+  """2026.11's DeviceEntry: one config_entry_id, and config_entries deprecated."""
+
+  def __init__(self, device_id, identifiers, config_entry_id, **kwargs):
+    super().__init__(device_id, identifiers, **kwargs)
+    self.config_entry_id = config_entry_id
+
+  @property
+  def config_entries(self):
+    raise AssertionError("DeviceEntry.config_entries is deprecated")
+
+  @config_entries.setter
+  def config_entries(self, value):
+    pass
+
+
+def test_devices_are_captured_from_the_newer_registry_without_deprecated_access():
+  registry = StubDeviceRegistry([])
+  registry.devices = StubDeviceView([
+    StubDeviceOneEntry("d1", {(PREDECESSOR_DOMAIN, "mine")}, "ours", area_id="kitchen"),
+    StubDeviceOneEntry("d2", {(PREDECESSOR_DOMAIN, "theirs")}, "theirs"),
+  ])
+
+  captured = capture_devices(registry, entry_ids={"ours"})
+
+  assert list(captured) == ["mine"]
+  assert captured["mine"]["area_id"] == "kitchen"
+
+
+def test_device_customisations_go_back_on_the_newer_registry():
+  registry = StubDeviceRegistry([])
+  registry.devices = StubDeviceView([
+    StubDeviceOneEntry("d1", {(DOMAIN, "mine")}, "new-1"),
+  ])
+
+  assert apply_device_customisations(registry, {"mine": {"area_id": "kitchen"}}) == 1
+  assert registry.updates == [("d1", {"area_id": "kitchen"})]

@@ -32,6 +32,7 @@ What genuinely is tied to the domain, and so has to be moved here:
   the one irreversible step here
 """
 import logging
+from collections.abc import Mapping
 
 from homeassistant.config_entries import SOURCE_IGNORE, SOURCE_IMPORT
 from homeassistant.helpers import (
@@ -41,7 +42,7 @@ from homeassistant.helpers import (
 )
 
 from .const import DATA_MIGRATION, DOMAIN, PREDECESSOR_DOMAIN
-from .predecessor import old_domain_is_ours_or_gone, our_old_entries
+from .predecessor import old_domain_is_ours_or_gone, our_old_entries, read_predecessor_folder
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,6 +62,29 @@ def device_identifier_suffix(identifiers, domain: str) -> str | None:
     if isinstance(identifier, (tuple, list)) and len(identifier) == 2 and identifier[0] == domain:
       return identifier[1]
   return None
+
+
+def _all_devices(registry) -> list:
+  """Every device in the registry, before and after 2026.11.
+
+  2026.11 made `registry.devices` yield its devices when iterated and deprecated using it as
+  a mapping. Before that it was a mapping, and iterating it yielded the device ids.
+  """
+  devices = registry.devices
+  if isinstance(devices, Mapping):
+    return list(devices.values())
+  return list(devices)
+
+
+def _device_entry_ids(device) -> set:
+  """The config entries a device belongs to.
+
+  2026.11 gave every device a single config_entry_id and deprecated config_entries.
+  """
+  entry_id = getattr(device, "config_entry_id", None)
+  if entry_id is not None:
+    return {entry_id}
+  return set(getattr(device, "config_entries", None) or ())
 
 
 def capture_entities(registry, old_domain: str = PREDECESSOR_DOMAIN, entry_ids=None) -> dict:
@@ -92,11 +116,11 @@ def capture_devices(registry, old_domain: str = PREDECESSOR_DOMAIN, entry_ids=No
   Given entry_ids, only devices belonging to one of those config entries are captured.
   """
   captured = {}
-  for device in registry.devices.values():
+  for device in _all_devices(registry):
     suffix = device_identifier_suffix(device.identifiers, old_domain)
     if suffix is None:
       continue
-    if entry_ids is not None and not set(getattr(device, "config_entries", None) or ()) & entry_ids:
+    if entry_ids is not None and not _device_entry_ids(device) & entry_ids:
       continue
     captured[suffix] = {
       "area_id": device.area_id,
@@ -142,7 +166,7 @@ def apply_entity_customisations(registry, captured: dict) -> tuple[int, list[str
 def apply_device_customisations(registry, captured: dict) -> int:
   """Put the captured area, name and labels back on the recreated devices."""
   restored = 0
-  for device in list(registry.devices.values()):
+  for device in _all_devices(registry):
     suffix = device_identifier_suffix(device.identifiers, DOMAIN)
     if suffix is None:
       continue
@@ -196,7 +220,10 @@ def clear_old_notices(hass, folder: str | None) -> int:
   return len(stale)
 
 
-async def async_take_over_old_entries(hass, folder: str | None) -> int:
+_READ_THE_FOLDER = object()
+
+
+async def async_take_over_old_entries(hass, folder=_READ_THE_FOLDER) -> int:
   """Move this integration's config entries from the old domain to this one. Returns how many.
 
   Order matters and is the whole trick. The old entries are removed *before* the new ones
@@ -212,7 +239,13 @@ async def async_take_over_old_entries(hass, folder: str | None) -> int:
   Only entries that can be shown to be ours are moved (see predecessor.py). Anything else on
   the old domain belongs to another EDF integration and is not touched: not removed, not
   imported, and its entities, devices and repairs are left alone.
+
+  The folder can be left out. 20.1.1's "Hand it over" repair calls this with hass alone, and
+  the update guide sends people to that button, so without it the folder is read from disk.
   """
+  if folder is _READ_THE_FOLDER:
+    folder, _ = await hass.async_add_executor_job(read_predecessor_folder, hass.config.config_dir)
+
   old_entries = our_old_entries(hass, folder)
   if not old_entries:
     return 0
