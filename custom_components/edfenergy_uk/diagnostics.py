@@ -214,6 +214,25 @@ def _async_broken_entry_diagnostics(hass, entry, config):
     },
   }
 
+def _account_registry_entities(hass, account_id) -> list:
+  """The registry entries a download for this account may report.
+
+  Only entities of this integration, and only those on this account's own entries (the
+  account plus its cost trackers and tariff comparisons). Matching "edf_energy" in the
+  unique id also took in the other EDF integration's entities, and any other account set up
+  here, whose account numbers and meter ids the redaction below knows nothing about.
+  """
+  entry_ids = {
+    entry.entry_id
+    for entry in hass.config_entries.async_entries(DOMAIN)
+    if entry.data.get(CONFIG_ACCOUNT_ID) == account_id
+  }
+  return [
+    entity
+    for entity in er.async_get(hass).entities.values()
+    if entity.platform == DOMAIN and entity.config_entry_id in entry_ids
+  ]
+
 async def async_get_device_diagnostics(hass, entry, device):
     """Return diagnostics for a device."""
 
@@ -230,29 +249,26 @@ async def async_get_device_diagnostics(hass, entry, device):
     account_debug_override = await async_get_account_debug_override(hass, account_id)
 
     def get_entity_info(redacted_mappings):
-      entity_registry = er.async_get(hass)
-      entities = entity_registry.entities.items()
       states = hass.states.async_all()
       entity_info = dict()
-      for item in entities:
-        unique_id: str = item[1].unique_id
+      for item in _account_registry_entities(hass, account_id):
+        unique_id: str = item.unique_id
 
-        if "edf_energy" in unique_id:
-          state = None
-          for s in states:
-            if s.entity_id == item[1].entity_id:
-              state = s
-              break
+        state = None
+        for s in states:
+          if s.entity_id == item.entity_id:
+            state = s
+            break
 
-          for key in redacted_mappings.keys():
-            unique_id = unique_id.lower().replace(key.lower(), f"{redacted_mappings[key]}")
-          
-          entity_info[unique_id] = redact_billing_entity(unique_id, {
-            "state": state.state if state is not None else None,
-            "attributes": dict_to_typed_dict(state.attributes, ignored_attributes) if state is not None else None,
-            "last_updated": state.last_updated if state is not None else None,
-            "last_changed": state.last_changed if state is not None else None
-          })
+        for key in redacted_mappings.keys():
+          unique_id = unique_id.lower().replace(key.lower(), f"{redacted_mappings[key]}")
+        
+        entity_info[unique_id] = redact_billing_entity(unique_id, {
+          "state": state.state if state is not None else None,
+          "attributes": dict_to_typed_dict(state.attributes, ignored_attributes) if state is not None else None,
+          "last_updated": state.last_updated if state is not None else None,
+          "last_changed": state.last_changed if state is not None else None
+        })
 
       return entity_info
 
@@ -279,27 +295,24 @@ async def async_get_config_entry_diagnostics(hass, entry):
     account_debug_override = await async_get_account_debug_override(hass, account_id)
 
     def get_entity_info(redacted_mappings):
-      entity_registry = er.async_get(hass)
-      entities = entity_registry.entities.items()
       states = hass.states.async_all()
       entity_info = dict()
-      for item in entities:
-        unique_id: str = item[1].unique_id
+      for item in _account_registry_entities(hass, account_id):
+        unique_id: str = item.unique_id
 
-        if "edf_energy" in unique_id:
-          state = None
-          for s in states:
-            if s.entity_id == item[1].entity_id:
-              state = s
-              break
+        state = None
+        for s in states:
+          if s.entity_id == item.entity_id:
+            state = s
+            break
 
-          for key in redacted_mappings.keys():
-            unique_id = unique_id.lower().replace(key.lower(), f"{redacted_mappings[key]}")
-          
-          entity_info[unique_id] = {
-            "last_updated": state.last_updated if state is not None else None,
-            "last_changed": state.last_changed if state is not None else None
-          }
+        for key in redacted_mappings.keys():
+          unique_id = unique_id.lower().replace(key.lower(), f"{redacted_mappings[key]}")
+        
+        entity_info[unique_id] = {
+          "last_updated": state.last_updated if state is not None else None,
+          "last_changed": state.last_changed if state is not None else None
+        }
 
       return entity_info
 
