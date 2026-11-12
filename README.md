@@ -1,5 +1,11 @@
 # Home Assistant EDF Energy
 
+[![GitHub Stars](https://img.shields.io/github/stars/stevekirtley/HomeAssistant-EDFEnergy?style=flat&label=GitHub%20stars)](https://github.com/stevekirtley/HomeAssistant-EDFEnergy)
+[![Active installs](https://img.shields.io/endpoint?url=https%3A%2F%2Fapirelay.sitetest.org.uk%2Fpower_perks.php%3Faction%3Dbadge&cacheSeconds=21600)](#3-active-installs-count)
+[![Open issues](https://img.shields.io/github/issues/stevekirtley/HomeAssistant-EDFEnergy?style=flat&label=issues)](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/issues)
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=github)](https://github.com/sponsors/stevekirtley)
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/stevekirtley)
+
 > ## IMPORTANT: on Home Assistant 2026.11 or later? Read this before you update
 >
 > 2026.11 brought HACS into Home Assistant as the **Marketplace**, and the Marketplace won't
@@ -21,9 +27,6 @@
 >
 > On **20.1.0**, update to **20.1.1 first** and restart. Going straight to version 21 stops the
 > integration loading and every entity goes unavailable until the move is finished by hand.
-
-[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/stevekirtley)
-[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=github)](https://github.com/sponsors/stevekirtley)
 
 A fork based on [BottlecapDave's HomeAssistant-OctopusEnergy](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy) (MIT licensed), adapted for EDF Energy customers. EDF Energy uses the same underlying Kraken platform as Octopus Energy, so the core API integration carries over with minimal changes.
 No longer listed as a fork as code has deviated significantly from the original library, and to facilitate adding to HACS. 
