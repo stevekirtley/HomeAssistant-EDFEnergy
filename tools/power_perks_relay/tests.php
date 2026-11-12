@@ -180,6 +180,47 @@ expect('counter: writes no addresses', preg_match('/\\d+\\.\\d+\\.\\d+\\.\\d+/',
 expect('counter: writes counts and nothing else',
     array_keys((array)json_decode($raw, true)) === ['requests', 'versions', 'consumers']);
 
+// The README badge: whole days only, the lower of the last two, integration requests only,
+// rounded down. Every case below is one where getting it wrong would overstate the count.
+$badgeNow = new DateTimeImmutable('now', new DateTimeZone(TIMEZONE));
+$dayFile = function (int $daysAgo) use ($statsdir, $badgeNow): string {
+    return $statsdir . '/' . $badgeNow->modify("-$daysAgo day")->format('Y-m-d') . '.json';
+};
+$writeDay = function (int $daysAgo, int $integration, int $other = 0) use ($dayFile): void {
+    file_put_contents($dayFile($daysAgo), json_encode([
+        'requests' => $integration + $other,
+        'versions' => ['21.0.4' => $integration, 'other' => $other],
+        'consumers' => ['integration' => $integration, 'app-dev' => $other],
+    ]));
+};
+
+$writeDay(1, 852 * 96 + 95, 96);
+$writeDay(2, 899 * 96);
+expect('badge: lower of the last two whole days, rounded down', install_badge($badgeNow)['message'] === '850+');
+
+$writeDay(1, 812 * 96);
+expect('badge: a lower yesterday wins', install_badge($badgeNow)['message'] === '800+');
+
+$writeDay(1, 849 * 96, 96 * 400);
+$writeDay(2, 849 * 96, 96 * 400);
+expect('badge: only the integration counts', install_badge($badgeNow)['message'] === '800+');
+
+$writeDay(1, 30 * 96);
+expect('badge: under one step it shows the floor itself', install_badge($badgeNow)['message'] === '30');
+
+@unlink($dayFile(2));
+$writeDay(1, 612 * 96);
+expect('badge: one whole day is enough', install_badge($badgeNow)['message'] === '600+');
+
+$writeDay(0, 5000 * 96);
+expect('badge: today is never used', install_badge($badgeNow)['message'] === '600+');
+
+@array_map('unlink', (array)glob($statsdir . '/*.json'));
+$unknown = install_badge($badgeNow);
+expect('badge: no whole day reads as unknown', $unknown['message'] === 'unknown' && $unknown['color'] === 'lightgrey');
+expect('badge: shields endpoint shape', $unknown['schemaVersion'] === 1 && $unknown['label'] === 'active installs');
+
+feed_hit('stevekirtley-ha-edf-energy/19.2.6', 'integration');
 file_put_contents($statsdir . '/' . date('Y-m-d') . '.json', 'not json at all');
 feed_hit('stevekirtley-ha-edf-energy/19.2.6', 'integration');
 expect('counter: survives a corrupt counter file', read_feed_stats(1)[0]['requests'] === 1);

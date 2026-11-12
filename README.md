@@ -168,4 +168,4 @@ We'll each get £50 credited to our account.
 ---
 
 [![GitHub Stars](https://img.shields.io/github/stars/stevekirtley/HomeAssistant-EDFEnergy?style=flat&label=GitHub%20stars)](https://github.com/stevekirtley/HomeAssistant-EDFEnergy)
-[![HA Analytics](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=active%20installs&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.edfenergy_uk.total)](https://analytics.home-assistant.io)
+[![Active installs](https://img.shields.io/endpoint?url=https%3A%2F%2Fapirelay.sitetest.org.uk%2Fpower_perks.php%3Faction%3Dbadge&cacheSeconds=21600)](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/blob/develop/tools/power_perks_relay/README.md#the-install-badge)

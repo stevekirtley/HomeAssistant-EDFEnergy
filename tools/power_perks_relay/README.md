@@ -43,6 +43,9 @@ curl https://apirelay.sitetest.org.uk/power_perks.php?action=health
 | `sessions` | GET | integration user agent or token | The parsed sessions, last 60 days onward. What the integration polls. |
 | `parse` | GET `?text=...&received_at=...` | none | Dry-run the parser without storing anything. |
 | `messages` | GET | token | Every stored text with its parse result, for debugging. |
+| `reparse` | GET | token | Re-run the parser over every stored text. |
+| `stats` | GET `?days=N` | token | Daily request counts by release and consumer, with install estimates. |
+| `badge` | GET | none | The install count for the README badge, as shields.io endpoint JSON. |
 | `health` | GET | none | Liveness, counts, and whether ingest is configured. |
 
 The token goes in an `X-Token` header or a `token` query parameter.
@@ -67,6 +70,24 @@ integration is open source so this is a deterrent, not a lock, but it keeps the 
 of casual scrapers and other projects. A per-address rate limit (30 requests per 5
 minutes by default) keeps any copying cheap. Both are adjustable in `config.php` via
 `feed_user_agent_prefix`, `rate_limit_requests` and `rate_limit_window_seconds`.
+
+## The install badge
+
+The README's active installs badge reads `?action=badge` through shields.io's endpoint
+badge. Every install polls the feed every 15 minutes, so a whole day of the integration's
+own requests divided by 96 is the number of installs. Counting requests instead of
+addresses means no one is identified, and it isn't thrown off when an address changes.
+
+It is built to read low:
+
+- only whole days count, never today's partial one
+- of yesterday and the day before, the lower is used
+- only requests from the integration's user agent count, not read tokens or anything else
+- the result is rounded down to the nearest 50 and shown as a floor, e.g. `850+`
+
+Instances that were off for part of the day count as a fraction, and anything older than
+19.2.0 never polls, so the true figure is higher. If neither day's counts can be read it
+shows `unknown` rather than a guess. Responses can be cached for an hour.
 
 ## Urgent notices
 

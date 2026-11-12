@@ -16,6 +16,8 @@
  *   parse     GET  ?text=...                        public           dry-run the parser, nothing stored
  *   messages  GET                                   token required   raw stored texts, for debugging
  *   reparse   GET                                   token required   re-run the parser over stored texts
+ *   stats     GET  ?days=N                          token required   daily request counts and install estimates
+ *   badge     GET                                   public           install count for the README badge (shields.io endpoint)
  *   health    GET                                   public
  *
  * The token is passed as an X-Token header or a ?token= query parameter. It lives in
@@ -54,6 +56,9 @@ const FEED_POLL_MINUTES = 15;
 // How long the daily counts are kept. They are counts, not records of anyone, so this is
 // about tidiness rather than retention policy.
 const STATS_RETENTION_DAYS = 400;
+
+// The README badge shows installs rounded down to this, with a plus, so it is a floor.
+const BADGE_ROUND_TO = 50;
 
 // ---------------------------------------------------------------------------
 // Parser
@@ -718,6 +723,38 @@ function read_feed_stats(int $days): array
     return $out;
 }
 
+/**
+ * The install count for the README badge, in the shape shields.io's endpoint badge reads.
+ *
+ * Built to read low rather than high. Today is never used because it is still filling up.
+ * Of the last two whole days the lower is taken, so a day lifted by something odd - a burst
+ * of restarts, say - cannot lift the badge with it. Only the integration's own requests
+ * count, not the app feed or anything else. The result is rounded down to BADGE_ROUND_TO and
+ * shown with a plus. With no whole day to go on it says so rather than guessing.
+ */
+function install_badge(DateTimeImmutable $now): array
+{
+    $expected_per_day = (24 * 60) / FEED_POLL_MINUTES;
+    $counts = [];
+    foreach ([1, 2] as $days_ago) {
+        $date = $now->modify("-$days_ago day")->format('Y-m-d');
+        $data = read_json_file(cache_dir() . '/stats/' . $date . '.json');
+        if (isset($data['consumers']['integration'])) {
+            $counts[] = (int)$data['consumers']['integration'];
+        }
+    }
+
+    $badge = ['schemaVersion' => 1, 'label' => 'active installs', 'namedLogo' => 'homeassistant'];
+    if ($counts === []) {
+        return $badge + ['message' => 'unknown', 'color' => 'lightgrey'];
+    }
+
+    $installs = (int)floor(min($counts) / $expected_per_day);
+    $shown = intdiv($installs, BADGE_ROUND_TO) * BADGE_ROUND_TO;
+    $message = $shown > 0 ? $shown . '+' : (string)$installs;
+    return $badge + ['message' => $message, 'color' => '41BDF5'];
+}
+
 /** Drop daily counts older than the retention window. */
 function prune_feed_stats(int $keep_days): void
 {
@@ -765,11 +802,11 @@ function within_rate_limit(array $config): bool
     return $state['count'] <= $limit;
 }
 
-function respond(int $status, array $body): void
+function respond(int $status, array $body, int $max_age = 0): void
 {
     http_response_code($status);
     header('Content-Type: application/json');
-    header('Cache-Control: no-store');
+    header($max_age > 0 ? "Cache-Control: public, max-age=$max_age" : 'Cache-Control: no-store');
     header('Access-Control-Allow-Origin: *');
     echo json_encode($body, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
@@ -874,6 +911,15 @@ function main(): void
                 'days' => read_feed_stats($days),
             ]);
             // no break: respond() exits
+
+        case 'badge':
+            // Public: a rounded floor of the install count is what the README shows anyway.
+            // It only changes once a day, so caches are welcome to hold it for an hour.
+            if (!within_rate_limit($config)) {
+                respond(429, ['ok' => false, 'error' => 'rate limited']);
+            }
+            respond(200, install_badge($now), 3600);
+            // no break
 
         case 'parse':
             if (!within_rate_limit($config)) {
