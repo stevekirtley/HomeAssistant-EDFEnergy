@@ -149,6 +149,16 @@ it costs no extra requests.
 Because it travels on the same feed, the switch above turns these off as well. Worth knowing
 if you turn it off: you will not see these notices.
 
+### 3. Active installs count
+
+The active installs badge at the bottom of this page comes from the same feed. Every install
+checks it every 15 minutes, so a whole day of checks divided by 96 is the number of installs.
+It's worked out from the number of requests each day, not from who made them.
+
+It is meant to read low rather than high. It only uses whole days, takes the lower of the last
+two, counts only the integration's own checks, and rounds down to the nearest 50. Installs with
+the feed turned off, or on a release older than 19.2.0, aren't counted at all.
+
 ### Previously
 
 My server has also been used to supply World Cup fixture times, to extend EDF's football free
@@ -168,4 +178,4 @@ We'll each get £50 credited to our account.
 ---
 
 [![GitHub Stars](https://img.shields.io/github/stars/stevekirtley/HomeAssistant-EDFEnergy?style=flat&label=GitHub%20stars)](https://github.com/stevekirtley/HomeAssistant-EDFEnergy)
-[![Active installs](https://img.shields.io/endpoint?url=https%3A%2F%2Fapirelay.sitetest.org.uk%2Fpower_perks.php%3Faction%3Dbadge&cacheSeconds=21600)](https://github.com/stevekirtley/HomeAssistant-EDFEnergy/blob/develop/tools/power_perks_relay/README.md#the-install-badge)
+[![Active installs](https://img.shields.io/endpoint?url=https%3A%2F%2Fapirelay.sitetest.org.uk%2Fpower_perks.php%3Faction%3Dbadge&cacheSeconds=21600)](#3-active-installs-count)

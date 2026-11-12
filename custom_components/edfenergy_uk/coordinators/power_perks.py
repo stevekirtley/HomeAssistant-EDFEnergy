@@ -4,7 +4,7 @@ EDF announce Power Perks sessions by SMS the day before (occasionally the same d
 nowhere else - not in the Kraken API, not in their website APIs, and not in the mobile app,
 whose Power Perks screen is a fixed "free electricity is auto-applied when available"
 banner. The text is therefore relayed from the phone to a small endpoint that parses it
-and publishes the sessions as JSON (see tools/power_perks_relay). This coordinator
+and publishes the sessions as JSON. This coordinator
 polls that feed and hands the sessions to the free electricity sessions coordinator, where
 they join the calendar, the session sensors and the events feed like any other source.
 

@@ -127,8 +127,8 @@ EXTRA_TIME_RELAY_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=s
 RELAY_FIXTURES_URL = "https://apirelay.sitetest.org.uk/extra_time.php?action=fixtures"
 
 # Power Perks free electricity sessions. EDF announce these by SMS only, so the text is
-# relayed to this endpoint (see tools/power_perks_relay) which parses it and publishes
-# the sessions. If it is unreachable the last known sessions are kept.
+# relayed to this endpoint, which parses it and publishes the sessions. If it is
+# unreachable the last known sessions are kept.
 POWER_PERKS_FEED_URL = "https://apirelay.sitetest.org.uk/power_perks.php?action=sessions"
 
 # Steve's Power Perks Predictor. Read only while its tab is open - there is no coordinator

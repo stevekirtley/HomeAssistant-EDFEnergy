@@ -123,7 +123,7 @@ Joins an account to Flextras, EDF's rewards scheme, without opening the mobile a
 
 Records a Flextras Power Perks free electricity session so it appears in the [free electricity calendar](./entities/free_electricity.md), the session sensors and the session events, exactly like a session picked up automatically.
 
-EDF announce Power Perks sessions by SMS the day before and nowhere else, so the integration normally learns about them from a relay that parses the text (see `tools/power_perks_relay` in the repository). Use this action when a text could not be parsed, or if you are not using the relay. Registering a session with the same start time again replaces the earlier one.
+EDF announce Power Perks sessions by SMS the day before and nowhere else, so the integration normally learns about them from a relay that parses the text. Use this action when a text could not be parsed, or if you are not using the relay. Registering a session with the same start time again replaces the earlier one.
 
 | Attribute | Optional | Description |
 |---|---|---|
