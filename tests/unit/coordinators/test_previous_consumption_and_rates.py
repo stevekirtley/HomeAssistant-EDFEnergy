@@ -1580,3 +1580,73 @@ async def test_when_gas_previous_rates_are_same_as_consumption_then_rates_not_re
     
     assert get_rates_called == False
     assert get_standing_charge_called == False
+@pytest.mark.asyncio
+async def test_when_part_of_today_is_available_then_latest_consumption_timestamp_is_the_newest_reading():
+  # Arrange
+  period_from = datetime.strptime("2022-02-28T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
+  period_to = datetime.strptime("2022-03-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
+  newest_reading = datetime.strptime("2022-03-01T03:00:00Z", "%Y-%m-%dT%H:%M:%S%z")
+
+  async def async_mocked_get_electricity_consumption(*args, **kwargs):
+    return create_consumption_data(period_from, newest_reading)
+
+  async def async_mocked_get_electricity_rates(*args, **kwargs):
+    return create_rate_data(period_from, period_to, [1, 2])
+
+  async def async_mocked_get_electricity_standing_charge(*args, **kwargs):
+    return { "value_inc_vat": 100.2 }
+
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption, async_get_electricity_rates=async_mocked_get_electricity_rates, async_get_electricity_standing_charge=async_mocked_get_electricity_standing_charge):
+    client = EDFEnergyApiClient("NOT_REAL")
+
+    # Act
+    result = await async_fetch_consumption_and_rates(
+      None,
+      datetime.strptime("2022-03-01T10:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
+      get_account_info(period_from),
+      client,
+      sensor_identifier,
+      sensor_serial_number,
+      True,
+      True,
+      lambda name, metadata: None
+    )
+
+  # Assert
+  assert result.consumption[-1]["end"] == period_to
+  assert result.latest_consumption_timestamp == newest_reading
+
+@pytest.mark.asyncio
+async def test_when_no_consumption_returned_then_latest_consumption_timestamp_is_kept():
+  # Arrange
+  known_timestamp = datetime.strptime("2022-02-28T23:30:00Z", "%Y-%m-%dT%H:%M:%S%z")
+  async def async_mocked_get_electricity_consumption(*args, **kwargs):
+    return []
+
+  previous_data = PreviousConsumptionCoordinatorResult(
+    datetime.strptime("2022-03-01T08:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
+    1,
+    [],
+    [],
+    10.1,
+    latest_consumption_timestamp=known_timestamp
+  )
+
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_consumption=async_mocked_get_electricity_consumption):
+    client = EDFEnergyApiClient("NOT_REAL")
+
+    # Act
+    result = await async_fetch_consumption_and_rates(
+      previous_data,
+      datetime.strptime("2022-03-01T10:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
+      get_account_info(known_timestamp),
+      client,
+      sensor_identifier,
+      sensor_serial_number,
+      True,
+      True,
+      lambda name, metadata: None
+    )
+
+  # Assert
+  assert result.latest_consumption_timestamp == known_timestamp

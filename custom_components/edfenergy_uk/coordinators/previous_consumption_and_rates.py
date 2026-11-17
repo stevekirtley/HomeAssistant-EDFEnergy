@@ -49,6 +49,7 @@ class PreviousConsumptionCoordinatorResult(BaseCoordinatorResult):
   consumption: list
   rates: list
   standing_charge: float
+  latest_consumption_timestamp: datetime | None
 
   def __init__(self,
                last_evaluated: datetime,
@@ -56,11 +57,20 @@ class PreviousConsumptionCoordinatorResult(BaseCoordinatorResult):
                consumption: list,
                rates: list,
                standing_charge,
-               last_error: Exception | None = None):
+               last_error: Exception | None = None,
+               latest_consumption_timestamp: datetime | None = None):
     super().__init__(last_evaluated, request_attempts, REFRESH_RATE_IN_MINUTES_PREVIOUS_CONSUMPTION, None, last_error)
     self.consumption = consumption
     self.rates = rates
     self.standing_charge = standing_charge
+    self.latest_consumption_timestamp = latest_consumption_timestamp
+
+def get_latest_consumption_timestamp(consumption_data: list | None, fallback: datetime | None = None):
+  """The end of the newest reading EDF has, complete day or not."""
+  if consumption_data is None or len(consumption_data) < 1:
+    return fallback
+
+  return max(consumption["end"] for consumption in consumption_data)
 
 def contains_consumption(consumptions: list, current_consumption):
   for consumption in consumptions:
@@ -122,10 +132,12 @@ async def async_fetch_consumption_and_rates(
       current >= previous_data.next_refresh):
     rate_data = None
     standing_charge = None
+    latest_consumption_timestamp = previous_data.latest_consumption_timestamp if previous_data is not None else None
 
     try:
       if (is_electricity == True):
         consumption_data = await client.async_get_electricity_consumption(identifier, serial_number, page_size=CONSUMPTION_PAGE_SIZE, is_export=is_export)
+        latest_consumption_timestamp = get_latest_consumption_timestamp(consumption_data, latest_consumption_timestamp)
         consumption_data = get_latest_day(consumption_data)
 
         if consumption_data is not None:
@@ -194,6 +206,7 @@ async def async_fetch_consumption_and_rates(
                 _LOGGER.debug(f"Rates adjusted: {rate_data}; device id: {key} dispatches: {item.dispatches.to_dict()}")
       else:
         consumption_data = await client.async_get_gas_consumption(identifier, serial_number, page_size=CONSUMPTION_PAGE_SIZE)
+        latest_consumption_timestamp = get_latest_consumption_timestamp(consumption_data, latest_consumption_timestamp)
         consumption_data = get_latest_day(consumption_data)
 
         if consumption_data is not None:
@@ -238,7 +251,8 @@ async def async_fetch_consumption_and_rates(
           1,
           consumption_data,
           rate_data,
-          standing_charge["value_inc_vat"]
+          standing_charge["value_inc_vat"],
+          latest_consumption_timestamp=latest_consumption_timestamp
         )
 
 
@@ -247,7 +261,8 @@ async def async_fetch_consumption_and_rates(
         1,
         previous_data.consumption if previous_data is not None else None,
         previous_data.rates if previous_data is not None else None,
-        previous_data.standing_charge if previous_data is not None else None
+        previous_data.standing_charge if previous_data is not None else None,
+        latest_consumption_timestamp=latest_consumption_timestamp
       )
     except Exception as e:
       if isinstance(e, ApiException) == False:
@@ -261,7 +276,8 @@ async def async_fetch_consumption_and_rates(
           previous_data.consumption,
           previous_data.rates,
           previous_data.standing_charge,
-          last_error=e
+          last_error=e,
+          latest_consumption_timestamp=previous_data.latest_consumption_timestamp
         )
 
         if (result.request_attempts == 2):
