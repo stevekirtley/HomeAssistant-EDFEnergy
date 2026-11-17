@@ -1762,6 +1762,11 @@
 <td><code>float</code></td>
 <td>The calorific value used for the calculations, as set in your <a href="../../setup/account/#calorific-value">account</a>.</td>
 </tr>
+<tr>
+<td><code>latest_consumption_timestamp</code></td>
+<td><code>datetime</code></td>
+<td>When EDF's newest reading for the meter ends. This can be later than the day this sensor reports, because only complete days are used.</td>
+</tr>
 </tbody>
 </table>
 <p>Each charge item has the following attributes</p>
@@ -1842,6 +1847,11 @@
 <td><code>calorific_value</code></td>
 <td><code>float</code></td>
 <td>The calorific value used for the calculations, as set in your <a href="../../setup/account/#calorific-value">account</a>.</td>
+</tr>
+<tr>
+<td><code>latest_consumption_timestamp</code></td>
+<td><code>datetime</code></td>
+<td>When EDF's newest reading for the meter ends. This can be later than the day this sensor reports, because only complete days are used.</td>
 </tr>
 </tbody>
 </table>

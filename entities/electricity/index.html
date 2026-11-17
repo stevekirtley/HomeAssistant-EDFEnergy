@@ -2125,6 +2125,11 @@
 <td><code>array</code></td>
 <td>Collection of consumption periods for the previous day broken down into 30 minute periods.</td>
 </tr>
+<tr>
+<td><code>latest_consumption_timestamp</code></td>
+<td><code>datetime</code></td>
+<td>When EDF's newest reading for the meter ends. This can be later than the day this sensor reports, because only complete days are used.</td>
+</tr>
 </tbody>
 </table>
 <p>Each charge item has the following attributes</p>
