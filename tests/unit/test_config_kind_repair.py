@@ -119,9 +119,12 @@ async def test_the_discovery_sweep_survives_an_entry_without_a_kind():
   class FakeEntity:
     def __init__(self, entity_id, unique_id):
       self.entity_id = entity_id
+      self.domain = entity_id.split(".")[0]
       self.unique_id = unique_id
       self.disabled_by = None
       self.unit_of_measurement = "kWh"
+      self.device_class = None
+      self.original_device_class = "energy"
       self.name = None
       self.original_name = "Some Meter"
 

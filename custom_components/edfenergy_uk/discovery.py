@@ -11,13 +11,12 @@ from homeassistant.config_entries import SOURCE_INTEGRATION_DISCOVERY
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import discovery_flow
 from homeassistant.const import (
-    EVENT_HOMEASSISTANT_STOP
+    EVENT_HOMEASSISTANT_STOP,
+    UnitOfEnergy,
 )
 from homeassistant.helpers.event import async_track_time_interval
 
-from homeassistant.util.unit_conversion import (
-    EnergyConverter,
-)
+from homeassistant.components.sensor import SensorDeviceClass
 
 from .const import (
     CONFIG_COST_TRACKER_DISCOVERY_ACCOUNT_ID,
@@ -32,6 +31,30 @@ from .const import (
 from .config.kind import get_config_kind
 
 _LOGGER = logging.getLogger(__name__)
+
+# Electricity is metered in watt hours. Home Assistant's energy units also take in joules and
+# calories, which brought fitness trackers' kcal sensors along with them.
+COST_TRACKER_UNITS = {
+    UnitOfEnergy.MILLIWATT_HOUR,
+    UnitOfEnergy.WATT_HOUR,
+    UnitOfEnergy.KILO_WATT_HOUR,
+    UnitOfEnergy.MEGA_WATT_HOUR,
+    UnitOfEnergy.GIGA_WATT_HOUR,
+    UnitOfEnergy.TERA_WATT_HOUR,
+}
+
+def is_cost_tracker_candidate(entity_entry) -> bool:
+    """Whether an entity is worth offering as a cost tracker."""
+    if entity_entry.domain != "sensor":
+        return False
+
+    if entity_entry.unit_of_measurement not in COST_TRACKER_UNITS:
+        return False
+
+    # A battery's stored energy is in kWh too, but it isn't something being used. The user's
+    # own choice of class wins over the one the integration gave it; no class at all is fine.
+    device_class = entity_entry.device_class or entity_entry.original_device_class
+    return device_class is None or device_class == SensorDeviceClass.ENERGY
 
 class DiscoveryManager:
     """Device Discovery."""
@@ -74,7 +97,7 @@ class DiscoveryManager:
             if item[1].disabled_by is not None:
                 continue
 
-            if item[1].unit_of_measurement not in (EnergyConverter.VALID_UNITS):
+            if is_cost_tracker_candidate(item[1]) == False:
                 continue
 
             config_exists = False
