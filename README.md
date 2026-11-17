@@ -33,7 +33,7 @@ No longer listed as a fork as code has deviated significantly from the original 
 
 This integration is not affiliated with EDF Energy, Kraken, or BottlecapDave.
 
-If you find this useful and are planning on switching to EDF Energy, you're welcome to use my [referral link](https://edfenergy.com/quote/refer-a-friend/massive-sun-7007).
+If you find this useful and are planning on switching to EDF Energy, you're welcome to use my [referral link](https://edfenergy.com/quote/refer-a-friend/massive-sun-7007). Until 5 January 2027 you'll get £75 credited to your account when you switch.
 
 ---
 
@@ -172,7 +172,7 @@ the integration makes no fixture requests.
 
 If you find this useful and are planning on switching to EDF Energy, you're welcome to use my [referral link](https://edfenergy.com/quote/refer-a-friend/massive-sun-7007).
 
-We'll each get £50 credited to our account.
+Until 5 January 2027 you'll get £75 credited to your account when you switch, and I'll get £100.
 
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/stevekirtley)
