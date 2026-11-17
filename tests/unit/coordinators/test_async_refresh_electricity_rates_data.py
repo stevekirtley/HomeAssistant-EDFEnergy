@@ -2328,3 +2328,49 @@ async def test_when_existing_rates_is_old_but_no_rates_returned_then_rates_retri
     assert len(actual_fired_events.keys()) == 4
     assert raise_rates_empty_called == True
     assert clear_rates_empty_called == False
+@pytest.mark.asyncio
+@pytest.mark.parametrize("other_device_has_dispatches", [True, False])
+async def test_when_rates_next_refresh_is_in_the_future_and_a_device_has_no_dispatch_result_yet_then_no_error(other_device_has_dispatches: bool):
+  expected_period_from = (current - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+  expected_period_to = (current + timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
+  async def async_mocked_get_electricity_rates(*args, **kwargs):
+    return None
+
+  def fire_event(name, metadata):
+    return None
+
+  account_info = get_account_info()
+  expected_original_rates = create_rate_data(expected_period_from, expected_period_to, [1, 2, 3, 4])
+  existing_rates = ElectricityRatesCoordinatorResult(current - timedelta(minutes=4, seconds=59), 1, expected_original_rates.copy())
+  expected_dispatch_start = (current + timedelta(hours=2)).replace(second=0, microsecond=0)
+  expected_dispatch_end = expected_dispatch_start + timedelta(minutes=90)
+
+  # A device whose dispatches haven't been fetched yet sits in the results as None
+  dispatches_result = { "1": None }
+  if other_device_has_dispatches:
+    dispatches_result["2"] = IntelligentDispatchesCoordinatorResult(existing_rates.last_evaluated + timedelta(seconds=1), 1, IntelligentDispatches(
+      "SMART_CONTROL_IN_PROGRESS",
+      [IntelligentDispatchItem(expected_dispatch_start, expected_dispatch_end, 1, "smart-charge", "home")],
+      []
+    ), IntelligentDispatchesHistory([]), 1, dispatches_last_retrieved)
+
+  with mock.patch.multiple(EDFEnergyApiClient, async_get_electricity_rates=async_mocked_get_electricity_rates):
+    client = EDFEnergyApiClient("NOT_REAL")
+    retrieved_rates: ElectricityRatesCoordinatorResult = await async_refresh_electricity_rates_data(
+      current,
+      client,
+      account_info,
+      mpan,
+      serial_number,
+      True,
+      False,
+      existing_rates,
+      dispatches_result,
+      fire_event,
+    )
+
+  if other_device_has_dispatches:
+    assert retrieved_rates.rates_last_adjusted == current
+    assert len([rate for rate in retrieved_rates.rates if rate.get("is_intelligent_adjusted")]) == 3
+  else:
+    assert retrieved_rates == existing_rates

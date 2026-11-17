@@ -109,9 +109,9 @@ class EDFEnergyIntelligentDispatching(MultiCoordinatorEntity, BinarySensorEntity
     attr_cutoff = current_date - timedelta(hours=48)
     recent_completed = [d for d in completed if d.end is not None and d.end >= attr_cutoff]
     self.__init_attributes__(
-      dispatches_to_dictionary_list(result.dispatches.planned, ignore_none=True) if result is not None else [],
+      dispatches_to_dictionary_list(result.dispatches.planned, ignore_none=True) if result is not None and result.dispatches is not None else [],
       dispatches_to_dictionary_list(recent_completed, ignore_none=False),
-      simple_dispatches_to_dictionary_list(started_dispatches) if result is not None else [],
+      simple_dispatches_to_dictionary_list(started_dispatches),
     )
 
     applicable_dispatches = get_applicable_dispatch_periods(result.dispatches.planned if result is not None and result.dispatches is not None else [],
@@ -138,7 +138,7 @@ class EDFEnergyIntelligentDispatching(MultiCoordinatorEntity, BinarySensorEntity
       self._attributes["next_end"] = None
 
     if self._state != is_dispatching:
-      _LOGGER.debug(f"EDFEnergyIntelligentDispatching state changed from {self._state} to {is_dispatching}; dispatches: {result.dispatches.to_dict() if result.dispatches is not None else None}; started_dispatches: {list(map(lambda x: x.to_dict(), started_dispatches)) if started_dispatches is not None else []}")
+      _LOGGER.debug(f"EDFEnergyIntelligentDispatching state changed from {self._state} to {is_dispatching}; dispatches: {result.dispatches.to_dict() if result is not None and result.dispatches is not None else None}; started_dispatches: {list(map(lambda x: x.to_dict(), started_dispatches)) if started_dispatches is not None else []}")
     
     self._state = is_dispatching
 
