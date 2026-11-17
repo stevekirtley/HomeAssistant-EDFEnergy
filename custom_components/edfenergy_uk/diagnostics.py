@@ -103,7 +103,10 @@ async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, exi
     intelligent_device_dict = intelligent_device.to_dict()
     intelligent_settings = await client.async_get_intelligent_settings(account_id, intelligent_device.id)
     intelligent_device_dict["id"] = "**REDACTED**"
-    intelligent_device_dict["settings"] = intelligent_settings.dict() if intelligent_settings is not None else None
+    intelligent_device_dict["settings"] = async_redact_data(intelligent_settings.dict(), { "id" }) if intelligent_settings is not None else None
+
+    # The device id is also part of every intelligent entity's unique id
+    redacted_mappings[f"{intelligent_device.id}"] = f"d{idx}"
 
     intelligent_devices_dict.append(intelligent_device_dict)
   
@@ -129,7 +132,7 @@ async def async_get_diagnostics(client: EDFEnergyApiClient, account_id: str, exi
     "account": account_info,
     "using_cached_account_data": existing_account_info is not None,
     "entities": get_entity_info(redacted_mappings),
-    "intelligent_devices": list(map(lambda x: x.to_dict(), intelligent_devices)),
+    "intelligent_devices": intelligent_devices_dict,
     "flextras_hours_screen": flextras_hours_screen,
   }
 

@@ -10,11 +10,14 @@ import json
 import pytest
 
 from custom_components.edfenergy_uk import diagnostics
+from custom_components.edfenergy_uk.api_client.intelligent_device import IntelligentDevice
+from custom_components.edfenergy_uk.api_client.intelligent_device_settings import IntelligentDeviceSettings
 from custom_components.edfenergy_uk.const import CONFIG_ACCOUNT_ID, DATA_ACCOUNT, DATA_CLIENT, DOMAIN
 
 ACCOUNT = "A-AAAA1111"
 OTHER_ACCOUNT = "A-BBBB2222"
 OTHER_INTEGRATION_ACCOUNT = "A-CCCC3333"
+DEVICE_ID = "00000000-0000-4000-8000-0000000d3v1c"
 
 
 class StubEntry:
@@ -61,7 +64,10 @@ class StubClient:
     return []
 
   async def async_get_intelligent_devices(self, account_id):
-    return []
+    return [IntelligentDevice(DEVICE_ID, "EDF", "Tesla", "Model 3", 75, 7.4, "ELECTRIC_VEHICLES")]
+
+  async def async_get_intelligent_settings(self, account_id, device_id):
+    return IntelligentDeviceSettings(id=device_id)
 
 
 class StubHass:
@@ -83,6 +89,7 @@ ENTRIES = [StubEntry("account", ACCOUNT), StubEntry("cost-tracker", ACCOUNT), St
 ENTITIES = [
   StubRegistryEntity(DOMAIN, "account", "edf_energy_electricity_SERIAL1_1000000000001_current_rate"),
   StubRegistryEntity(DOMAIN, "cost-tracker", f"edf_energy_ct_{ACCOUNT}_sensor.kettle"),
+  StubRegistryEntity(DOMAIN, "account", f"edf_energy_{DEVICE_ID}_intelligent_bump_charge"),
   StubRegistryEntity(DOMAIN, "second-account", "edf_energy_electricity_SERIAL9_1999999999999_current_rate"),
   StubRegistryEntity(DOMAIN, "second-account", f"edf_energy_{OTHER_ACCOUNT}_account_balance"),
   StubRegistryEntity("edf_energy", "their-entry", f"edf_energy_{OTHER_INTEGRATION_ACCOUNT}_balance"),
@@ -109,6 +116,7 @@ async def test_only_this_accounts_entities_are_reported(hass, download):
 
   assert sorted(result["entities"]) == [
     "edf_energy_ct_a_sensor.kettle",
+    "edf_energy_d0_intelligent_bump_charge",
     "edf_energy_electricity_1_2_current_rate",
   ]
 
@@ -119,3 +127,15 @@ async def test_no_other_accounts_identifiers_reach_the_download(hass, identifier
   result = await diagnostics.async_get_config_entry_diagnostics(hass, ENTRIES[0])
 
   assert identifier.lower() not in json.dumps(result, default=str).lower()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("download", ["entry", "device"])
+async def test_intelligent_device_id_does_not_reach_the_download(hass, download):
+  if download == "entry":
+    result = await diagnostics.async_get_config_entry_diagnostics(hass, ENTRIES[0])
+  else:
+    result = await diagnostics.async_get_device_diagnostics(hass, ENTRIES[0], None)
+
+  assert DEVICE_ID.lower() not in json.dumps(result, default=str).lower()
+  assert result["intelligent_devices"][0]["make"] == "Tesla"
