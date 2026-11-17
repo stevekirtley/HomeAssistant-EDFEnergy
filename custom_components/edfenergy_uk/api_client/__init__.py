@@ -309,6 +309,20 @@ user_agent_value = "stevekirtley-ha-edf-energy"
 
 integration_context_header = "Ha-Integration-Context"
 
+# Kraken rate-limits token minting per account. A failed attempt leaves our token expired,
+# so without a cooldown every request after a server error tries again and keeps the limit
+# tripped.
+MINIMUM_TOKEN_RETRIEVAL_COOLDOWN_IN_MINUTES = 1
+MAXIMUM_TOKEN_RETRIEVAL_COOLDOWN_IN_MINUTES = 30
+
+def calculate_token_retrieval_cooldown(failure_count: int) -> timedelta:
+  """How long to wait before minting another token after this many failures in a row."""
+  if failure_count < 1:
+    return timedelta(minutes=0)
+
+  minutes = MINIMUM_TOKEN_RETRIEVAL_COOLDOWN_IN_MINUTES * (2 ** (failure_count - 1))
+  return timedelta(minutes=min(minutes, MAXIMUM_TOKEN_RETRIEVAL_COOLDOWN_IN_MINUTES))
+
 def get_valid_from(rate):
   return rate["valid_from"]
 
@@ -484,6 +498,10 @@ class IntelligentBoostChargeException(RequestException):
     super().__init__(message, errors)
     self.refusal_reason = refusal_reason
 
+def is_cloudfront_error(status: int, text: str | None) -> bool:
+  """CloudFront sits in front of EDF's API and reports its own failures as a 403."""
+  return status == 403 and text is not None and "The request could not be satisfied" in text and "cloudfront" in text.lower()
+
 def process_boost_charge_refusal(reason: str):
   if reason == "BC_DEVICE_NOT_YET_LIVE":
     return "Device is not yet live"
@@ -563,6 +581,8 @@ class EDFEnergyApiClient:
     self._graphql_refresh_expiration = None
     self._on_token_refresh = on_token_refresh
     self._on_refresh_expiry_update = on_refresh_expiry_update
+    self._token_retrieval_failures = 0
+    self._token_retrieval_cooldown_until = None
 
     self._product_tracker_cache = dict()
 
@@ -644,11 +664,24 @@ class EDFEnergyApiClient:
         _LOGGER.debug("Refresh token expired - re-authentication required")
         raise AuthenticationException("Refresh token has expired, re-authentication required", [])
 
+      if self._token_retrieval_cooldown_until is not None and self._token_retrieval_cooldown_until > now():
+        msg = f"Token retrieval is in cooldown until {self._token_retrieval_cooldown_until} after {self._token_retrieval_failures} failure(s) in a row - skipping refresh"
+        _LOGGER.debug(msg)
+        raise ServerException(msg)
+
       try:
         await self.__async_fetch_token()
       except TimeoutError:
         _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
         raise TimeoutException()
+      except ServerException:
+        self._token_retrieval_failures += 1
+        self._token_retrieval_cooldown_until = now() + calculate_token_retrieval_cooldown(self._token_retrieval_failures)
+        _LOGGER.debug(f"Failed to retrieve auth token {self._token_retrieval_failures} time(s) in a row - not trying again until {self._token_retrieval_cooldown_until}")
+        raise
+
+      self._token_retrieval_failures = 0
+      self._token_retrieval_cooldown_until = None
 
   async def __async_fetch_token(self):
     if self._api_key is not None:
@@ -2481,8 +2514,19 @@ class EDFEnergyApiClient:
         msg = f'Response received - {url} ({request_context}) - DO NOT REPORT - EDF Energy server error ({url}): {response.status}; {text}'
         _LOGGER.warning(msg)
         raise ServerException(msg)
+      elif is_cloudfront_error(response.status, text):
+        # CloudFront answers its own failures with a 403. That says nothing about our
+        # credentials, and treating it as one would ask the user to re-authenticate.
+        msg = f'Response received - {url} ({request_context}) - DO NOT REPORT - EDF Energy server error ({url}): {response.status}; {text}'
+        _LOGGER.info(msg)
+        raise ServerException(msg)
       elif response.status in [401, 403]:
         msg = f'Response received - {url} ({request_context}) - Unauthenticated request: {response.status}; {text}'
+        # Drop the rejected access token so the next request mints a fresh one rather than
+        # reusing it until it would have expired. The refresh token stays: for older entries
+        # it is the stored credential, and losing it would force a re-authentication.
+        self._graphql_token = None
+        self._graphql_expiration = None
         _LOGGER.warning(msg)
         raise AuthenticationException(msg, [])
       elif response.status not in [404]:
