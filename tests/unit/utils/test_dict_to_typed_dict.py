@@ -80,6 +80,22 @@ async def test_when_default_ignore_key_is_present_then_not_returned():
   assert "mprn" in result
 
 @pytest.mark.asyncio
+async def test_when_restored_state_has_state_class_or_device_class_then_not_returned():
+  # Restored into a sensor's own attributes, these would override the classes the code now sets
+  # Arrange
+  input = {
+    "mpan": "1",
+    "state_class": "measurement",
+    "device_class": "energy",
+  }
+
+  # Act
+  result = dict_to_typed_dict(input)
+
+  # Assert
+  assert result == { "mpan": "1" }
+
+@pytest.mark.asyncio
 async def test_when_int_is_present_then_converted_to_int():
   # Arrange
   input = {
